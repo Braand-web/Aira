@@ -38,8 +38,10 @@ const settings={};
 const allowed=new Set(["ANTHROPIC_API_KEY","ANTHROPIC_MODEL","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY"]);
 const configFile=path.join(project,".dev.vars");
 if(existsSync(configFile))for(const line of readFileSync(configFile,"utf8").split(/\r?\n/)){const match=line.match(/^([A-Z_]+)=(.*)$/);if(match&&allowed.has(match[1]))settings[match[1]]=match[2].trim().replace(/^["']|["']$/g,"");}
+for(const [k,v] of Object.entries(process.env))if(/^(SASPAY_|BILLING_|ANTHROPIC_RATE_JSON$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$)/.test(k))settings[k]=v;
 const context=new AsyncLocalStorage();globalThis.__airaLocal={env:{DB,BUCKET,...settings},context};
 const routeFiles={
+ billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",billingAdmin:"app/api/admin/billing/route.ts",
  workspace:"app/api/workspace/route.ts",chat:"app/api/chat/route.ts",files:"app/api/files/route.ts",
  resource:"app/api/resources/[id]/route.ts",page:"app/api/pages/[id]/route.ts",proposal:"app/api/proposals/[id]/route.ts",
  meta:"app/api/meta/route.ts",connect:"app/api/meta/connect/route.ts",callback:"app/api/meta/callback/route.ts"
@@ -70,11 +72,12 @@ const server=createServer(async(req,res)=>{
    const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("oai-authenticated-user-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>24*1024*1024){sendJSON(res,413,{error:"Requête trop volumineuse."});return;}chunks.push(chunk);}
    const request=new Request(url,{method:req.method,headers:requestHeaders,...(!["GET","HEAD"].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
-   const exact={"/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
+   const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/admin/billing":"billingAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
    let name=exact[url.pathname],id;const match=url.pathname.match(/^\/api\/(resources|pages|proposals)\/([^/]+)$/);
    if(match){name={resources:"resource",pages:"page",proposals:"proposal"}[match[1]];id=decodeURIComponent(match[2]);}
+   if(url.pathname.startsWith("/api/billing/"))name="billing";
    const handler=name&&routes[name]?.[req.method];if(!handler){sendJSON(res,404,{error:"Route introuvable."});return;}
-   let response=await context.run({headers},()=>handler(request,{params:Promise.resolve({id})}));
+   let response=await context.run({headers},()=>handler(request,{params:Promise.resolve({id,path:url.pathname.slice("/api/billing/".length).split("/")})}));
    if(url.pathname==="/api/workspace"&&req.method==="GET"&&response.ok){const body=await response.json();response=Response.json({...body,development:true});}
    res.writeHead(response.status,Object.fromEntries(response.headers));
    if(response.body){const reader=response.body.getReader();res.on("close",()=>{if(!res.writableFinished)void reader.cancel();});while(true){const {done,value}=await reader.read();if(done)break;if(!res.destroyed)res.write(Buffer.from(value));}}res.end();return;

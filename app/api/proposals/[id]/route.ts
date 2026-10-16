@@ -1,39 +1,60 @@
-import {z} from "zod";
-import {identity,getResource,db,uid,updateResource,failure,auditLog,config} from "@/lib/server";
-import {AppError,assertVersion,validateModelInput} from "@/lib/core.mjs";
-import {falCatalog,submitFal,falResult} from "@/lib/providers";
+import {z} from 'zod';
+import {identity,getResource,db,updateResource,failure,auditLog,config,authorize} from '@/lib/server';
+import {AppError,assertVersion,validateModelInput} from '@/lib/core.mjs';
+import {falCatalog,submitFal,falResult} from '@/lib/providers';
+import {reserve,settleHold} from '@/lib/billing';
 export async function POST(request:Request,context:{params:Promise<{id:string}>}){try{
- const {tenant}=await identity(request),{id}=await context.params,{version}=z.object({version:z.number().int()}).parse(await request.json());
- const resource=await getResource(tenant,id);assertVersion(resource.version,version);
- if(resource.kind!=="proposal"||resource.data.kind!=="media")throw new AppError("Proposition média requise.");
- if(!config().FAL_KEY)throw new AppError("fal.ai non configuré.",503);
- const opId=id+":"+version,previous=await db().prepare("SELECT id,status FROM operations WHERE id=? AND workspace_id=?").bind(opId,tenant).first();
+ const who=await identity(request,'approve'),{tenant}=who,{id}=await context.params;
+ const {version}=z.object({version:z.number().int()}).parse(await request.json());
+ const resource=await getResource(tenant,id),opId=id+':'+version;
+ const previous=await db().prepare('SELECT id,status FROM operations WHERE id=? AND workspace_id=?').bind(opId,tenant).first();
  if(previous)return Response.json({operation:previous,replayed:true});
- if(resource.status!=="awaiting_approval")throw new AppError("Cette proposition n’attend plus de validation.",409);
+ assertVersion(resource.version,version);
+ if(resource.kind!=='proposal'||resource.data.kind!=='media'||resource.status!=='awaiting_approval')throw new AppError('Proposition média à valider requise.',409);
+ if(!config().FAL_KEY)throw new AppError('fal.ai non configuré.',503);
  const model=falCatalog().find(m=>m.id===resource.data.payload.model),amount=resource.data.maxCredits;
- if(!model||model.credits!==amount)throw new AppError("Le tarif a changé. Une nouvelle proposition est nécessaire.",409);
+ if(!model||model.credits!==amount)throw new AppError('Le tarif a changé. Une nouvelle proposition est nécessaire.',409);
+ if(!model.costCeilingXaf||!model.verifiedAt||Date.now()-Date.parse(model.verifiedAt)>86400000||model.costCeilingXaf>amount*4)throw new AppError('Le coût de ce modèle doit être vérifié avant génération.',503);
  validateModelInput(resource.data.payload.input,model.inputSchema);
- const batch=await db().batch([db().prepare("INSERT INTO operations (id,workspace_id,resource_id,status,amount,created_at,updated_at) VALUES (?,?,?,'reserving',?,?,?)").bind(opId,tenant,id,amount,Date.now(),Date.now()),db().prepare("UPDATE workspaces SET reserved=reserved+? WHERE id=? AND credits-reserved>=?").bind(amount,tenant,amount)]);
- if(!batch[1].meta.changes){await db().prepare("UPDATE operations SET status='insufficient_credits' WHERE id=?").bind(opId).run();throw new AppError("Crédits insuffisants. Aucun appel média effectué.",402);}
- await db().prepare("UPDATE operations SET status='submitting' WHERE id=?").bind(opId).run();await auditLog(tenant,"media.approved",id,{version,maxCredits:amount});
+ const hold=await reserve(who,'media:'+opId,amount*100);
+ const claim=await db().prepare("INSERT OR IGNORE INTO operations (id,workspace_id,resource_id,status,amount,detail,created_at,updated_at) VALUES (?,?,?,'submitting',?,?,?,?)").bind(opId,tenant,id,amount,JSON.stringify({model:model.id,holdId:hold.id,costCeilingXaf:model.costCeilingXaf}),Date.now(),Date.now()).run();
+ if(!claim.meta.changes)return Response.json({operationId:opId,replayed:true});
  try{
-  const externalId=await submitFal(model.id,resource.data.payload.input);await db().prepare("UPDATE operations SET status='waiting_external',external_id=?,detail=?,updated_at=? WHERE id=?").bind(externalId,JSON.stringify({model:model.id}),Date.now(),opId).run();await updateResource(tenant,id,version,{status:"generating"});return Response.json({operationId:opId,status:"waiting_external"});
+  await authorize(tenant,who.user.userId,'approve');
+  const externalId=await submitFal(model.id,resource.data.payload.input);
+  await db().prepare("UPDATE operations SET status='waiting_external',external_id=?,updated_at=? WHERE id=?").bind(externalId,Date.now(),opId).run();
+  await db().prepare("INSERT OR IGNORE INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,request_id,rate,usage,status,created_at) VALUES (?,?,?,?,?,'fal','creative',?,?,?,'unknown',?)").bind('fal:'+opId,who.organization,tenant,opId,hold.id,externalId,JSON.stringify({costCeilingXaf:model.costCeilingXaf,verifiedAt:model.verifiedAt}),JSON.stringify({model:model.id}),Date.now()).run();
+  await updateResource(tenant,id,version,{status:'generating'});
+  await auditLog(tenant,'media.approved',id,{actor:who.user.userId,version,maxCredits:amount});
+  return Response.json({operationId:opId,status:'waiting_external'});
  }catch(error){
-  if(error instanceof AppError&&error.code==="fal_rejected"){
-   await db().batch([db().prepare("UPDATE workspaces SET reserved=reserved-? WHERE id=? AND reserved>=? AND EXISTS (SELECT 1 FROM operations WHERE id=? AND status='submitting')").bind(amount,tenant,amount,opId),db().prepare("UPDATE operations SET status='rejected',updated_at=? WHERE id=? AND status='submitting'").bind(Date.now(),opId)]);
-   await auditLog(tenant,"media.rejected",id,{creditsReleased:amount});throw new AppError("fal.ai a refusé la génération. Les crédits réservés ont été libérés.",502,"fal_rejected");
+  if(error instanceof AppError&&(error.code==='fal_rejected'||error.status===403)){
+   await settleHold(hold.id,0);await db().prepare("UPDATE operations SET status='rejected',updated_at=? WHERE id=?").bind(Date.now(),opId).run();throw error;
   }
-  await db().prepare("UPDATE operations SET status='needs_reconciliation',updated_at=? WHERE id=?").bind(Date.now(),opId).run();throw new AppError("Résultat fournisseur incertain. Réservation conservée pour rapprochement ; aucun nouvel essai automatique.",502,"needs_reconciliation");
+  await db().prepare("UPDATE operations SET status='needs_reconciliation',updated_at=? WHERE id=? AND status='submitting'").bind(Date.now(),opId).run();
+  throw new AppError('Réponse fournisseur incertaine. Réservation conservée ; aucun nouvel envoi automatique.',502,'needs_reconciliation');
  }
  }catch(error){return failure(error);}}
 export async function GET(request:Request,context:{params:Promise<{id:string}>}){try{
  const {tenant}=await identity(request),{id}=await context.params,resource=await getResource(tenant,id);
- const op=await db().prepare("SELECT * FROM operations WHERE resource_id=? AND workspace_id=? ORDER BY created_at DESC LIMIT 1").bind(id,tenant).first<any>();
- if(!op)return Response.json({status:resource.status});if(op.status!=="waiting_external")return Response.json({status:op.status});
- const result=await falResult(JSON.parse(op.detail).model,op.external_id);if(result.status!=="COMPLETED")return Response.json(result);
- const lock=await db().prepare("UPDATE operations SET status='settling',detail=?,updated_at=? WHERE id=? AND status='waiting_external'").bind(JSON.stringify({...JSON.parse(op.detail),output:result.output}),Date.now(),op.id).run();if(!lock.meta.changes)return Response.json({status:"settling"});
- const mediaId=uid(),now=Date.now();
- await db().batch([db().prepare("INSERT INTO resources (id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?,'media',?,?,'ready',?,?)").bind(mediaId,tenant,resource.title,JSON.stringify({output:result.output,model:JSON.parse(op.detail).model,proposalId:id}),now,now),db().prepare("UPDATE workspaces SET reserved=reserved-?,credits=credits-? WHERE id=? AND reserved>=?").bind(op.amount,op.amount,tenant,op.amount),db().prepare("UPDATE operations SET status='completed',updated_at=? WHERE id=? AND status='settling'").bind(now,op.id),db().prepare("UPDATE resources SET status='completed',version=version+1,updated_at=? WHERE id=? AND workspace_id=?").bind(now,id,tenant)]);
- await auditLog(tenant,"media.completed",mediaId,{credits:op.amount});return Response.json({status:"COMPLETED",resourceId:mediaId});
+ const op=await db().prepare('SELECT * FROM operations WHERE resource_id=? AND workspace_id=? ORDER BY created_at DESC LIMIT 1').bind(id,tenant).first<any>();
+ if(!op)return Response.json({status:resource.status});
+ const mediaId='media:'+op.id;
+ if(op.status==='completed')return Response.json({status:'COMPLETED',resourceId:mediaId});
+ if(!['waiting_external','settling'].includes(op.status))return Response.json({status:op.status});
+ let detail=JSON.parse(op.detail||'{}');
+ if(op.status==='waiting_external'){
+  const result=await falResult(detail.model,op.external_id);if(result.status!=='COMPLETED')return Response.json(result);
+  detail={...detail,output:result.output};
+  await db().prepare("UPDATE operations SET status='settling',detail=?,updated_at=? WHERE id=? AND status='waiting_external'").bind(JSON.stringify(detail),Date.now(),op.id).run();
+ }
+ const now=Date.now();
+ await db().prepare("INSERT OR IGNORE INTO resources (id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?,'media',?,?,'ready',?,?)").bind(mediaId,tenant,resource.title,JSON.stringify({output:detail.output,model:detail.model,proposalId:id}),now,now).run();
+ const hold=detail.holdId||(await db().prepare('SELECT id FROM credit_holds WHERE reference=?').bind('legacy:'+op.id).first<any>())?.id;
+ if(!hold)throw new AppError('Réservation à rapprocher avant règlement.',409);
+ await settleHold(hold,op.amount*100);
+ await db().batch([
+ db().prepare("UPDATE operations SET status='completed',updated_at=? WHERE id=? AND status='settling'").bind(now,op.id),
+ db().prepare("UPDATE resources SET status='completed',version=version+1,updated_at=? WHERE id=? AND workspace_id=? AND status!='completed'").bind(now,id,tenant)
+ ]);return Response.json({status:'COMPLETED',resourceId:mediaId});
  }catch(error){return failure(error);}}
-

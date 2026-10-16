@@ -5,14 +5,35 @@ import type {Resource} from "./contracts";
 export const config=()=>env as Cloudflare.Env & Record<string,string|undefined>;
 export function db(){if(!env.DB)throw new AppError("Stockage indisponible.",503,"storage_unavailable");return env.DB;}
 export const uid=()=>crypto.randomUUID();
-export async function identity(request?:Request){
+export async function identity(request?:Request,action?:string){
  if(request&&request.method!=="GET"){const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)throw new AppError("Origine non autorisée.",403);}
  const user=await getChatGPTUser();if(!user)throw new AppError("Connectez-vous pour enregistrer votre travail.",401,"authentication_required");
- const now=Date.now();await db().batch([db().prepare("INSERT OR IGNORE INTO workspaces (id,name,created_at) VALUES (?,?,?)").bind(user.userId,"Mon entreprise",now),db().prepare("INSERT OR IGNORE INTO members (id,workspace_id,user_id,role) VALUES (?,?,?,'owner')").bind(user.userId,user.userId,user.userId)]);
- return {user,tenant:user.userId};
+ const now=Date.now();await db().batch([
+ db().prepare("INSERT OR IGNORE INTO organizations(id,name,owner_id,created_at) VALUES (?,?,?,?)").bind(user.userId,"Mon entreprise",user.userId,now),
+ db().prepare("INSERT OR IGNORE INTO organization_members(organization_id,user_id,role) VALUES (?,?,'owner')").bind(user.userId,user.userId),
+ db().prepare("INSERT OR IGNORE INTO workspaces (id,name,created_at,organization_id) VALUES (?,?,?,?)").bind(user.userId,"Mon entreprise",now,user.userId),
+ db().prepare("INSERT OR IGNORE INTO members (id,workspace_id,user_id,role) VALUES (?,?,?,'owner')").bind(user.userId,user.userId,user.userId)]);
+ const cookie=request?.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('aira_workspace='))?.slice('aira_workspace='.length);
+ const tenant=request?.headers.get('x-aira-workspace')||(cookie?decodeURIComponent(cookie):user.userId);
+ const access=await authorize(tenant,user.userId,action||(request&& !['GET','HEAD'].includes(request.method)?'write':'read'));
+ return {user,tenant,organization:access.organization_id,role:access.role};
+}
+export async function authorize(tenant:string,userId:string,action='read'){
+ const row=await db().prepare("SELECT w.organization_id,om.role,o.owner_id FROM workspaces w JOIN organizations o ON o.id=w.organization_id JOIN organization_members om ON om.organization_id=o.id AND om.user_id=? AND om.active=1 WHERE w.id=? AND (om.role='owner' OR EXISTS(SELECT 1 FROM members m WHERE m.workspace_id=w.id AND m.user_id=om.user_id))").bind(userId,tenant).first<any>();
+ if(!row)throw new AppError('Accès à cet espace non autorisé.',403);
+ if(row.role==='owner'&&tenant!==row.owner_id&&action!=='read'){
+ const business=await db().prepare("SELECT id FROM billing_subscriptions WHERE organization_id=? AND plan='business' AND status='active' AND start_at<=? AND end_at>?").bind(row.organization_id,Date.now(),Date.now()).first();
+ if(!business)throw new AppError('Cet espace est en lecture seule. Un forfait Business actif est nécessaire.',403);
+ }
+ if(row.role!=='owner'){
+ const sub=await db().prepare("SELECT id FROM billing_subscriptions WHERE organization_id=? AND plan='business' AND status='active' AND start_at<=? AND end_at>?").bind(row.organization_id,Date.now(),Date.now()).first();
+ if(!sub)throw new AppError('Les fonctions d’équipe nécessitent un abonnement Business actif.',403);
+ }
+ const {roleAllows}=await import('./billing-core.mjs');if(!roleAllows(row.role,action))throw new AppError('Votre rôle ne permet pas cette action.',403);
+ return row;
 }
 export async function list(tenant:string,kind?:string){
- const query=kind?"SELECT * FROM resources WHERE workspace_id=? AND kind=? ORDER BY updated_at DESC LIMIT 200":"SELECT * FROM resources WHERE workspace_id=? ORDER BY updated_at DESC LIMIT 300";
+ const query=kind?"SELECT * FROM resources WHERE workspace_id=? AND kind=? AND status!='deleted' ORDER BY updated_at DESC LIMIT 200":"SELECT * FROM resources WHERE workspace_id=? AND status!='deleted' ORDER BY updated_at DESC LIMIT 300";
  const result=await db().prepare(query).bind(...(kind?[tenant,kind]:[tenant])).all();return result.results.map(decode) as Resource[];
 }
 export function decode(row:any){return {...row,data:JSON.parse(row.data||"{}")};}
@@ -30,6 +51,8 @@ export async function auditLog(tenant:string,action:string,target:string,detail:
  await db().prepare("INSERT INTO audit (id,workspace_id,actor,action,target,detail,created_at) VALUES (?,?,?,?,?,?,?)").bind(uid(),tenant,tenant,action,target,JSON.stringify(detail),Date.now()).run();
 }
 export function failure(error:unknown){
+ const detail=String(error);
+ for(const [code,message] of [['project_quota','Le nombre de projets actifs de votre forfait est atteint.'],['concurrency_limit','Une mission est déjà en cours. Réessayez après sa fin.'],['storage_quota','Votre espace de stockage est plein. Exportez ou supprimez des fichiers.'],['transfer_quota','La limite de transfert est atteinte. Contactez le support pour un export assisté.']])if(detail.includes(code))return Response.json({error:message,code},{status:409});
  if(error instanceof SyntaxError)return Response.json({error:"Le corps de la requête doit être un JSON valide.",code:"validation_error"},{status:400});
  if(error instanceof AppError)return Response.json({error:error.message,code:error.code},{status:error.status});
  if(error&&typeof error==="object"&&"issues" in error)return Response.json({error:"Informations incomplètes ou invalides.",code:"validation_error"},{status:400});
