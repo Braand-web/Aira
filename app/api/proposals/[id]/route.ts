@@ -18,7 +18,13 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
  await db().prepare("UPDATE operations SET status='submitting' WHERE id=?").bind(opId).run();await auditLog(tenant,"media.approved",id,{version,maxCredits:amount});
  try{
   const externalId=await submitFal(model.id,resource.data.payload.input);await db().prepare("UPDATE operations SET status='waiting_external',external_id=?,detail=?,updated_at=? WHERE id=?").bind(externalId,JSON.stringify({model:model.id}),Date.now(),opId).run();await updateResource(tenant,id,version,{status:"generating"});return Response.json({operationId:opId,status:"waiting_external"});
- }catch{await db().prepare("UPDATE operations SET status='needs_reconciliation',updated_at=? WHERE id=?").bind(Date.now(),opId).run();throw new AppError("Résultat fournisseur incertain. Réservation conservée pour rapprochement ; aucun nouvel essai automatique.",502,"needs_reconciliation");}
+ }catch(error){
+  if(error instanceof AppError&&error.code==="fal_rejected"){
+   await db().batch([db().prepare("UPDATE workspaces SET reserved=reserved-? WHERE id=? AND reserved>=? AND EXISTS (SELECT 1 FROM operations WHERE id=? AND status='submitting')").bind(amount,tenant,amount,opId),db().prepare("UPDATE operations SET status='rejected',updated_at=? WHERE id=? AND status='submitting'").bind(Date.now(),opId)]);
+   await auditLog(tenant,"media.rejected",id,{creditsReleased:amount});throw new AppError("fal.ai a refusé la génération. Les crédits réservés ont été libérés.",502,"fal_rejected");
+  }
+  await db().prepare("UPDATE operations SET status='needs_reconciliation',updated_at=? WHERE id=?").bind(Date.now(),opId).run();throw new AppError("Résultat fournisseur incertain. Réservation conservée pour rapprochement ; aucun nouvel essai automatique.",502,"needs_reconciliation");
+ }
  }catch(error){return failure(error);}}
 export async function GET(request:Request,context:{params:Promise<{id:string}>}){try{
  const {tenant}=await identity(request),{id}=await context.params,resource=await getResource(tenant,id);

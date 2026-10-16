@@ -11,6 +11,7 @@ Cette livraison est un **socle fonctionnel de préversion**, pas l’implémenta
 - Connexion utilisateur fournie par Sites ; espace privé par utilisateur et filtres serveur par propriétaire sur chaque lecture/écriture.
 - Discussions et ressources persistantes, images et textes en stockage R2, contexte multimodal pour les images.
 - Boucle Anthropic Messages : modèle configurable (par défaut `claude-opus-5-5`), streaming natif, outils déclarés au modèle, validation serveur, arrêt, journal séquencé récupérable par curseur.
+- Délégation native aux spécialistes créatif et campagnes, maximum trois tâches par réponse, outils de lecture limités, rapports persistants et arrêt contrôlé. Le modèle maître reste responsable de la restitution.
 - Aucun aiguillage conversationnel par mots-clés ; seules les réponses réellement produites par l’API deviennent des messages d’assistant.
 - Outils : recherche des ressources, sauvegarde de connaissances, création et révision de pages, catalogue média, proposition de génération, plans de campagne et de mission, lecture Meta, candidats de compétences privées.
 - Pages structurées, rendu HTML échappé, aperçu isolé sans scripts, formats ordinateur/téléphone, export HTML, versions et restauration.
@@ -24,11 +25,11 @@ Aucune clé Anthropic ou fal.ai, aucune application Meta, aucun compte publicita
 ### Encore à développer avant de satisfaire le plan complet
 - Création et lancement d’annonces Meta, ad sets, médias publicitaires, Pixel/CAPI, suivi vérifié, permissions d’écriture et revue Meta.
 - Moteur durable de missions, mandats actifs, échéances, reprises après crash, travail hors ligne et optimisations autonomes.
-- Trois agents spécialisés exécutables, délégation dynamique bornée et évaluations de qualité.
+- Exécution parallèle des spécialistes, budgets comptables dédiés, évaluations de qualité et validation fournisseur de la délégation.
 - Promotion et partage contrôlés de compétences communes, évaluation indépendante, canary et retour arrière. Les compétences actuelles restent privées et candidates.
 - Hébergement public des landing pages sur une origine distincte, domaines, formulaires, prospects et événements de conversion.
 - Session Chromium distante isolée et transfert de contrôle. Le panneau actuel propose uniquement une ouverture externe explicite.
-- Abonnements, rechargement des crédits, tarification commerciale, comptabilité des appels du modèle, plafonds globaux, console admin de rapprochement et remboursement des échecs confirmés.
+- Abonnements, rechargement des crédits, tarification commerciale, comptabilité des appels du modèle, plafonds globaux et console admin de rapprochement. Les refus explicites de fal.ai libèrent maintenant la réservation ; les résultats incertains restent à rapprocher.
 - Équipes / plusieurs entreprises, rôles effectivement appliqués, isolation des projets à l’intérieur d’une entreprise, export/suppression complets, rétention et notifications.
 - Recherche web, analyse des sites par URL, PDF/vidéo/audio comme entrées, éditeur de créations avancé et génération structurée de dashboards.
 - Reconnexion transparente du client au flux actif : l’API de replay est disponible ; le client ne relance jamais automatiquement une réponse interrompue.
@@ -81,8 +82,22 @@ Les crédits démarrent à zéro. Aucun solde fictif n’est offert. La conversa
 - Contrôle TypeScript du code applicatif avec déclarations d’environnement de test : réussi. Cela ne remplace pas le build Vinext complet.
 - 10 parcours UI sur Chromium : navigation, suggestions, brouillon conservé, connexion requise, panneau, bibliothèques, Analytics vide et mobile sans débordement.
 - Détecteur Impeccable : aucune alerte.
+- 13 tests HTTP supplémentaires passent sur les vraies routes avec SQLite et stockage local isolés : identité, persistance, versions, origine des mutations, fichiers, signature MIME et indisponibilité explicite des fournisseurs.
+- Compilation et publication distante du premier état réussies sur Sites. URL privée : https://aira-growth-studio.wiseskunk64.chatgpt.site
 - Captures : ../aira-desktop.png et ../aira-mobile.png.
 - Compilation complète locale impossible : installation interrompue par disque plein. Les dépendances incomplètes du projet ont été nettoyées. Une vérification réduite a été installée dans work/verify.
+
+## Aperçu local avec serveur
+
+`scripts/dev-local.mjs` exécute les mêmes routes API que l’application avec SQLite et un stockage de fichiers locaux. C’est un adaptateur de développement uniquement, lié à 127.0.0.1 ; il n’est jamais utilisé par le Worker hébergé.
+
+- Démarrage : `node scripts/dev-local.mjs` après installation des dépendances. Le paquet esbuild doit être disponible.
+- Dans cet environnement à disque limité, définir AIRA_TOOLCHAIN vers le dossier work/verify/node_modules avant le démarrage.
+- Port par défaut : 4175 ; variable PORT pour le changer.
+- Données privées locales : .local-data, ignoré par Git. AIRA_DATA_DIR permet un dossier de test distinct.
+- La connexion locale est une session de développement, pas une authentification ChatGPT réelle. Le badge Local le signale après connexion.
+- Les clés peuvent être définies dans .dev.vars, également ignoré. Le serveur ne lit aucune clé du navigateur.
+- Pour tester : démarrer une instance isolée sur 4176, puis `node tests/http.integration.mjs`. Ce script refuse les cibles non locales.
 
 ## Références fournisseurs
 

@@ -30,6 +30,7 @@ export async function auditLog(tenant:string,action:string,target:string,detail:
  await db().prepare("INSERT INTO audit (id,workspace_id,actor,action,target,detail,created_at) VALUES (?,?,?,?,?,?,?)").bind(uid(),tenant,tenant,action,target,JSON.stringify(detail),Date.now()).run();
 }
 export function failure(error:unknown){
+ if(error instanceof SyntaxError)return Response.json({error:"Le corps de la requête doit être un JSON valide.",code:"validation_error"},{status:400});
  if(error instanceof AppError)return Response.json({error:error.message,code:error.code},{status:error.status});
  if(error&&typeof error==="object"&&"issues" in error)return Response.json({error:"Informations incomplètes ou invalides.",code:"validation_error"},{status:400});
  console.error("Request failed",error instanceof Error?error.name:"unknown");return Response.json({error:"L’opération n’a pas abouti. Réessayez ou contactez le support.",code:"internal_error"},{status:500});
