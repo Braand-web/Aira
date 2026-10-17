@@ -14,10 +14,11 @@ export async function startRunBudget(who:BillingIdentity,runId:string,credits:nu
  const rate=modelRate();const hold=await reserve(who,'chat:'+runId,Math.round(credits*100));return {who,holdId:hold.id,limit:hold.units,runId,rate};
 }
 export async function finishRunBudget(b:RunBudget){
- const run=await db().prepare('SELECT status FROM runs WHERE id=?').bind(b.runId).first<any>();
- if(run?.status==='failed'){await settleHold(b.holdId,0);return;} // Platform absorbs technical failures; provider costs remain recorded.
+ const run=await db().prepare('SELECT status,conversation_id,created_at FROM runs WHERE id=?').bind(b.runId).first<any>();
+ const delivered=run&&await db().prepare("SELECT 1 delivered FROM messages m,json_each(m.content) block WHERE m.conversation_id=? AND m.role='assistant' AND m.created_at>=? AND json_extract(block.value,'$.type')='text' AND length(trim(COALESCE(json_extract(block.value,'$.text'),'')))>0 UNION ALL SELECT 1 FROM events WHERE run_id=? AND type='tool_result' AND json_extract(data,'$.result.id') IS NOT NULL AND json_extract(data,'$.result.kind') IS NOT NULL LIMIT 1").bind(run.conversation_id,run.created_at,b.runId).first();
+ if(run?.status==='failed'&&!delivered){await settleHold(b.holdId,0);return;}
  const rows=await db().prepare('SELECT usage,status FROM provider_usage WHERE run_id=? AND hold_id=?').bind(b.runId,b.holdId).all<any>();
- if(rows.results.some(r=>r.status==='pending'||r.status==='unknown')){await db().prepare("UPDATE credit_holds SET status='needs_reconciliation' WHERE id=? AND status='reserved'").bind(b.holdId).run();return;}
+ if(run?.status!=='failed'&&rows.results.some(r=>r.status==='pending'||r.status==='unknown')){await db().prepare("UPDATE credit_holds SET status='needs_reconciliation' WHERE id=? AND status='reserved'").bind(b.holdId).run();return;}
  let units=0;for(const row of rows.results)if(row.status==='complete')units+=usageUnits(JSON.parse(row.usage),b.rate).units;
  await settleHold(b.holdId,units);
 }

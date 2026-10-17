@@ -93,7 +93,7 @@ export async function makeQuote(who:BillingIdentity,input:any){
   const sub=await currentSubscription(who.organization);if(!sub)throw new AppError('Abonnement actif requis.',409);
   p={kind:'upgrade',plan:'business',cycle:sub.cycle,...upgradeQuote(sub,now),subscriptionId:sub.id,subscriptionRevision:sub.version,currency:'XAF',version:CATALOG_VERSION,credits:0};
  }else p=product(input);
- const economicsResult=marginCheck(p.kind==='upgrade'?product({kind:'subscription',plan:'business',cycle:p.cycle}):p,economics(p.plan));
+ const economicsResult=marginCheck(p,economics(p.plan));
  const id=uid(),body={...p,economics:economicsResult};
  await s('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)',id,who.organization,who.user.userId,JSON.stringify(body),p.amount,CATALOG_VERSION,version,now,now+900000).run();
  return {id,...p,expiresAt:now+900000,eligible:economicsResult.eligible&&releaseReadiness().enabled};
@@ -113,7 +113,8 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
  const q=await s('SELECT * FROM billing_quotes WHERE id=? AND organization_id=? AND actor=?',quoteId,who.organization,who.user.userId).first<any>();
  if(!q||q.expires_at<=Date.now())throw new AppError('Ce devis a expiré. Demandez un nouveau récapitulatif.',409);
  if(q.subscription_version!==await subscriptionVersion(who.organization))throw new AppError('Votre abonnement a changé. Actualisez le devis.',409);
- const p=JSON.parse(q.product);if(!marginCheck(p.kind==='upgrade'?product({kind:'subscription',plan:'business',cycle:p.cycle}):p,economics(p.plan)).eligible)throw new AppError('Cette offre attend sa validation économique.',409,'margin_gate');
+ const p=JSON.parse(q.product);if(!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez Business pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
+ if(p.kind==='upgrade'&&(p.periodEnd<=Date.now()||p.subscriptionEnd<=Date.now()))throw new AppError('Ce devis de changement a expiré. Actualisez votre demande.',409);
  const id=uid(),now=Date.now();
  try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at) VALUES (?,?,?,?,?,'initializing',?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now).run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<any>();if(same)return orderView(same);throw error;}
  try{
@@ -147,6 +148,9 @@ export async function reconcileOrder(id:string){
  if(tx.status!=='SUCCESS')return order;
  if(tx.currency!=='XAF'||decimalXaf(tx.amount)!==order.amount||decimalXaf(tx.charged)!==order.amount||tx.fee_charge_mode!=='DEDUCTED'||tx.type!=='PAIEMENT')throw new AppError('Montant réellement payé incohérent.',409);
  const p=JSON.parse(order.product),now=Date.now(),statements:any[]=[];
+ if(p.kind==='upgrade'&&(p.periodEnd<=now||p.subscriptionEnd<=now)){
+  await s("UPDATE billing_orders SET status='needs_reconciliation',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",txid,JSON.stringify({transaction:tx,reason:'upgrade_paid_after_period_end'}),now,id).run();return s('SELECT * FROM billing_orders WHERE id=?',id).first();
+ }
  // The claim UPDATE and fulfilment must commit together. Conditional inserts below
  // are anchored to the persisted verified order, never to browser-returned data.
  await s("UPDATE billing_orders SET status='verified',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",txid,JSON.stringify({session:session.id,transaction:tx,paidAt:now}),now,id).run();
@@ -187,12 +191,16 @@ export async function tick(){
  const stale=await s("SELECT id FROM runs WHERE status='streaming' AND updated_at<? LIMIT 25",now-600000).all<any>();
  for(const run of stale.results){
   const claim=await s("UPDATE runs SET status='failed',error='Worker interrompu : reprise requise',updated_at=? WHERE id=? AND status='streaming' AND updated_at<?",now,run.id,now-600000).run();
-  if(claim.meta.changes){const hold=await s('SELECT id FROM credit_holds WHERE reference=?','chat:'+run.id).first<any>();if(hold)await settleHold(hold.id,0);}
+  if(claim.meta.changes){const hold=await s('SELECT id,units FROM credit_holds WHERE reference=?','chat:'+run.id).first<any>();if(hold){const rate=await s('SELECT rate FROM provider_usage WHERE run_id=? LIMIT 1',run.id).first<any>();await (await import('./metering')).finishRunBudget({runId:run.id,holdId:hold.id,limit:hold.units,rate:JSON.parse(rate?.rate||'{}')} as any);}}
  }
  const orgs=await s("SELECT DISTINCT organization_id FROM billing_subscriptions WHERE status='active' AND end_at>?",now-2*DAY).all<any>();
  for(const {organization_id} of orgs.results){await allocateDue(organization_id,now);await expireLots(organization_id,now);}
- const orders=await s("SELECT id FROM billing_orders WHERE status IN ('initializing','pending','verified','needs_reconciliation','expired','cancelled') ORDER BY updated_at LIMIT 25").all<any>();
- for(const {id} of orders.results){try{await reconcileOrder(id);}catch{await s("UPDATE billing_orders SET status='needs_reconciliation',updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",now,id).run();}}
+ const orders=await s("SELECT id,reconcile_attempts FROM billing_orders WHERE status IN ('initializing','pending','verified','needs_reconciliation','expired','cancelled') AND next_reconcile_at<=? AND reconcile_lease_until<=? ORDER BY next_reconcile_at,created_at,id LIMIT 25",now,now).all<any>();
+ for(const {id,reconcile_attempts} of orders.results){
+  const lease=Date.now()+90000,claim=await s('UPDATE billing_orders SET reconcile_lease_until=?,reconcile_attempts=reconcile_attempts+1 WHERE id=? AND next_reconcile_at<=? AND reconcile_lease_until<=?',lease,id,now,now).run();if(!claim.meta.changes)continue;
+  try{await reconcileOrder(id);}catch{await s("UPDATE billing_orders SET status='needs_reconciliation',updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",now,id).run();}
+  finally{await s('UPDATE billing_orders SET next_reconcile_at=?,reconcile_lease_until=0 WHERE id=? AND reconcile_lease_until=?',Date.now()+Math.min(3600000,30000*2**Math.min(reconcile_attempts,7)),id,lease).run();}
+ }
  const subs=await s("SELECT * FROM billing_subscriptions WHERE status='active' AND end_at BETWEEN ? AND ?",now-90*DAY,now+7*DAY).all<any>();
  for(const sub of subs.results)for(const [kind,at,message] of [['renewal7',sub.end_at-7*DAY,'Votre abonnement arrive à échéance dans sept jours.'],['renewal1',sub.end_at-DAY,'Votre abonnement arrive à échéance demain.'],['expired',sub.end_at,'Votre abonnement a expiré. Vos recharges restent disponibles.'],['retention60',sub.end_at+60*DAY,'Pensez à exporter vos fichiers avant la fin de conservation.'],['retention83',sub.end_at+83*DAY,'La période de conservation de vos fichiers se termine dans sept jours.']] as [string,number,string][]){if(at<=now)await s('INSERT OR IGNORE INTO billing_notifications(id,organization_id,kind,message,created_at) VALUES (?,?,?,?,?)',kind+':'+sub.id,sub.organization_id,kind,message,now).run();}
  return {organizations:orgs.results.length,orders:orders.results.length};

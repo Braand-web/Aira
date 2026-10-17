@@ -22,7 +22,7 @@ export async function POST(request:Request){
    async start(controller){
     const emit=async(type:string,data:unknown)=>{if(Date.now()-lastHeartbeat>30000){lastHeartbeat=Date.now();await db().prepare("UPDATE runs SET updated_at=? WHERE id=? AND status='streaming'").bind(lastHeartbeat,runId).run();}const saved=await db().prepare("INSERT INTO events (run_id,type,data,created_at) VALUES (?,?,?,?)").bind(runId,type,JSON.stringify(data),Date.now()).run();if(!clientClosed)controller.enqueue(encoder.encode("id: "+saved.meta.last_row_id+"\nevent: "+type+"\ndata: "+JSON.stringify(data)+"\n\n"));};
     try{await emit("run",{runId,conversationId});await runAgent(tenant,conversationId,runId,emit,abort.signal,budget!);await db().prepare("UPDATE runs SET status='completed',updated_at=? WHERE id=?").bind(Date.now(),runId).run();await emit("done",{runId});}
-    catch(error){const message=error instanceof AppError?error.message:"Le flux a été interrompu. Les étapes terminées restent enregistrées.";await db().prepare("UPDATE runs SET status=CASE WHEN status='cancelled' THEN status ELSE 'failed' END,error=?,updated_at=? WHERE id=?").bind(message,Date.now(),runId).run();if(!clientClosed)await emit("error",{message});}
+    catch(error){const message=error instanceof AppError?error.message:"Le flux a été interrompu. Les étapes terminées restent enregistrées.";await db().prepare("UPDATE runs SET status=CASE WHEN status='cancelled' THEN status WHEN ? IN ('budget_exhausted','step_limit') THEN 'partial' ELSE 'failed' END,error=?,updated_at=? WHERE id=?").bind(error instanceof AppError?error.code:"technical_failure",message,Date.now(),runId).run();if(!clientClosed)await emit("error",{message});}
     finally{try{await finishRunBudget(budget!);}finally{await db().prepare("UPDATE resources SET status='saved',updated_at=? WHERE id=? AND workspace_id=?").bind(Date.now(),conversationId,tenant).run();if(!clientClosed)controller.close();}}
    },cancel(){clientClosed=true;abort.abort();}
   });
@@ -37,4 +37,5 @@ export async function GET(request:Request){try{
  return Response.json({messages:rows.results.map((m:any)=>({...m,content:JSON.parse(m.content).filter((b:any)=>b.type==="text"||b.type==="image").map((b:any)=>b.type==="image"?{type:"text",text:"[Image jointe]"}:b)})).filter((m:any)=>m.content.length)});
  }catch(error){return failure(error);}}
 export async function DELETE(request:Request){try{const {tenant}=await identity(request);const {runId}=z.object({runId:z.string()}).parse(await request.json());await db().prepare("UPDATE runs SET status='cancelled',updated_at=? WHERE id=? AND workspace_id=? AND status='streaming'").bind(Date.now(),runId,tenant).run();return Response.json({stopped:true});}catch(error){return failure(error);}}
+
 

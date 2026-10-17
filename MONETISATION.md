@@ -10,7 +10,7 @@ Les annuels sont distribués en douze allocations aux anniversaires calendaires 
 
 Les organisations, appartenances, accès par espace, invitations liées à un email, révocations et budgets sur trente jours glissants sont contrôlés côté serveur. La création de projets, le stockage, les transferts et la concurrence des réponses disposent de contrôles transactionnels. Les espaces secondaires passent en lecture seule sans Business. L’espace individuel historique est actuellement l’espace principal conservé.
 
-Les appels Anthropic sont mesurés pour le maître et les spécialistes : entrées, sorties, cache et appels après outils. Une enveloppe est réservée avant la demande. Les tarifs et le change doivent être récents et configurés. Une consommation inconnue reste inconnue. Les échecs techniques de la réponse libèrent les crédits ; les coûts fournisseurs restent enregistrés pour Aïra.
+Les appels Anthropic sont mesurés pour le maître et les spécialistes : entrées, sorties, cache et appels après outils. Une enveloppe est réservée avant la demande. Les tarifs et le change doivent être récents et configurés. Une consommation inconnue reste inconnue. Les échecs techniques sans livrable libèrent les crédits. Les étapes complètes livrées sont comptabilisées même si la mission se termine partiellement ; les appels défaillants restent à la charge d’Aïra.
 
 Les générations fal.ai utilisent le même portefeuille et une approbation de version. Leur coût maximal doit être validé dans le catalogue. La facture réelle fournisseur reste à rapprocher : un plafond estimé n’est pas enregistré comme un coût observé certain.
 
@@ -32,7 +32,7 @@ Le module est livré avec les encaissements fermés. Il ne suffit pas de passer 
 - Identité légale, fiscalité, conditions de vente, confidentialité et conservation à valider. Aucun taux fiscal réel n’est présumé.
 - Déclenchement planifié authentifié, webhook joignable hors session, messagerie transactionnelle et domaine public.
 - Benchmark des neuf parcours, dix exécutions par parcours, acceptation client, coûts prudents, frais et support. La marge de 75 % est un contrôle prévisionnel, pas un résultat commercial déjà démontré.
-- Test de restauration, charge, appareils mobiles, clavier et validation visuelle. La vérification navigateur de cette livraison a été bloquée par la limite d’usage de l’outil.
+- Test de restauration, charge, appareils mobiles, clavier et validation visuelle. La vérification navigateur a repris après une indisponibilité temporaire ; les tarifs et le calcul de recharge ont été vérifiés sur le site publié.
 
 ### Développements encore nécessaires pour tout le plan directeur
 
@@ -71,7 +71,7 @@ Un traitement doit être lancé et relu sans navigateur avant validation. Mesure
 
 - Compilation TypeScript sur le projet avec l’environnement de vérification local.
 - 24 tests unitaires : règles existantes, tarifs sur toutes les quantités autorisées, calendrier annuel, marge, prorata, HMAC et contraintes du journal.
-- 18 tests d’intégration : services et routes réels, SQLite isolé, réponses SasPay simulées. Confirmation répétée/concurrente, mauvais montant monétaire/devise, timeout après création, allocations, renouvellement, upgrade, séparation des organisations, rôles, refus administrateur, expiration des réservations, quotas.
+- 21 tests d’intégration : services et routes réels, SQLite isolé, réponses SasPay simulées. Confirmation répétée/concurrente, mauvais montant monétaire/devise, timeout après création, allocations, renouvellement, upgrade, séparation des organisations, rôles, refus administrateur, expiration des réservations, quotas.
 - Aucun paiement réel, appel Anthropic réel ni génération fal.ai réelle dans ces tests.
 - Le test HTTP externe au processus n’a pas abouti dans l’environnement local. Ce résultat n’est pas présenté comme un succès.
 

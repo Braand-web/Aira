@@ -31,6 +31,8 @@ test('Upgrade prorates price and credit difference, never grants a second full q
  const start=Date.parse('2026-01-01Z'),sub={plan:'pro',cycle:'period',start_at:start,end_at:start+30*86400000};
  const q=upgradeQuote(sub,start+15*86400000);assert.equal(q.amount,10000);assert.equal(q.units,20000);assert.equal(q.periodEnd,sub.end_at);
  assert.throws(()=>upgradeQuote({...sub,plan:'business'},start));
+ const tiny={kind:'upgrade',...upgradeQuote(sub,sub.end_at-3600000)},e={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
+ assert.equal(tiny.amount,28);assert.equal(marginCheck(tiny,e).eligible,false);
 });
 test('Usage includes cache; malformed or partial provider amounts are rejected',()=>{
  const r=usageUnits({input_tokens:1000,output_tokens:200,cache_creation_input_tokens:300,cache_read_input_tokens:400},{input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1});

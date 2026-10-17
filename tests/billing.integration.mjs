@@ -67,10 +67,38 @@ await check('Stale subscription quote is rejected before another provider reques
  const person=await s.identity(request('GET',undefined,'upgrade-owner')),quote=await b.makeQuote(person,{kind:'topup',quantity:100}),before=creates;
  sql.prepare('UPDATE billing_subscriptions SET version=version+1 WHERE organization_id=?').run(person.organization);await assert.rejects(()=>b.checkout(person,quote.id,crypto.randomUUID(),'https://aira.test'));assert.equal(creates,before);
 });
+await check('Late upgrade payment is held for reconciliation without expired benefits',async()=>{
+ globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'late-owner','oai-authenticated-user-email':'late@test.invalid'});const person=await s.identity(request('GET',undefined,'late-owner'));
+ const q=await b.makeQuote(person,{kind:'subscription',plan:'pro',cycle:'annual'}),order=await b.checkout(person,q.id,crypto.randomUUID(),'https://aira.test');await b.reconcileOrder(order.id);
+ const change=await b.makeQuote(person,{kind:'upgrade'}),payment=await b.checkout(person,change.id,crypto.randomUUID(),'https://aira.test'),original=Date.now;
+ try{Date.now=()=>change.periodEnd+1000;await b.reconcileOrder(payment.id);}finally{Date.now=original;}
+ assert.equal(sql.prepare('SELECT plan FROM billing_subscriptions WHERE order_id=?').get(order.id).plan,'pro');assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(payment.id).status,'needs_reconciliation');assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE source_id=?").get(payment.id).n,0);
+});
+await check('Partial deliveries are charged, technical failure without a delivery is released',async()=>{
+ const rate={input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1},usage={input_tokens:1000,output_tokens:100};
+ for(const [status,delivery,expected] of [['partial',false,138],['failed',false,0],['failed',true,138]]){
+  const id=crypto.randomUUID(),now=Date.now(),hold=await b.reserve(who,'chat:'+id,1000);
+  sql.prepare("INSERT INTO resources(id,workspace_id,kind,title,created_at,updated_at) VALUES (?,?,'conversation','Test',?,?)").run(id,who.tenant,now,now);
+  sql.prepare('INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,?,?,?)').run(id,who.tenant,id,status,now,now);
+  sql.prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,usage,cost_xaf,status,created_at) VALUES (?,?,?,?,?,'anthropic','master',?,?,5.5,'complete',?)").run(id,who.organization,who.tenant,id,hold.id,JSON.stringify(rate),JSON.stringify(usage),now);
+  if(delivery)sql.prepare('INSERT INTO events(run_id,type,data,created_at) VALUES (?,?,?,?)').run(id,'tool_result',JSON.stringify({result:{id:'page',kind:'page'}}),now);
+  await meter.finishRunBudget({who,runId:id,holdId:hold.id,limit:1000,rate});assert.equal(sql.prepare('SELECT actual FROM credit_holds WHERE id=?').get(hold.id).actual,expected);
+ }
+});
 await check('Project and storage quotas reject writes atomically',async()=>{
  const now=Date.now();sql.prepare('INSERT INTO organizations VALUES (?,?,?,?)').run('quota','Quota','q',now);sql.prepare('INSERT INTO workspaces(id,name,created_at,organization_id) VALUES (?,?,?,?)').run('quota-space','Space',now,'quota');
  const add=sql.prepare("INSERT INTO resources(id,workspace_id,kind,title,created_at,updated_at) VALUES (?,'quota-space','project','Project',?,?)");add.run('p1',now,now);add.run('p2',now,now);assert.throws(()=>add.run('p3',now,now),/project_quota/);
  const write=sql.prepare('INSERT INTO billing_meter VALUES (?,?,?,?,?)');write.run('storage1','quota','storage',200*1024**2,now);assert.throws(()=>write.run('storage2','quota','storage',100*1024**2,now),/storage_quota/);
+});
+await check('Old unresolved checkouts do not starve a later confirmed payment',async()=>{
+ const now=Date.now(),p={kind:'topup',quantity:50,credits:50,amount:2500,currency:'XAF',version:'2026-10-16.1'};
+ for(let i=0;i<26;i++){
+  const id='fair-'+i,org='fair-org-'+i;sql.prepare('INSERT INTO organizations VALUES (?,?,?,?)').run(org,'Fairness','owner',now);
+  sql.prepare('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)').run(id,org,'owner',JSON.stringify(p),2500,p.version,'[]',now,now+900000);
+  sql.prepare('INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,session_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id,org,id,'owner',id,'needs_reconciliation',2500,JSON.stringify(p),i===25?'fair-session':null,now-120000+i,now-120000+i);
+ }
+ sessions.set('fair-session',{id:'fair-session',merchant:env.SASPAY_MERCHANT_ID,metadata:{aira_order_id:'fair-25'},currency:'XAF',amount:'2500.00',transaction:'fair-transaction'});transactions.set('fair-transaction',{id:'fair-transaction',status:'SUCCESS',type:'PAIEMENT',currency:'XAF',amount:'2500.00',charged:'2500.00',fee_charge_mode:'DEDUCTED'});
+ await b.tick();assert.notEqual(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');await b.tick();assert.equal(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');
 });
 console.log(`${checks} billing integration checks passed. Provider responses were simulated; no real payment or provider validation.`);sql.close();
 
