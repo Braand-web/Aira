@@ -35,10 +35,10 @@ const BUCKET={
  async delete(key){const {unlinkSync}=await import("node:fs");for(const file of [filePath(key),filePath(key)+".meta"])if(existsSync(file))unlinkSync(file);}
 };
 const settings={};
-const allowed=new Set(["ANTHROPIC_API_KEY","ANTHROPIC_MODEL","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY"]);
+const allowed=new Set(["ANTHROPIC_API_KEY","ANTHROPIC_MODEL","ANTHROPIC_RATE_JSON","LLM_PROVIDER","OPENROUTER_API_KEY","OPENROUTER_MODEL","OPENROUTER_RATE_JSON","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY"]);
 const configFile=path.join(project,".dev.vars");
 if(existsSync(configFile))for(const line of readFileSync(configFile,"utf8").split(/\r?\n/)){const match=line.match(/^([A-Z_]+)=(.*)$/);if(match&&allowed.has(match[1]))settings[match[1]]=match[2].trim().replace(/^["']|["']$/g,"");}
-for(const [k,v] of Object.entries(process.env))if(/^(SASPAY_|BILLING_|ANTHROPIC_RATE_JSON$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$)/.test(k))settings[k]=v;
+for(const [k,v] of Object.entries(process.env))if(/^(SASPAY_|BILLING_|OPENROUTER_|LLM_PROVIDER$|ANTHROPIC_RATE_JSON$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$)/.test(k))settings[k]=v;
 const context=new AsyncLocalStorage();globalThis.__airaLocal={env:{DB,BUCKET,...settings},context};
 const routeFiles={
  billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",billingAdmin:"app/api/admin/billing/route.ts",

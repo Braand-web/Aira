@@ -4,6 +4,11 @@ declare namespace Cloudflare {
     BUCKET?: R2Bucket;
     ANTHROPIC_API_KEY?: string;
     ANTHROPIC_MODEL?: string;
+    ANTHROPIC_RATE_JSON?: string;
+    LLM_PROVIDER?: string;
+    OPENROUTER_API_KEY?: string;
+    OPENROUTER_MODEL?: string;
+    OPENROUTER_RATE_JSON?: string;
     FAL_KEY?: string;
     FAL_CATALOG_JSON?: string;
     META_APP_ID?: string;

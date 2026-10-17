@@ -1,3 +1,4 @@
+import {requireModel} from "@/lib/llm";
 import {z} from "zod";
 import {identity,db,uid,getResource,createResource,failure,config} from "@/lib/server";
 import {runAgent} from "@/lib/agent";
@@ -7,7 +8,7 @@ export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
   const who=await identity(request);tenant=who.tenant;
-  if(!config().ANTHROPIC_API_KEY)throw new AppError("Ajoutez la clé Anthropic dans les paramètres serveur pour activer Aïra. Votre brouillon est conservé.",503,"model_not_configured");
+  requireModel();
   const body=z.object({text:z.string().trim().min(1).max(16000),conversationId:z.string().optional(),attachments:z.array(z.string()).max(4).default([]),maxCredits:z.number().int().min(1).max(1000)}).parse(await request.json());
   const conversation=body.conversationId?await getResource(tenant,body.conversationId):await createResource(tenant,"conversation",body.text.slice(0,70),{},"saved");if(conversation.kind!=="conversation")throw new AppError("Discussion invalide.");conversationId=conversation.id;
   const lock=await db().prepare("UPDATE resources SET status='streaming',updated_at=? WHERE id=? AND workspace_id=? AND (status!='streaming' OR updated_at<?)").bind(Date.now(),conversationId,tenant,Date.now()-300000).run();if(!lock.meta.changes)throw new AppError("Une réponse est déjà en cours dans cette discussion.",409);

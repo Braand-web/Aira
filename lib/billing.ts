@@ -188,6 +188,7 @@ export async function requestRefund(who:BillingIdentity,orderId:string,reason:st
 }
 export async function tick(){
  const now=Date.now();
+ await (await import('./metering')).reconcileOpenRouterUsage(undefined,10);
  const stale=await s("SELECT id FROM runs WHERE status='streaming' AND updated_at<? LIMIT 25",now-600000).all<any>();
  for(const run of stale.results){
   const claim=await s("UPDATE runs SET status='failed',error='Worker interrompu : reprise requise',updated_at=? WHERE id=? AND status='streaming' AND updated_at<?",now,run.id,now-600000).run();
