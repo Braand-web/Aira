@@ -1,0 +1,20 @@
+{
+  "environment": "isolated localhost SQLite / actual API handlers",
+  "count": 13,
+  "checks": [
+    "Unauthenticated workspace denied",
+    "Spoofed identity headers ignored",
+    "Local identity + truthful capability flags",
+    "Project persisted by actual server route",
+    "Project survives independent read",
+    "Stale resource mutation rejected",
+    "Cross-origin mutation denied",
+    "Direct proposal fabrication denied",
+    "Private upload/download roundtrip",
+    "File signature mismatch denied",
+    "No synthetic assistant response without model credentials",
+    "Missing Meta settings fail explicitly",
+    "Private file protected after logout"
+  ],
+  "providerCalls": 0
+}

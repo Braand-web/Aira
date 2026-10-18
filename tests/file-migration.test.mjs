@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import {readFileSync,readdirSync} from "node:fs";
+import test from "node:test";
+import {DatabaseSync} from "node:sqlite";
+
+test("file foundation migration copies legacy file metadata without deleting prior rows",()=>{
+ const database=new DatabaseSync(":memory:");
+ const migrations=readdirSync("drizzle").filter(name=>/^\d+_.*\.sql$/u.test(name)).sort();
+ for(const name of migrations.filter(file=>file<"0005_file_foundation.sql"))database.exec(readFileSync(`drizzle/${name}`,"utf8"));
+ const created=Date.now();
+ database.prepare("INSERT INTO organizations (id,name,owner_id,created_at) VALUES (?,?,?,?)").run("org-a","Aïra test","owner-a",created);
+ database.prepare("INSERT INTO workspaces (id,name,created_at,organization_id) VALUES (?,?,?,?)").run("space-a","Espace test",created,"org-a");
+ database.prepare("INSERT INTO resources (id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?, 'file', ?, ?, 'ready', ?, ?)").run("legacy-file","space-a","référence.txt",JSON.stringify({key:"internal/private-key",mime:"text/plain",size:12,text:"private text"}),created,created);
+ database.prepare("INSERT INTO messages (id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'user','[]',?)").run("message-a","space-a","legacy-file",created);
+ database.exec(readFileSync("drizzle/0005_file_foundation.sql","utf8"));
+ const file=database.prepare("SELECT * FROM files WHERE id=?").get("legacy-file");
+ assert.equal(file.owner_id,"owner-a");
+ assert.equal(file.storage_key,"internal/private-key");
+ assert.equal(file.detected_mime,"text/plain");
+ assert.equal(file.status,"ready");
+ assert.equal(database.prepare("SELECT data FROM resources WHERE id=?").get("legacy-file").data.includes("private text"),true);
+ assert.equal(database.prepare("SELECT attachments FROM messages WHERE id=?").get("message-a").attachments,"[]");
+ database.exec(readFileSync("drizzle/0006_file_upload_sessions.sql","utf8"));
+ database.exec(readFileSync("drizzle/0007_file_upload_byte_limits.sql","utf8"));
+ const uploadLimitColumns=database.prepare("PRAGMA table_info(file_upload_limits)").all().map(column=>column.name);
+ assert.ok(uploadLimitColumns.includes("bytes"));
+ database.prepare("INSERT INTO file_upload_limits (user_id,window_start,count) VALUES (?,?,?)").run("owner-a",created,1);
+ assert.equal(database.prepare("SELECT bytes FROM file_upload_limits WHERE user_id=?").get("owner-a").bytes,0);
+ assert.ok(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_upload_sessions'").get());
+ assert.ok(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_upload_parts'").get());
+ assert.ok(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_upload_part_limits'").get());
+ database.close();
+});

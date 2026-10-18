@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792093925275,
+      "tag": "0000_thankful_punisher",
+      "breakpoints": true
+    },
+    {
+      "tag": "0001_billing",
+      "version": "6",
+      "idx": 1,
+      "when": 1792128000000,
+      "breakpoints": true
+    },
+    {
+      "when": 1792130000000,
+      "tag": "0002_billing_guards",
+      "version": "6",
+      "idx": 2,
+      "breakpoints": true
+    },
+    {
+      "when": 1792186000000,
+      "idx": 3,
+      "tag": "0003_reconciliation_schedule",
+      "breakpoints": true,
+      "version": "6"
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792310115167,
+      "tag": "0004_composio",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792313715167,
+      "tag": "0005_file_foundation",
+      "breakpoints": true
+    }
+  ]
+}
