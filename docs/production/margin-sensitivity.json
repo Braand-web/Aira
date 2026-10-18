@@ -1,0 +1,157 @@
+{
+  "asOf": "2026-10-18",
+  "status": "SCENARIO_ONLY",
+  "assumptions": {
+    "costPerCreditXaf": 4,
+    "paymentFeeBps": 500,
+    "taxBps": 0,
+    "source": "https://www.saspay.me/",
+    "notice": "Fiscalite et frais marchands contractuels non verifies. Aucun cout reel ni marge prouvee."
+  },
+  "offers": [
+    {
+      "id": "pro:period",
+      "grossXaf": 9900,
+      "credits": 200,
+      "serviceMonths": 1,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 9900,
+      "designExecutionXaf": 800,
+      "paymentXaf": 495,
+      "remainingVariableCostBudgetXaf": 1180,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "pro:annual",
+      "grossXaf": 99000,
+      "credits": 2400,
+      "serviceMonths": 12,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 99000,
+      "designExecutionXaf": 9600,
+      "paymentXaf": 4950,
+      "remainingVariableCostBudgetXaf": 10200,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "business:period",
+      "grossXaf": 29900,
+      "credits": 600,
+      "serviceMonths": 1,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 29900,
+      "designExecutionXaf": 2400,
+      "paymentXaf": 1495,
+      "remainingVariableCostBudgetXaf": 3580,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "business:annual",
+      "grossXaf": 299000,
+      "credits": 7200,
+      "serviceMonths": 12,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 299000,
+      "designExecutionXaf": 28800,
+      "paymentXaf": 14950,
+      "remainingVariableCostBudgetXaf": 31000,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:50",
+      "grossXaf": 2500,
+      "credits": 50,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 2500,
+      "designExecutionXaf": 200,
+      "paymentXaf": 125,
+      "remainingVariableCostBudgetXaf": 300,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:100",
+      "grossXaf": 5000,
+      "credits": 100,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 5000,
+      "designExecutionXaf": 400,
+      "paymentXaf": 250,
+      "remainingVariableCostBudgetXaf": 600,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:250",
+      "grossXaf": 11750,
+      "credits": 250,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 11750,
+      "designExecutionXaf": 1000,
+      "paymentXaf": 587.5,
+      "remainingVariableCostBudgetXaf": 1350,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:500",
+      "grossXaf": 23000,
+      "credits": 500,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 23000,
+      "designExecutionXaf": 2000,
+      "paymentXaf": 1150,
+      "remainingVariableCostBudgetXaf": 2600,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:1000",
+      "grossXaf": 45000,
+      "credits": 1000,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 45000,
+      "designExecutionXaf": 4000,
+      "paymentXaf": 2250,
+      "remainingVariableCostBudgetXaf": 5000,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:2500",
+      "grossXaf": 109500,
+      "credits": 2500,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 109500,
+      "designExecutionXaf": 10000,
+      "paymentXaf": 5475,
+      "remainingVariableCostBudgetXaf": 11900,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:5000",
+      "grossXaf": 217000,
+      "credits": 5000,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 217000,
+      "designExecutionXaf": 20000,
+      "paymentXaf": 10850,
+      "remainingVariableCostBudgetXaf": 23400,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    },
+    {
+      "id": "topup:10000",
+      "grossXaf": 432000,
+      "credits": 10000,
+      "serviceMonths": 0,
+      "status": "SCENARIO_ONLY",
+      "netXaf": 432000,
+      "designExecutionXaf": 40000,
+      "paymentXaf": 21600,
+      "remainingVariableCostBudgetXaf": 46400,
+      "note": "Not measured. Remaining budget must cover every cost outside the execution ceiling."
+    }
+  ]
+}

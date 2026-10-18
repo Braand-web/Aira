@@ -1,5 +1,7 @@
 # vinext-starter
 
+Pour l’intégration des applications, comptes utilisateurs, skills et outils Instant d’Aïra, consulter [COMPOSIO.md](./COMPOSIO.md).
+
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
 
 ## Prerequisites

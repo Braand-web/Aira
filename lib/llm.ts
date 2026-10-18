@@ -14,14 +14,14 @@ export function requireModel(){const model=modelConnection();if(!model.key)throw
 export function modelRequest(body:Record<string,any>,signal:AbortSignal){
  const m=requireModel();return {url:m.url,init:{method:'POST',headers:m.headers,body:JSON.stringify({...body,model:m.model,...(m.provider==='openrouter'?{provider:{require_parameters:true,allow_fallbacks:false}}:{})}),signal} satisfies RequestInit};
 }
-// OpenRouter has no documented Anthropic count_tokens endpoint. This is an
-// explicitly conservative estimate, not an exact token count or a vendor quote.
+// OpenRouter has no documented Anthropic count_tokens endpoint. Use a generous
+// byte-based estimate plus separate headroom in metering; this is not a vendor quote.
 export function estimateInputTokens(body:any){
  const copy=structuredClone({messages:body.messages,system:body.system,tools:body.tools});let images=0;
  const visit=(value:any):any=>{if(Array.isArray(value))return value.map(visit);if(value&&typeof value==='object'){
   if(value.type==='image'){images++;return {type:'image',source:'[image counted separately]'};}
   return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,visit(v)]));}return value;};
- return Math.ceil(new TextEncoder().encode(JSON.stringify(visit(copy))).length*1.1)+2048+images*16384;
+ return Math.ceil(new TextEncoder().encode(JSON.stringify(visit(copy))).length/2)+512+images*16384;
 }
 export function requestCostUnits(row:any,rate:any,usageUnits:(usage:any,rate:any)=>{units:number}){
  if(row.provider==='openrouter'){

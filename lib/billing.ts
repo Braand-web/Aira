@@ -13,6 +13,7 @@ export function economics(plan='pro'){
 export function releaseReadiness(){
  const c=config();const checks=[
   ['payment',!!c.SASPAY_SECRET_KEY&&!!c.SASPAY_MERCHANT_ID&&!!c.SASPAY_WEBHOOK_SECRET],
+  ['xafCheckout',c.BILLING_XAF_CHECKOUT_VALIDATED==='true'],
   ['fiscal',!!c.BILLING_LEGAL_JSON&&c.BILLING_TAX_VALIDATED==='true'],
   ['benchmarks',c.BILLING_BENCHMARKS_VALIDATED==='true'],
   ['scheduler',c.BILLING_SCHEDULER_VERIFIED==='true'&&!!c.SCHEDULER_SECRET],
@@ -57,16 +58,17 @@ export async function claimFree(who:BillingIdentity){
 }
 export async function summary(org:string){
  await allocateDue(org);await expireLots(org);
- const now=Date.now();const [wallet,lots,subscription,orders,notifications,invoices]=await Promise.all([
+ const now=Date.now();const [wallet,lots,subscription,orders,notifications,invoices,creditNotes]=await Promise.all([
  s('SELECT COALESCE(SUM(CASE WHEN frozen=0 AND starts_at<=? AND (expires_at IS NULL OR expires_at>?) THEN balance-reserved ELSE 0 END),0) available,COALESCE(SUM(reserved),0) reserved FROM credit_lots WHERE organization_id=?',now,now,org).first<any>(),
  s('SELECT id,source,granted,balance,reserved,starts_at,expires_at,frozen FROM credit_lots WHERE organization_id=? ORDER BY created_at DESC LIMIT 100',org).all(),currentSubscription(org),
  s('SELECT id,status,amount,currency,product,created_at FROM billing_orders WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all(),
  s('SELECT * FROM billing_notifications WHERE organization_id=? ORDER BY created_at DESC LIMIT 30',org).all(),
- s('SELECT id,number,created_at FROM billing_invoices WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all()
+ s('SELECT id,number,created_at FROM billing_invoices WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all(),
+ s('SELECT id,number,created_at FROM billing_credit_notes WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all()
  ]);
  const allocation=subscription?periods(subscription.start_at,subscription.cycle,PLANS[subscription.plan as keyof typeof PLANS].credits).find(p=>p.start<=now&&p.end>now):undefined;
  const meters=await s("SELECT COALESCE(SUM(CASE WHEN kind='storage' THEN quantity ELSE 0 END),0) storage,COALESCE(SUM(CASE WHEN kind='transfer' AND created_at>=? THEN quantity ELSE 0 END),0) transfer FROM billing_meter WHERE organization_id=?",now-30*DAY,org).first<any>();
- return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100},lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,readiness:releaseReadiness()};
+ return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100},lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness()};
 }
 export async function reserve(who:BillingIdentity,reference:string,units:number){
  if(!Number.isSafeInteger(units)||units<=0)throw new AppError('Plafond de crédits invalide.');
@@ -116,7 +118,7 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
  const p=JSON.parse(q.product);if(!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez Business pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
  if(p.kind==='upgrade'&&(p.periodEnd<=Date.now()||p.subscriptionEnd<=Date.now()))throw new AppError('Ce devis de changement a expiré. Actualisez votre demande.',409);
  const id=uid(),now=Date.now();
- try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at) VALUES (?,?,?,?,?,'initializing',?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now).run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<any>();if(same)return orderView(same);throw error;}
+ try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'initializing',?,?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now,config().SASPAY_ENV==='live'?'live':'sandbox').run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<any>();if(same)return orderView(same);throw error;}
  try{
   const remote=await sas('checkout-sessions/',{amount:q.amount.toFixed(2),currency:'XAF',country:'CM',customer_email:who.user.email,customer_name:who.user.displayName||who.user.email,description:'Aïra · '+id,metadata:{aira_order_id:id},fee_charge_mode:'DEDUCTED',return_url:origin+'/?billingOrder='+id,expires_at:new Date(now+1800000).toISOString()});
   const url=new URL(remote.checkout_url);if(url.protocol!=='https:'||!['checkout.saspay.me','pay.saspay.me'].includes(url.hostname)||!remote.id)throw new Error('Invalid checkout');
@@ -127,7 +129,8 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
 }
 export function orderView(row:any){return {id:row.id,status:row.status,amount:row.amount,currency:row.currency,checkoutUrl:row.checkout_url,product:JSON.parse(row.product),createdAt:row.created_at};}
 export async function reconcileOrder(id:string){
- const order=await s('SELECT * FROM billing_orders WHERE id=?',id).first<any>();if(!order||['fulfilled','refunded','refund_requested'].includes(order.status))return order;
+ const order=await s('SELECT * FROM billing_orders WHERE id=?',id).first<any>();if(!order||['fulfilled','refunded','refund_requested','partially_refunded'].includes(order.status))return order;
+ if(!order.payment_environment||order.payment_environment!==(config().SASPAY_ENV==='live'?'live':'sandbox'))throw new AppError('L’environnement de cette commande doit être vérifié avant rapprochement.',409);
  if(!order.session_id){
   // Search the merchant's existing sessions; never issue another create after a timeout.
   let path='checkout-sessions/?currency=XAF';const matches:any[]=[];
@@ -144,16 +147,22 @@ export async function reconcileOrder(id:string){
  if(session.merchant!==config().SASPAY_MERCHANT_ID||session.metadata?.aira_order_id!==id||session.currency!=='XAF'||decimalXaf(session.amount)!==order.amount)throw new AppError('Paiement incohérent : rapprochement requis.',409);
  const txid=typeof session.transaction==='string'?session.transaction:session.transaction?.id;
  if(!txid){if(['EXPIRED','CANCELLED'].includes(session.status)){await s('UPDATE billing_orders SET status=?,updated_at=? WHERE id=? AND transaction_id IS NULL',session.status.toLowerCase(),Date.now(),id).run();}return order;}
- const tx=await sas('transactions/'+encodeURIComponent(txid)+'/');
- if(tx.status!=='SUCCESS')return order;
- if(tx.currency!=='XAF'||decimalXaf(tx.amount)!==order.amount||decimalXaf(tx.charged)!==order.amount||tx.fee_charge_mode!=='DEDUCTED'||tx.type!=='PAIEMENT')throw new AppError('Montant réellement payé incohérent.',409);
+ // /verify refreshes PENDING from the actual gateway. Its documented schema differs from webhook data.
+ const tx=await sas('payments/'+encodeURIComponent(txid)+'/verify/');
+ if(tx.id!==txid||tx.merchant!==config().SASPAY_MERCHANT_ID||tx.transaction_type!=='PAIEMENT'||tx.flow_direction!=='INBOUND')throw new AppError('Transaction ou marchand incohérent.',409);
+ if(tx.status!=='SUCCESS'){
+  if(tx.status==='FAILED'||tx.status==='CANCELLED')await s("UPDATE billing_orders SET status=?,transaction_id=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested','partially_refunded')",tx.status.toLowerCase(),txid,Date.now(),id).run();
+  return s('SELECT * FROM billing_orders WHERE id=?',id).first();
+ }
+ if(tx.currency!=='XAF'||decimalXaf(tx.requested_amount)!==order.amount||decimalXaf(tx.debited_amount)!==order.amount||tx.fee_charge_mode!=='DEDUCTED')throw new AppError('Montant réellement payé incohérent.',409);
+ const verifiedTx={id:tx.id,merchant:tx.merchant,status:tx.status,currency:tx.currency,requestedAmount:tx.requested_amount,charged:tx.debited_amount,net:tx.net_amount,fee:tx.client_fee,feeChargeMode:tx.fee_charge_mode};
  const p=JSON.parse(order.product),now=Date.now(),statements:any[]=[];
  if(p.kind==='upgrade'&&(p.periodEnd<=now||p.subscriptionEnd<=now)){
-  await s("UPDATE billing_orders SET status='needs_reconciliation',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",txid,JSON.stringify({transaction:tx,reason:'upgrade_paid_after_period_end'}),now,id).run();return s('SELECT * FROM billing_orders WHERE id=?',id).first();
+  await s("UPDATE billing_orders SET status='needs_reconciliation',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested','partially_refunded')",txid,JSON.stringify({transaction:verifiedTx,reason:'upgrade_paid_after_period_end'}),now,id).run();return s('SELECT * FROM billing_orders WHERE id=?',id).first();
  }
  // The claim UPDATE and fulfilment must commit together. Conditional inserts below
  // are anchored to the persisted verified order, never to browser-returned data.
- await s("UPDATE billing_orders SET status='verified',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",txid,JSON.stringify({session:session.id,transaction:tx,paidAt:now}),now,id).run();
+ await s("UPDATE billing_orders SET status='verified',transaction_id=?,verified=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested','partially_refunded')",txid,JSON.stringify({session:session.id,transaction:verifiedTx,paidAt:now}),now,id).run();
  const q=await s('SELECT subscription_version FROM billing_quotes WHERE id=?',order.quote_id).first<any>();
  if(q.subscription_version!==await subscriptionVersion(order.organization_id)){
   await s("UPDATE billing_orders SET status='needs_reconciliation' WHERE id=? AND status!='fulfilled'",id).run();return;
@@ -178,13 +187,19 @@ export async function reconcileOrder(id:string){
  return s('SELECT * FROM billing_orders WHERE id=?',id).first();
 }
 export async function requestRefund(who:BillingIdentity,orderId:string,reason:string){
- requireBilling(who);const order=await s("SELECT * FROM billing_orders WHERE id=? AND organization_id=? AND status='fulfilled'",orderId,who.organization).first<any>();if(!order)throw new AppError('Commande remboursable introuvable.',404);
- const id=uid(),now=Date.now();await db().batch([
-  s('INSERT INTO billing_refunds(id,organization_id,order_id,reason,amount,created_at) VALUES (?,?,?,?,?,?)',id,who.organization,orderId,reason,order.amount,now),
+ requireBilling(who);
+ if(typeof reason!=='string'||reason.trim().length<10||reason.length>2000)throw new AppError('Précisez le motif du remboursement.');
+ const existing=await s("SELECT id,status FROM billing_refunds WHERE order_id=? AND organization_id=? AND status IN ('requested','partially_confirmed','confirmed')",orderId,who.organization).first<{id:string;status:string}>();if(existing)return existing;
+ const order=await s("SELECT * FROM billing_orders WHERE id=? AND organization_id=? AND status='fulfilled'",orderId,who.organization).first<any>();if(!order)throw new AppError('Commande remboursable introuvable.',404);
+ const rejected=await s("SELECT id,version FROM billing_refunds WHERE order_id=? AND organization_id=? AND status='rejected' ORDER BY created_at DESC LIMIT 1",orderId,who.organization).first<{id:string;version:number}>();
+ const id=rejected?.id||uid(),now=Date.now(),revision=rejected?rejected.version+1:1;
+ try{await db().batch([
+  rejected?s("UPDATE billing_refunds SET status='requested',reason=?,version=version+1 WHERE id=? AND status='rejected' AND version=?",reason,id,rejected.version):s('INSERT INTO billing_refunds(id,organization_id,order_id,reason,amount,created_at) VALUES (?,?,?,?,?,?)',id,who.organization,orderId,reason,order.amount,now),
   s('UPDATE credit_lots SET frozen=1 WHERE source_id=? AND organization_id=?',orderId,who.organization),
-  s('INSERT INTO billing_audit VALUES (?,?,?,?,?,?,?)','refund-request:'+id,who.user.userId,who.organization,'refund.requested',orderId,JSON.stringify({reason}),now),
+  s('INSERT OR IGNORE INTO billing_audit VALUES (?,?,?,?,?,?,?)','refund-request:'+id+':'+revision,who.user.userId,who.organization,'refund.requested',orderId,JSON.stringify({reason}),now),
   s("UPDATE billing_orders SET status='refund_requested',updated_at=? WHERE id=? AND status='fulfilled'",now,orderId)
- ]);return {id,status:'requested'};
+ ]);}catch(error){const prior=await s("SELECT id,status FROM billing_refunds WHERE order_id=? AND organization_id=? AND status IN ('requested','partially_confirmed','confirmed')",orderId,who.organization).first<{id:string;status:string}>();if(prior)return prior;throw error;}
+ return {id,status:'requested'};
 }
 export async function tick(){
  const now=Date.now();
@@ -196,7 +211,7 @@ export async function tick(){
  }
  const orgs=await s("SELECT DISTINCT organization_id FROM billing_subscriptions WHERE status='active' AND end_at>?",now-2*DAY).all<any>();
  for(const {organization_id} of orgs.results){await allocateDue(organization_id,now);await expireLots(organization_id,now);}
- const orders=await s("SELECT id,reconcile_attempts FROM billing_orders WHERE status IN ('initializing','pending','verified','needs_reconciliation','expired','cancelled') AND next_reconcile_at<=? AND reconcile_lease_until<=? ORDER BY next_reconcile_at,created_at,id LIMIT 25",now,now).all<any>();
+ const orders=await s("SELECT id,reconcile_attempts FROM billing_orders WHERE status IN ('initializing','pending','verified','needs_reconciliation','expired','cancelled','failed') AND next_reconcile_at<=? AND reconcile_lease_until<=? ORDER BY next_reconcile_at,created_at,id LIMIT 25",now,now).all<any>();
  for(const {id,reconcile_attempts} of orders.results){
   const lease=Date.now()+90000,claim=await s('UPDATE billing_orders SET reconcile_lease_until=?,reconcile_attempts=reconcile_attempts+1 WHERE id=? AND next_reconcile_at<=? AND reconcile_lease_until<=?',lease,id,now,now).run();if(!claim.meta.changes)continue;
   try{await reconcileOrder(id);}catch{await s("UPDATE billing_orders SET status='needs_reconciliation',updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested')",now,id).run();}

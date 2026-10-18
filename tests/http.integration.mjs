@@ -7,7 +7,7 @@ async function request(path,method="GET",body,extra={}){const response=await fet
 let r=await request("/api/workspace");assert.equal(r.status,401);results.push("Unauthenticated workspace denied");
 r=await request("/api/workspace","GET",undefined,{"oai-authenticated-user-id":"fake","oai-authenticated-user-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
 r=await request("/signin-with-chatgpt");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
-r=await request("/api/workspace");assert.equal(r.status,200);assert.equal(r.data.development,true);assert.equal(r.data.capabilities.model,false);assert.equal(r.data.capabilities.autonomy,false);results.push("Local identity + truthful capability flags");
+r=await request("/api/workspace");assert.equal(r.status,200);assert.equal(r.data.development,true);assert.equal(r.data.capabilities.model,false);assert.equal(r.data.capabilities.modelReady,false);assert.equal(r.data.capabilities.modelStatus,"missing_key");assert.equal(r.data.capabilities.autonomy,false);results.push("Local identity + truthful capability flags");
 r=await request("/api/workspace","POST",{kind:"project",title:"Test technique — isolé",data:{description:"Donnée de test"}});assert.equal(r.status,201);const id=r.data.id;assert.equal(r.data.version,1);results.push("Project persisted by actual server route");
 r=await request("/api/workspace");assert.ok(r.data.resources.some(p=>p.id===id));results.push("Project survives independent read");
 r=await request("/api/resources/"+id,"PATCH",{version:1,action:"rename",title:"Test technique renommé"});assert.equal(r.status,200);assert.equal(r.data.version,2);
@@ -15,9 +15,12 @@ r=await request("/api/resources/"+id,"PATCH",{version:1,action:"rename",title:"S
 r=await request("/api/workspace","POST",{kind:"project",title:"Denied",data:{}},{Origin:"https://attacker.example"});assert.equal(r.status,403);results.push("Cross-origin mutation denied");
 r=await request("/api/workspace","POST",{kind:"proposal",title:"Bypass",data:{}});assert.equal(r.status,400);results.push("Direct proposal fabrication denied");
 const file=new FormData();file.set("file",new File(["Exemple de connaissance privée."],"reference.txt",{type:"text/plain"}));
-r=await request("/api/files","POST",file);assert.equal(r.status,201);const fileId=r.data.id;
+r=await request("/api/files","POST",file);assert.equal(r.status,201);const fileId=r.data.id;assert.equal(r.data.data.key,undefined);assert.equal(r.data.data.text,undefined);results.push("File API omits storage key and extracted text");
+r=await request("/api/workspace");const listedFile=r.data.resources.find(item=>item.id===fileId);assert.ok(listedFile);assert.equal(listedFile.data.key,undefined);assert.equal(listedFile.data.text,undefined);
+r=await request("/api/resources/"+fileId);assert.equal(r.status,200);assert.equal(r.data.data.key,undefined);assert.equal(r.data.data.text,undefined);results.push("Workspace and generic resource reads redact private file fields");
 r=await request("/api/files?id="+fileId);assert.equal(r.status,200);assert.equal(r.data,"Exemple de connaissance privée.");results.push("Private upload/download roundtrip");
-const invalid=new FormData();invalid.set("file",new File(["not a png"],"bad.png",{type:"image/png"}));r=await request("/api/files","POST",invalid);assert.equal(r.status,400);results.push("File signature mismatch denied");
+const duplicate=new FormData();duplicate.set("file",new File(["Exemple de connaissance privée."],"reference-copy.txt",{type:"text/plain"}));r=await request("/api/files","POST",duplicate);assert.equal(r.status,200);assert.equal(r.data.id,fileId);assert.equal(r.response.headers.get("x-file-deduplicated"),"true");results.push("Duplicate file is reused only within the same workspace");
+const invalid=new FormData();invalid.set("file",new File(["not a png"],"bad.png",{type:"image/png"}));r=await request("/api/files","POST",invalid);assert.equal(r.status,415);results.push("File signature mismatch denied");
 r=await request("/api/chat","POST",{text:"Bonjour"});assert.equal(r.status,503);assert.equal(r.data.code,"model_not_configured");results.push("No synthetic assistant response without model credentials");
 r=await request("/api/meta/connect");assert.equal(r.status,503);results.push("Missing Meta settings fail explicitly");
 cookie="";r=await request("/api/files?id="+fileId);assert.equal(r.status,401);results.push("Private file protected after logout");

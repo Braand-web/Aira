@@ -5,13 +5,14 @@ import {catalog,summary,makeQuote,checkout,orderView,reconcileOrder,requestRefun
 import {organizationSummary,changeOrganization,acceptInvite} from '@/lib/organizations';
 import {topupPrice,CATALOG_VERSION} from '@/lib/billing-core.mjs';
 import {invoiceHTML} from '@/lib/invoice';
+import {creditNoteHTML} from '@/lib/credit-note';
 type Context={params:Promise<{path:string[]}>};
 export async function GET(request:Request,context:Context){try{
  const {path}=await context.params,key=path[0];
  if(key==='catalog')return Response.json(catalog(),{headers:{'Cache-Control':'no-store'}});
  if(key==='price'){const quantity=Number(new URL(request.url).searchParams.get('quantity'));return Response.json({quantity,amount:topupPrice(quantity),currency:'XAF',version:CATALOG_VERSION});}
  const who=await identity(request);
- if(key==='summary'){const data=await summary(who.organization);if(who.role!=='owner'){data.orders=[];data.invoices=[];}return Response.json(data);}
+ if(key==='summary'){const data=await summary(who.organization);if(who.role!=='owner'){data.orders=[];data.invoices=[];data.creditNotes=[];}return Response.json(data);}
  if(key==='organization')return Response.json(await organizationSummary(who));
  if(key==='orders'&&path[1]){
   requireBilling(who);let order=await db().prepare('SELECT * FROM billing_orders WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<any>();
@@ -27,6 +28,10 @@ export async function GET(request:Request,context:Context){try{
  if(key==='invoices'&&path[1]){
   requireBilling(who);const row=await db().prepare('SELECT * FROM billing_invoices WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<any>();if(!row)throw new AppError('Facture introuvable.',404);
   return new Response(invoiceHTML(row.number,JSON.parse(row.document)),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="facture-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
+ }
+ if(key==='credit-notes'&&path[1]){
+  requireBilling(who);const row=await db().prepare('SELECT number,document FROM billing_credit_notes WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<{number:string;document:string}>();if(!row)throw new AppError('Avoir introuvable.',404);
+  return new Response(creditNoteHTML(row.number,JSON.parse(row.document)),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="avoir-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
  }
  throw new AppError('Route introuvable.',404);
  }catch(error){return failure(error);}}

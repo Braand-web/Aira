@@ -1,7 +1,13 @@
 declare namespace Cloudflare {
   interface Env {
     DB?: D1Database;
+    COMPOSIO_API_KEY?: string;
+    COMPOSIO_AUTH_CONFIGS_JSON?: string;
+    COMPOSIO_INSTANT_ENABLED?: string;
+    COMPOSIO_INSTANT_CATALOG_JSON?: string;
     BUCKET?: R2Bucket;
+    FILE_PREVIEW_V1?: string;
+    FILE_URL_SIGNING_SECRET?: string;
     ANTHROPIC_API_KEY?: string;
     ANTHROPIC_MODEL?: string;
     ANTHROPIC_RATE_JSON?: string;

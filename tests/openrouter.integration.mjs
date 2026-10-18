@@ -16,12 +16,14 @@ const DB={prepare:q=>statement(q),async batch(ss){sql.exec('BEGIN');try{const r=
 const secret='sk-or-v1-FIXTURE-NEVER-A-REAL-KEY';
 globalThis.__openrouterTest={env:{DB},headers:new Headers({'oai-authenticated-user-id':'openrouter-owner','oai-authenticated-user-email':'owner@test.invalid'})};
 const out=path.join(project,'.local-build','openrouter-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
-await build({stdin:{contents:['llm','metering','server','billing'].map(n=>'export * as '+n+' from "'+path.join(project,'lib',n+'.ts').replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__openrouterTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__openrouterTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
-const {llm,metering:meter,server,billing}=await import(pathToFileURL(out).href);
+await build({stdin:{contents:['llm','metering','server','billing','agent'].map(n=>'export * as '+n+' from "'+path.join(project,n==='agent'?'lib':'lib',n+'.ts').replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__openrouterTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__openrouterTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
+const {llm,metering:meter,server,billing,agent}=await import(pathToFileURL(out).href);
 const env=globalThis.__openrouterTest.env;
 const who=await server.identity(new Request('https://aira.test/api/chat'));
 const now=Date.now();sql.prepare('INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES (?,?,?,?,?,?,?,?)').run('fixture-credit',who.organization,'topup','fixture',1000000,1000000,now,now);
 const rate={model:'anthropic/claude-opus-5.5',input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1,fundingFeeBps:300,verifiedAt:new Date().toISOString()};
+const masterBody={max_tokens:4096,stream:true,system:[{type:'text',text:agent.systemPrompt,cache_control:{type:'ephemeral'}},{type:'text',text:'Plafond de cette demande : 10 crédits.'}],messages:[{role:'user',content:[{type:'text',text:'bonjour'}]},{role:'user',content:[{type:'text',text:'Réponds brièvement en français pour confirmer que tu me reçois.'}]}],tools:agent.toolDefinitions};
+const actualAgentInput=llm.estimateInputTokens(masterBody);
 const body={max_tokens:64,stream:true,system:'Help the user.',messages:[{role:'user',content:'Create an advertisement.'}],tools:[{name:'save_draft',description:'Save a draft',input_schema:{type:'object',properties:{title:{type:'string'}},required:['title']}}]};
 const signal=()=>new AbortController().signal;
 let checks=0;const check=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
@@ -60,11 +62,11 @@ globalThis.fetch=async(url,init={})=>{
  const bytes=new TextEncoder().encode(text);let offset=0;
  return new Response(new ReadableStream({pull(controller){if(offset===bytes.length){controller.close();return;}const next=Math.min(bytes.length,offset+11);controller.enqueue(bytes.slice(offset,next));offset=next;}}),{headers:{'Content-Type':'text/event-stream',...(mode==='missing_id'?{}:{'X-Generation-Id':generationId})}});
 };
-async function budget(){
+async function budget(credits=500){
  const id=crypto.randomUUID(),time=Date.now();
  sql.prepare("INSERT INTO resources(id,workspace_id,kind,title,created_at,updated_at) VALUES (?,?,'conversation','Fixture',?,?)").run(id,who.tenant,time,time);
  sql.prepare('INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,?,?,?)').run(id,who.tenant,id,'streaming',time,time);
- return meter.startRunBudget(who,id,500);
+ return meter.startRunBudget(who,id,credits);
 }
 const row=b=>sql.prepare('SELECT * FROM provider_usage WHERE run_id=? ORDER BY created_at DESC LIMIT 1').get(b.runId);
 const hold=b=>sql.prepare('SELECT * FROM credit_holds WHERE id=?').get(b.holdId);
@@ -78,6 +80,15 @@ await check('OpenRouter key selects native Messages endpoint and explicit provid
  env.OPENROUTER_RATE_JSON=JSON.stringify(rate);assert.equal(meter.modelRate().provider,'openrouter');
  const request=llm.modelRequest(body,signal());assert.equal(new Headers(request.init.headers).get('authorization'),'Bearer '+secret);assert.equal(new Headers(request.init.headers).has('x-api-key'),false);assert.equal(request.init.body.includes(secret),false);
 });
+await check('Readiness distinguishes a configured key from verified billing rates',async()=>{
+ env.LLM_PROVIDER='openrouter';env.OPENROUTER_API_KEY=secret;delete env.OPENROUTER_RATE_JSON;
+ assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'rate_unverified'});
+ env.OPENROUTER_RATE_JSON=JSON.stringify(rate);
+ assert.deepEqual(meter.modelReadiness(),{ready:true,reason:null});
+ env.OPENROUTER_API_KEY='';
+ assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'missing_key'});
+ env.OPENROUTER_API_KEY=secret;env.OPENROUTER_RATE_JSON=JSON.stringify(rate);delete env.LLM_PROVIDER;
+});
 await check('Unverified OpenRouter rates and wrong model are rejected',async()=>{
  for(const patch of [{model:'another-model'},{fundingFeeBps:-1},{verifiedAt:'invalid'},{verifiedAt:new Date(Date.now()-90000000).toISOString()}]){env.OPENROUTER_RATE_JSON=JSON.stringify({...rate,...patch});assert.throws(()=>meter.modelRate());}
  env.OPENROUTER_RATE_JSON=JSON.stringify(rate);
@@ -87,6 +98,12 @@ await check('Native streaming preserves text, Unicode and tool input deltas with
  const usage=row(b);assert.equal(usage.status,'complete');assert.equal(usage.request_id,generationId);assert.equal(usage.provider,'openrouter');assert.equal(JSON.parse(usage.usage).output_tokens,30);assert.equal(JSON.parse(usage.usage).cost_source,'generation');assert.equal(usage.cost_xaf,.02*600*1.03+1);
  assert.equal(calls.slice(before).some(c=>c.url.includes('count_tokens')),false);await finish(b);assert.equal(hold(b).actual,Math.ceil(usage.cost_xaf/4*100));assert.equal(text.includes(secret),false);
 });
+await check('Output token ceiling adapts to a small accepted credit budget',async()=>{
+ reset();const b=await budget(10),limited=masterBody,response=await meter.meteredMessage(b,'master',limited,signal());await response.text();
+ const request=JSON.parse(calls.filter(c=>c.url.endsWith('/messages')).at(-1).body),usage=row(b),inputTokens=JSON.parse(usage.rate).inputEstimate;
+ const ceiling=Math.ceil(((Math.ceil(inputTokens*1.2)*Math.max(rate.input,rate.cacheWrite,rate.cacheWriteHour||0)+request.max_tokens*rate.output)/1e6*rate.usdXaf*(1+rate.fundingFeeBps/10000)+rate.overheadXaf)/4*100);
+ assert.equal(inputTokens,actualAgentInput);assert.ok(request.max_tokens>=128);assert.ok(request.max_tokens<limited.max_tokens);assert.ok(ceiling<=b.limit);await finish(b);assert.equal(hold(b).actual,Math.ceil((generationCost*600*1.03+1)/4*100));
+});
 await check('HTTP refusal is preserved without charging failed work',async()=>{
  reset('http401');const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal());assert.equal(response.status,401);assert.equal((await response.json()).error.message,'unauthorized fixture');assert.equal(row(b).status,'rejected');await finish(b,'failed');assert.equal(hold(b).actual,0);
 });
@@ -95,7 +112,7 @@ await check('Server error is unresolved and no automatic generation retry occurs
  await billing.settleHold(b.holdId,0);
 });
 await check('SSE error remains visible and cannot fabricate a successful consumption',async()=>{
- reset('sse_error');generationAvailable=false;const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal()),text=await response.text();assert.equal(parse(text).at(-1).type,'error');assert.equal(row(b).status,'unknown');await finish(b,'failed');assert.equal(hold(b).actual,0);
+ reset('sse_error');generationAvailable=false;const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal()),text=await response.text();assert.equal(parse(text).at(-1).type,'error');assert.equal(row(b).status,'unknown');await finish(b,'failed');assert.equal(hold(b).status,'needs_reconciliation');await billing.settleHold(b.holdId,0);
 });
 await check('Complete stream with delayed metadata keeps reservation then reconciles exactly once',async()=>{
  reset();generationAvailable=false;const b=await budget(),before=calls.filter(c=>c.url.endsWith('/messages')).length;await (await meter.meteredMessage(b,'master',body,signal())).text();assert.equal(row(b).status,'estimated');assert.equal(row(b).cost_xaf,null);await finish(b);assert.equal(hold(b).status,'needs_reconciliation');assert.equal(hold(b).actual,null);
@@ -105,11 +122,14 @@ await check('Complete stream with delayed metadata keeps reservation then reconc
 await check('Interrupted stream is unresolved until actual provider metadata is available',async()=>{
  reset('truncated');generationAvailable=false;const b=await budget();await (await meter.meteredMessage(b,'master',body,signal())).text();assert.equal(row(b).status,'unknown');await finish(b);assert.equal(hold(b).status,'needs_reconciliation');generationAvailable=true;await meter.reconcileOpenRouterUsage(who.organization,100);assert.equal(row(b).status,'complete');assert.ok(hold(b).actual>0);
 });
+await check('A failed run that streamed text retains and later settles its real provider cost',async()=>{
+ reset();generationAvailable=false;const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal());await response.text();sql.prepare('INSERT INTO events(run_id,type,data,created_at) VALUES (?,?,?,?)').run(b.runId,'text_delta',JSON.stringify({text:'Bonjour'}),Date.now());await finish(b,'failed');assert.equal(hold(b).status,'needs_reconciliation');generationAvailable=true;generationCost=.031;await meter.reconcileOpenRouterUsage(who.organization,100);assert.equal(hold(b).actual,Math.ceil((.031*600*1.03+1)/4*100));
+});
 await check('Malformed SSE rejects the reader and retains an unresolved cost',async()=>{
- reset('invalid_sse');generationAvailable=false;const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal());await assert.rejects(()=>response.text());assert.equal(row(b).status,'unknown');await finish(b,'failed');assert.equal(hold(b).actual,0);
+ reset('invalid_sse');generationAvailable=false;const b=await budget(),response=await meter.meteredMessage(b,'master',body,signal());await assert.rejects(()=>response.text());assert.equal(row(b).status,'unknown');await finish(b,'failed');assert.equal(hold(b).status,'needs_reconciliation');assert.equal(hold(b).actual,null);await billing.settleHold(b.holdId,0);
 });
 await check('Network interruption is tracked without issuing a second generation',async()=>{
- reset('network');const b=await budget(),before=calls.length;await assert.rejects(()=>meter.meteredMessage(b,'master',body,signal()),/simulated network/);assert.equal(row(b).status,'unknown');assert.equal(calls.length,before+1);await finish(b,'failed');assert.equal(hold(b).actual,0);
+ reset('network');const b=await budget(),before=calls.length;await assert.rejects(()=>meter.meteredMessage(b,'master',body,signal()),/simulated network/);assert.equal(row(b).status,'unknown');assert.equal(calls.length,before+1);await finish(b,'failed');assert.equal(hold(b).status,'needs_reconciliation');assert.equal(hold(b).actual,null);await billing.settleHold(b.holdId,0);
 });
 await check('Missing generation identifier cannot turn an estimate into confirmed cost',async()=>{
  reset('missing_id');const b=await budget();await (await meter.meteredMessage(b,'master',body,signal())).text();assert.equal(row(b).request_id,null);assert.equal(row(b).status,'estimated');await finish(b);assert.equal(hold(b).status,'needs_reconciliation');await billing.settleHold(b.holdId,0);

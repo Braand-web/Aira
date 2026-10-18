@@ -26,18 +26,18 @@ await check('Free allocation is one-time and globally capped',async()=>{env.FREE
 await check('Reservations reject concurrent overspend and duplicate reference is idempotent',async()=>{const h=await b.reserve(who,'reservation-test',800);assert.equal((await b.reserve(who,'reservation-test',800)).id,h.id);await assert.rejects(()=>b.reserve(who,'overspend',300));await b.settleHold(h.id,500);await b.settleHold(h.id,900);assert.equal((await b.summary('owner')).wallet.available,5);});
 const economics={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
 Object.assign(env,{SASPAY_SECRET_KEY:'sk_test_fixture',SASPAY_MERCHANT_ID:'merchant-fixture',SASPAY_WEBHOOK_SECRET:'fixture-only',SASPAY_ENV:'sandbox',BILLING_LEGAL_JSON:'{"name":"Test fixture"}',BILLING_ECONOMICS_JSON:JSON.stringify({pro:economics,business:economics}),SCHEDULER_SECRET:'scheduler-fixture'});
-for(const k of ['TAX_VALIDATED','BENCHMARKS_VALIDATED','SCHEDULER_VERIFIED','PROVIDER_TESTS_PASSED','SUPPORT_READY','TERMS_APPROVED','RESTORE_TESTED','WEBHOOK_VERIFIED','PRODUCT_ACCEPTANCE','ENABLED'])env['BILLING_'+k]='true';
+for(const k of ['XAF_CHECKOUT_VALIDATED','TAX_VALIDATED','BENCHMARKS_VALIDATED','SCHEDULER_VERIFIED','PROVIDER_TESTS_PASSED','SUPPORT_READY','TERMS_APPROVED','RESTORE_TESTED','WEBHOOK_VERIFIED','PRODUCT_ACCEPTANCE','ENABLED'])env['BILLING_'+k]='true';
 const sessions=new Map(),transactions=new Map();let creates=0,timeout=false;
 globalThis.fetch=async(url,init)=>{
  const u=new URL(url);assert.equal(u.hostname,'api.saspay.me');
  if(init?.method==='POST'){
   creates++;const body=JSON.parse(init.body),id='session-'+creates,txid='transaction-'+creates;
   const session={...body,id,merchant:env.SASPAY_MERCHANT_ID,checkout_url:'https://pay.saspay.me/checkout/'+id,status:'PAID',transaction:txid};
-  sessions.set(id,session);transactions.set(txid,{id:txid,status:'SUCCESS',type:'PAIEMENT',currency:'XAF',amount:body.amount,charged:body.amount,fee_charge_mode:'DEDUCTED'});
+  sessions.set(id,session);transactions.set(txid,{id:txid,merchant:env.SASPAY_MERCHANT_ID,status:'SUCCESS',transaction_type:'PAIEMENT',flow_direction:'INBOUND',currency:'XAF',requested_amount:body.amount,debited_amount:body.amount,fee_charge_mode:'DEDUCTED'});
   if(timeout)throw new Error('simulated timeout after accepted create');return Response.json({data:session});
  }
  if(u.pathname==='/api/v1/checkout-sessions/')return Response.json({results:[...sessions.values()],next:null});
- const id=u.pathname.split('/').filter(Boolean).at(-1);return Response.json({data:sessions.get(id)||transactions.get(id)});
+ const segments=u.pathname.split('/').filter(Boolean),id=segments.at(-1)==='verify'?segments.at(-2):segments.at(-1);return Response.json({data:sessions.get(id)||transactions.get(id)});
 };
 let order;
 await check('Checkout uses immutable server amount; double click creates one session',async()=>{const q=await b.makeQuote(who,{kind:'topup',quantity:150});assert.equal(q.amount,7250);const key=crypto.randomUUID();order=await b.checkout(who,q.id,key,'https://aira.test');await b.checkout(who,q.id,key,'https://aira.test');assert.equal(creates,1);assert.equal((await b.summary('owner')).wallet.available,5);});
@@ -95,9 +95,9 @@ await check('Old unresolved checkouts do not starve a later confirmed payment',a
  for(let i=0;i<26;i++){
   const id='fair-'+i,org='fair-org-'+i;sql.prepare('INSERT INTO organizations VALUES (?,?,?,?)').run(org,'Fairness','owner',now);
   sql.prepare('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)').run(id,org,'owner',JSON.stringify(p),2500,p.version,'[]',now,now+900000);
-  sql.prepare('INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,session_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id,org,id,'owner',id,'needs_reconciliation',2500,JSON.stringify(p),i===25?'fair-session':null,now-120000+i,now-120000+i);
+  sql.prepare('INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,session_id,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(id,org,id,'owner',id,'needs_reconciliation',2500,JSON.stringify(p),i===25?'fair-session':null,now-120000+i,now-120000+i,'sandbox');
  }
- sessions.set('fair-session',{id:'fair-session',merchant:env.SASPAY_MERCHANT_ID,metadata:{aira_order_id:'fair-25'},currency:'XAF',amount:'2500.00',transaction:'fair-transaction'});transactions.set('fair-transaction',{id:'fair-transaction',status:'SUCCESS',type:'PAIEMENT',currency:'XAF',amount:'2500.00',charged:'2500.00',fee_charge_mode:'DEDUCTED'});
+ sessions.set('fair-session',{id:'fair-session',merchant:env.SASPAY_MERCHANT_ID,metadata:{aira_order_id:'fair-25'},currency:'XAF',amount:'2500.00',transaction:'fair-transaction'});transactions.set('fair-transaction',{id:'fair-transaction',merchant:env.SASPAY_MERCHANT_ID,status:'SUCCESS',transaction_type:'PAIEMENT',flow_direction:'INBOUND',currency:'XAF',requested_amount:'2500.00',debited_amount:'2500.00',fee_charge_mode:'DEDUCTED'});
  await b.tick();assert.notEqual(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');await b.tick();assert.equal(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');
 });
 console.log(`${checks} billing integration checks passed. Provider responses were simulated; no real payment or provider validation.`);sql.close();

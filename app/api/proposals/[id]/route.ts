@@ -3,6 +3,7 @@ import {identity,getResource,db,updateResource,failure,auditLog,config,authorize
 import {AppError,assertVersion,validateModelInput} from '@/lib/core.mjs';
 import {falCatalog,submitFal,falResult} from '@/lib/providers';
 import {reserve,settleHold} from '@/lib/billing';
+import {hasCurrentMediaPrice} from '@/lib/execution-policy.mjs';
 export async function POST(request:Request,context:{params:Promise<{id:string}>}){try{
  const who=await identity(request,'approve'),{tenant}=who,{id}=await context.params;
  const {version}=z.object({version:z.number().int()}).parse(await request.json());
@@ -14,7 +15,7 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
  if(!config().FAL_KEY)throw new AppError('fal.ai non configuré.',503);
  const model=falCatalog().find(m=>m.id===resource.data.payload.model),amount=resource.data.maxCredits;
  if(!model||model.credits!==amount)throw new AppError('Le tarif a changé. Une nouvelle proposition est nécessaire.',409);
- if(!model.costCeilingXaf||!model.verifiedAt||Date.now()-Date.parse(model.verifiedAt)>86400000||model.costCeilingXaf>amount*4)throw new AppError('Le coût de ce modèle doit être vérifié avant génération.',503);
+ if(!hasCurrentMediaPrice(model,amount))throw new AppError('Le coût de ce modèle doit être vérifié avant génération.',503);
  validateModelInput(resource.data.payload.input,model.inputSchema);
  const hold=await reserve(who,'media:'+opId,amount*100);
  const claim=await db().prepare("INSERT OR IGNORE INTO operations (id,workspace_id,resource_id,status,amount,detail,created_at,updated_at) VALUES (?,?,?,'submitting',?,?,?,?)").bind(opId,tenant,id,amount,JSON.stringify({model:model.id,holdId:hold.id,costCeilingXaf:model.costCeilingXaf}),Date.now(),Date.now()).run();

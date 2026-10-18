@@ -1,7 +1,8 @@
 import {env} from "cloudflare:workers";
 import {getChatGPTUser} from "@/app/chatgpt-auth";
 import {AppError} from "./core.mjs";
-import type {Resource} from "./contracts";
+import type {FileRecord,Resource} from "./contracts";
+import {safeResourceDto,safeFileDto} from "./file-policy.mjs";
 export const config=()=>env as Cloudflare.Env & Record<string,string|undefined>;
 export function db(){if(!env.DB)throw new AppError("Stockage indisponible.",503,"storage_unavailable");return env.DB;}
 export const uid=()=>crypto.randomUUID();
@@ -17,6 +18,10 @@ export async function identity(request?:Request,action?:string){
  const tenant=request?.headers.get('x-aira-workspace')||(cookie?decodeURIComponent(cookie):user.userId);
  const access=await authorize(tenant,user.userId,action||(request&& !['GET','HEAD'].includes(request.method)?'write':'read'));
  return {user,tenant,organization:access.organization_id,role:access.role};
+}
+export async function fileIdentity(request:Request){
+ try{return await identity(request);}
+ catch(error){if(error instanceof AppError&&error.status===403)throw new AppError("Fichier introuvable.",404,"file_not_found");throw error;}
 }
 export async function authorize(tenant:string,userId:string,action='read'){
  const row=await db().prepare("SELECT w.organization_id,om.role,o.owner_id FROM workspaces w JOIN organizations o ON o.id=w.organization_id JOIN organization_members om ON om.organization_id=o.id AND om.user_id=? AND om.active=1 WHERE w.id=? AND (om.role='owner' OR EXISTS(SELECT 1 FROM members m WHERE m.workspace_id=w.id AND m.user_id=om.user_id))").bind(userId,tenant).first<any>();
@@ -34,11 +39,24 @@ export async function authorize(tenant:string,userId:string,action='read'){
 }
 export async function list(tenant:string,kind?:string){
  const query=kind?"SELECT * FROM resources WHERE workspace_id=? AND kind=? AND status!='deleted' ORDER BY updated_at DESC LIMIT 200":"SELECT * FROM resources WHERE workspace_id=? AND status!='deleted' ORDER BY updated_at DESC LIMIT 300";
- const result=await db().prepare(query).bind(...(kind?[tenant,kind]:[tenant])).all();return result.results.map(decode) as Resource[];
+ const result=await db().prepare(query).bind(...(kind?[tenant,kind]:[tenant])).all();const resources=result.results.map(decode) as Resource[];
+ const fileIds=resources.filter(resource=>resource.kind==="file").map(resource=>resource.id);if(!fileIds.length)return resources.map(safeResourceDto) as Resource[];
+ const placeholders=fileIds.map(()=>"?").join(","),files=await db().prepare(`SELECT * FROM files WHERE workspace_id=? AND id IN (${placeholders})`).bind(tenant,...fileIds).all<FileRecord>(),byId=new Map(files.results.map(file=>[file.id,file]));
+ return resources.map(resource=>{const file=resource.kind==="file"?byId.get(resource.id):undefined;if(!file)return safeResourceDto(resource) as Resource;const safe=safeFileDto(file);return {...resource,title:safe.name,status:file.status,data:{mime:safe.mime,size:safe.size,thumbnailAvailable:!!file.thumbnail_key}};});
 }
 export function decode(row:any){return {...row,data:JSON.parse(row.data||"{}")};}
 export async function getResource(tenant:string,id:string){
  const row=await db().prepare("SELECT * FROM resources WHERE id=? AND workspace_id=?").bind(id,tenant).first();if(!row)throw new AppError("Élément introuvable.",404);return decode(row) as Resource;
+}
+export async function getClientResource(tenant:string,id:string){
+ const resource=await getResource(tenant,id);if(resource.kind!=="file")return safeResourceDto(resource);
+ const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();if(!file)return safeResourceDto(resource);
+ const safe=safeFileDto(file);return {...resource,title:safe.name,status:file.status,data:{mime:safe.mime,size:safe.size,thumbnailAvailable:!!file.thumbnail_key}};
+}
+export async function getFile(tenant:string,id:string){
+ const row=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=? AND status!='deleted'").bind(id,tenant).first<FileRecord>();
+ if(!row)throw new AppError("Fichier introuvable.",404,"file_not_found");
+ return {record:row,public:safeFileDto(row)};
 }
 export async function createResource(tenant:string,kind:string,title:string,data:unknown={},status="draft"){
  const id=uid(),now=Date.now();await db().prepare("INSERT INTO resources (id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,tenant,kind,title,JSON.stringify(data),status,now,now).run();return getResource(tenant,id);

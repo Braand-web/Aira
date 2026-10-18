@@ -1,6 +1,7 @@
 import {config,db,failure} from '@/lib/server';
 import {AppError} from '@/lib/core.mjs';
 import {tick,reconcileOrder} from '@/lib/billing';
+import {purgeExpiredFiles,purgeExpiredUploads} from '@/lib/file-retention';
 export async function POST(request:Request){try{
  const secret=config().SCHEDULER_SECRET,provided=request.headers.get('authorization');
  if(!secret||provided!=='Bearer '+secret)throw new AppError('Accès réservé au planificateur.',401);
@@ -13,5 +14,8 @@ export async function POST(request:Request){try{
    await db().prepare("UPDATE billing_events SET status='done',lease_until=0 WHERE id=?").bind(event.id).run();
   }catch{await db().prepare("UPDATE billing_events SET status=?,lease_until=0,next_at=?,error='provider_reconciliation_failed' WHERE id=?").bind(event.attempts>=9?'dead':'retry',now+Math.min(3600000,30000*2**event.attempts),event.id).run();}
  }
- return Response.json({...(await tick()),events:events.results.length});
+ const billing=await tick();let fileRetention:{deleted:number;skipped?:string;failed?:boolean}={deleted:0},uploadRetention:{deleted:number;skipped?:string;failed?:boolean}={deleted:0};
+ try{fileRetention=await purgeExpiredFiles(now);}catch{fileRetention={deleted:0,failed:true};}
+ try{uploadRetention=await purgeExpiredUploads(now);}catch{uploadRetention={deleted:0,failed:true};}
+ return Response.json({...billing,events:events.results.length,filesPurged:fileRetention.deleted,uploadsPurged:uploadRetention.deleted,fileRetentionFailed:fileRetention.failed===true,uploadRetentionFailed:uploadRetention.failed===true});
  }catch(error){return failure(error);}}

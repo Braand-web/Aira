@@ -30,9 +30,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 .dev.vars*
 /.local-data/
 /.local-build/
+/.tmp/
 
 # vercel
 .vercel

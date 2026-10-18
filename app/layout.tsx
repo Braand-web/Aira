@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./file-upload.css";
+import "@/components/file-preview/file-preview.css";
+import { FilePreviewProvider } from "@/components/file-preview/file-preview-provider";
 
 export const metadata: Metadata = {
   title: "Aïra — Vos idées, vos prochains clients",
@@ -17,7 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="antialiased">{children}</body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body className="antialiased"><FilePreviewProvider>{children}</FilePreviewProvider></body>
     </html>
   );
 }
