@@ -45,13 +45,13 @@ const BUCKET={
  };}
 };
 const settings={};
-const allowed=new Set(["COMPOSIO_API_KEY","COMPOSIO_AUTH_CONFIGS_JSON","COMPOSIO_INSTANT_ENABLED","COMPOSIO_INSTANT_CATALOG_JSON","FILE_PREVIEW_V1","FILE_URL_SIGNING_SECRET","SCHEDULER_SECRET","ANTHROPIC_API_KEY","ANTHROPIC_MODEL","ANTHROPIC_RATE_JSON","LLM_PROVIDER","OPENROUTER_API_KEY","OPENROUTER_MODEL","OPENROUTER_RATE_JSON","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY"]);
+const allowed=new Set(["APP_ENV","COMPOSIO_API_KEY","COMPOSIO_AUTH_CONFIGS_JSON","COMPOSIO_INSTANT_ENABLED","COMPOSIO_INSTANT_CATALOG_JSON","FILE_PREVIEW_V1","FILE_URL_SIGNING_SECRET","SCHEDULER_SECRET","OPS_ADMIN_IDS","BILLING_ADMIN_IDS","ANTHROPIC_API_KEY","ANTHROPIC_MODEL","ANTHROPIC_RATE_JSON","LLM_PROVIDER","OPENROUTER_API_KEY","OPENROUTER_MODEL","OPENROUTER_RATE_JSON","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY","BILLING_ENABLED","BILLING_XAF_CHECKOUT_VALIDATED","BILLING_TAX_VALIDATED","BILLING_BENCHMARKS_VALIDATED","BILLING_SCHEDULER_VERIFIED","BILLING_PROVIDER_TESTS_PASSED","BILLING_SUPPORT_READY","BILLING_TERMS_APPROVED","BILLING_RESTORE_TESTED","BILLING_WEBHOOK_VERIFIED","BILLING_PRODUCT_ACCEPTANCE","BILLING_LEGAL_JSON","BILLING_ECONOMICS_JSON","SASPAY_ENV","SASPAY_SECRET_KEY","SASPAY_MERCHANT_ID","SASPAY_WEBHOOK_SECRET","FREE_DAILY_CREDITS","PAGES_ORIGIN","PAGE_FORM_SECRET","AUTONOMY_ENABLED","AUTONOMY_SCHEDULER_VERIFIED","BACKUP_ENABLED","BACKUP_ENCRYPTION_KEY","BACKUP_MAINTENANCE_CONFIRMED","BACKUP_RESTORE_ALLOWED","RESEND_MODE","RESEND_API_KEY","RESEND_FROM","RESEND_TEST_RECIPIENT","OPS_ALERT_EMAIL","RESEND_LIVE_APPROVED"]);
 const configFile=process.env.AIRA_CONFIG_FILE?path.resolve(process.env.AIRA_CONFIG_FILE):path.join(project,".dev.vars");
 if(existsSync(configFile))for(const line of readFileSync(configFile,"utf8").split(/\r?\n/)){const match=line.match(/^([A-Z0-9_]+)=(.*)$/);if(match&&allowed.has(match[1]))settings[match[1]]=match[2].trim().replace(/^["']|["']$/g,"");}
-for(const [k,v] of Object.entries(process.env))if(/^(COMPOSIO_|SASPAY_|BILLING_|OPENROUTER_|FILE_PREVIEW_V1$|FILE_URL_SIGNING_SECRET$|LLM_PROVIDER$|ANTHROPIC_RATE_JSON$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$)/.test(k))settings[k]=v;
+for(const [k,v] of Object.entries(process.env))if(/^(APP_ENV$|AUTONOMY_|BACKUP_|COMPOSIO_|RESEND_|OPS_|SASPAY_|BILLING_|OPENROUTER_|FILE_PREVIEW_V1$|FILE_URL_SIGNING_SECRET$|LLM_PROVIDER$|ANTHROPIC_|FAL_|META_|TOKEN_ENCRYPTION_KEY$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$|PAGES_ORIGIN$|PAGE_FORM_SECRET$)/.test(k))settings[k]=v;
 const context=new AsyncLocalStorage();globalThis.__airaLocal={env:{DB,BUCKET,...settings},context};
 const routeFiles={
- connectors:"app/api/connectors/[...path]/route.ts",billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",billingAdmin:"app/api/admin/billing/route.ts",
+ connectors:"app/api/connectors/[...path]/route.ts",billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",missionTick:"app/api/internal/mission-tick/route.ts",operationsTick:"app/api/internal/operations-tick/route.ts",health:"app/api/health/route.ts",billingAdmin:"app/api/admin/billing/route.ts",operationsAdmin:"app/api/admin/operations/route.ts",mission:"app/api/missions/[id]/route.ts",published:"app/api/published/[id]/route.ts",
  workspace:"app/api/workspace/route.ts",chat:"app/api/chat/route.ts",files:"app/api/files/route.ts",fileUploads:"app/api/files/uploads/route.ts",fileAction:"app/api/files/[id]/[action]/route.ts",
  resource:"app/api/resources/[id]/route.ts",page:"app/api/pages/[id]/route.ts",proposal:"app/api/proposals/[id]/route.ts",
  meta:"app/api/meta/route.ts",connect:"app/api/meta/connect/route.ts",callback:"app/api/meta/callback/route.ts"
@@ -82,11 +82,13 @@ const server=createServer(async(req,res)=>{
    const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("oai-authenticated-user-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>24*1024*1024){sendJSON(res,413,{error:"Requête trop volumineuse."});return;}chunks.push(chunk);}
    const request=new Request(url,{method:req.method,headers:requestHeaders,...(!["GET","HEAD"].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
-   const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/admin/billing":"billingAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
+   const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/internal/mission-tick":"missionTick","/api/internal/operations-tick":"operationsTick","/api/health":"health","/api/admin/billing":"billingAdmin","/api/admin/operations":"operationsAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
    let name=exact[url.pathname],id,action;const fileActionMatch=url.pathname.match(/^\/api\/files\/([^/]+)\/([^/]+)$/);
    if(fileActionMatch){name="fileAction";id=decodeURIComponent(fileActionMatch[1]);action=decodeURIComponent(fileActionMatch[2]);}
    const match=url.pathname.match(/^\/api\/(resources|pages|proposals)\/([^/]+)$/);
    if(match){name={resources:"resource",pages:"page",proposals:"proposal"}[match[1]];id=decodeURIComponent(match[2]);}
+   const runtimeMatch=url.pathname.match(/^\/api\/(missions|published)\/([^/]+)$/);
+   if(runtimeMatch){name={missions:"mission",published:"published"}[runtimeMatch[1]];id=decodeURIComponent(runtimeMatch[2]);}
    if(url.pathname.startsWith("/api/billing/"))name="billing";
    if(url.pathname.startsWith("/api/connectors/"))name="connectors";
    const handler=name&&routes[name]?.[req.method];if(!handler){sendJSON(res,404,{error:"Route introuvable."});return;}

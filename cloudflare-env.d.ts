@@ -1,5 +1,6 @@
 declare namespace Cloudflare {
   interface Env {
+    APP_ENV?: string;
     DB?: D1Database;
     COMPOSIO_API_KEY?: string;
     COMPOSIO_AUTH_CONFIGS_JSON?: string;
@@ -23,6 +24,40 @@ declare namespace Cloudflare {
     META_REDIRECT_URI?: string;
     TOKEN_ENCRYPTION_KEY?: string;
     SCHEDULER_SECRET?: string;
+    OPS_ADMIN_IDS?: string;
+    BILLING_ADMIN_IDS?: string;
+    BILLING_ENABLED?: string;
+    BILLING_XAF_CHECKOUT_VALIDATED?: string;
+    BILLING_TAX_VALIDATED?: string;
+    BILLING_BENCHMARKS_VALIDATED?: string;
+    BILLING_SCHEDULER_VERIFIED?: string;
+    BILLING_PROVIDER_TESTS_PASSED?: string;
+    BILLING_SUPPORT_READY?: string;
+    BILLING_TERMS_APPROVED?: string;
+    BILLING_RESTORE_TESTED?: string;
+    BILLING_WEBHOOK_VERIFIED?: string;
+    BILLING_PRODUCT_ACCEPTANCE?: string;
+    BILLING_LEGAL_JSON?: string;
+    BILLING_ECONOMICS_JSON?: string;
+    FREE_DAILY_CREDITS?: string;
+    SASPAY_ENV?: string;
+    SASPAY_SECRET_KEY?: string;
+    SASPAY_MERCHANT_ID?: string;
+    SASPAY_WEBHOOK_SECRET?: string;
     PAGES_ORIGIN?: string;
+    PAGE_FORM_SECRET?: string;
+    AUTONOMY_ENABLED?: string;
+    AUTONOMY_SCHEDULER_VERIFIED?: string;
+    BACKUP_ENABLED?: string;
+    BACKUP_ENCRYPTION_KEY?: string;
+    BACKUP_MAINTENANCE_CONFIRMED?: string;
+    BACKUP_RESTORE_ALLOWED?: string;
+    BACKUP_BUCKET?: R2Bucket;
+    RESEND_MODE?: string;
+    RESEND_API_KEY?: string;
+    RESEND_FROM?: string;
+    RESEND_TEST_RECIPIENT?: string;
+    OPS_ALERT_EMAIL?: string;
+    RESEND_LIVE_APPROVED?: string;
   }
 }
