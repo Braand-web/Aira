@@ -19,17 +19,19 @@ La migration additive `0010_operations.sql` crée les journaux des tâches, aler
 
 ## Planification et reprise
 
+Le Worker Aïra possède maintenant un `scheduled()` handler. Sa configuration Cloudflare Vite demande un tick toutes les cinq minutes et exécute en série `billing-tick`, `mission-tick`, puis `operations-tick`. Chaque route vérifie le même secret serveur d'au moins 32 caractères ; le helper compare les condensats à taille constante. Un échec de tâche crée une alerte sans journaliser le secret ni le corps d'erreur. Le test des fonctions de tâches est local ; il ne prouve pas qu'un déclencheur Cron est attaché au Worker Aïra hébergé.
+
 `runOperationsTick()` regroupe :
 
 1. Inspection des incidents une fois par fenêtre interne de cinq minutes : événements de paiement morts, coûts fournisseurs inconnus depuis plus d'une heure, tâches interrompues, notifications échouées/incertaines.
 2. Sauvegarde quotidienne UTC lorsque `BACKUP_ENABLED=true` et les prérequis sont vérifiés.
 3. Traitement borné de l'outbox opérationnelle.
 
-`runTrackedJob(name, id, work)` peut également envelopper le traitement de facturation ou de missions existant. Il conserve un identifiant métier, un état, les tentatives, un verrou temporaire et un code d'erreur public. Il ne stocke jamais le message brut d'une exception ou le résultat d'un fournisseur dans les journaux d'exploitation.
+`runTrackedJob(name, id, work)` conserve un identifiant métier, un état, les tentatives, un verrou temporaire et un code d'erreur public. Il ne stocke jamais le message brut d'une exception ou le résultat d'un fournisseur dans les journaux d'exploitation.
 
-Une tâche terminée ne se réexécute pas avec le même identifiant. Une exécution interrompue devient **incertaine**, avec alerte ; elle n'est pas répétée aveuglément. Une tâche bloquée par configuration conserve son diagnostic. Corriger la configuration puis examiner la tâche ; ne pas modifier son identifiant pour forcer une nouvelle action externe avant rapprochement. Le déploiement d'un vrai déclencheur Cron reste à faire par l'hébergement : une route HTTP existante ne constitue pas une planification.
+Une tâche d'exploitation terminée ne se réexécute pas avec le même identifiant. Une exécution interrompue devient **incertaine**, avec alerte ; elle n'est pas répétée aveuglément. Une tâche bloquée par configuration conserve son diagnostic. Corriger la configuration puis examiner la tâche ; ne pas modifier son identifiant pour forcer une nouvelle action externe avant rapprochement. La configuration du compte Cloudflare, le déploiement du Worker Aïra et l'observation d'au moins un déclenchement réel restent à faire.
 
-Les appels de facturation et missions existants gardent leurs routes et leurs propres tests. `operations-tick` ne prétend pas les exécuter automatiquement sans leur raccordement explicite dans le scheduler. Une panne de D1 empêche aussi l'outbox de fonctionner : un contrôle de disponibilité **extérieur** doit alerter quand tout le service est inaccessible. Il n'a pas été configuré ici.
+Une panne de D1 empêche aussi l'outbox de fonctionner : un contrôle de disponibilité **extérieur** doit alerter quand tout le service est inaccessible. Il n'a pas été configuré ici.
 
 ## Configuration Resend
 
