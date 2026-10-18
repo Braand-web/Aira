@@ -1,6 +1,6 @@
 "use client";
 import {useState,useEffect,useRef,useCallback,useSyncExternalStore,type FormEvent} from "react";
-import {Plus,Search,PanelLeftClose,ArrowUp,ArrowDown,ChevronDown,ChevronRight,ChevronsUpDown,Image as ImageIcon,Video,Globe,ChartNoAxesCombined,Megaphone,Folder,Clock3,ArrowUpRight,X,Check,LoaderCircle,Square,Paperclip,FileText,ExternalLink,Download,Maximize2,Minimize2,PanelRight,Monitor,Smartphone,RefreshCw,ShieldCheck,Link2,BookOpen,MoreHorizontal,Copy,CheckCircle2,AlertCircle,Menu,Wallet,LogOut,MessageSquare,CreditCard,ArrowLeftRight,CircleHelp,SlidersVertical,Sparkles,type LucideIcon} from "lucide-react";
+import {Plus,Search,PanelLeftClose,ArrowUp,ArrowDown,ChevronDown,ChevronRight,ChevronsUpDown,Image as ImageIcon,Video,Globe,ChartNoAxesCombined,Megaphone,Folder,Clock3,ArrowUpRight,X,Check,LoaderCircle,Square,Paperclip,FileText,ExternalLink,Download,Maximize2,Minimize2,PanelRight,Monitor,Smartphone,RefreshCw,ShieldCheck,Link2,BookOpen,MoreHorizontal,Copy,CheckCircle2,AlertCircle,Menu,Wallet,LogOut,MessageSquare,CreditCard,ArrowLeftRight,CircleHelp,SlidersVertical,Sparkle,type LucideIcon} from "lucide-react";
 import {parseSSE,computeMetrics} from "../lib/core.mjs";
 import BillingPanel from "./billing-panel";
 import {PagePublicationControls,DurableMissionControls} from "../components/runtime-controls";
@@ -25,7 +25,7 @@ type NavConfigItem={id:NavView;label:string;icon:LucideIcon};
 const SIDEBAR_VARIANT:"a"|"b"="b";
 const SIDEBAR_NAVIGATION:Record<"a"|"b",{groups:NavConfigItem[][];bottom:NavConfigItem[]}>= {
  a:{groups:[[{id:"chat",label:"Chat",icon:MessageSquare},{id:"missions",label:"Missions",icon:Clock3}],[{id:"creations",label:"Créations",icon:ImageIcon},{id:"pages",label:"Pages",icon:Globe}],[{id:"campaigns",label:"Campagnes",icon:Megaphone},{id:"analytics",label:"Tableau de bord",icon:ChartNoAxesCombined}]],bottom:[{id:"integrations",label:"Intégrations",icon:Link2},{id:"knowledge",label:"Compétences",icon:BookOpen}]},
- b:{groups:[[{id:"chat",label:"Chat",icon:MessageSquare},{id:"missions",label:"Missions",icon:Clock3}],[{id:"studio",label:"Studio",icon:Sparkles},{id:"campaigns",label:"Campagnes",icon:Megaphone},{id:"analytics",label:"Tableau de bord",icon:ChartNoAxesCombined}]],bottom:[{id:"integrations",label:"Intégrations",icon:Link2},{id:"knowledge",label:"Compétences",icon:BookOpen}]}
+ b:{groups:[[{id:"chat",label:"Chat",icon:MessageSquare},{id:"missions",label:"Missions",icon:Clock3}],[{id:"studio",label:"Studio",icon:Sparkle},{id:"campaigns",label:"Campagnes",icon:Megaphone},{id:"analytics",label:"Tableau de bord",icon:ChartNoAxesCombined}]],bottom:[{id:"integrations",label:"Intégrations",icon:Link2},{id:"knowledge",label:"Compétences",icon:BookOpen}]}
 };
 const ROUTE_VIEWS:View[]=["chat","creations","files","pages","campaigns","analytics","missions","knowledge","projects","billing"];
 function getRouteView():View{if(typeof window==="undefined")return"chat";const url=new URL(window.location.href),requested=url.searchParams.get("view");if(requested&&ROUTE_VIEWS.includes(requested as View))return requested as View;if(url.pathname==="/pricing"||url.searchParams.has("billingOrder"))return"billing";return"chat";}
