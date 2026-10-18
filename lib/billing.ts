@@ -68,7 +68,7 @@ export async function summary(org:string){
  ]);
  const allocation=subscription?periods(subscription.start_at,subscription.cycle,PLANS[subscription.plan as keyof typeof PLANS].credits).find(p=>p.start<=now&&p.end>now):undefined;
  const meters=await s("SELECT COALESCE(SUM(CASE WHEN kind='storage' THEN quantity ELSE 0 END),0) storage,COALESCE(SUM(CASE WHEN kind='transfer' AND created_at>=? THEN quantity ELSE 0 END),0) transfer FROM billing_meter WHERE organization_id=?",now-30*DAY,org).first<any>();
- return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100},lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness()};
+ return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100},creditAllowance:subscription?PLANS[subscription.plan as keyof typeof PLANS]?.credits||0:0,lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness()};
 }
 export async function reserve(who:BillingIdentity,reference:string,units:number){
  if(!Number.isSafeInteger(units)||units<=0)throw new AppError('Plafond de crédits invalide.');
