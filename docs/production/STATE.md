@@ -29,15 +29,15 @@ Les modèles couvrent organisations, membres/rôles, projets, conversations, év
 
 ## Environnement et secrets — présence uniquement
 
-`.env.example` liste les variables sans valeurs. `.dev.vars` est ignoré par Git. La vérification locale n'a affiché que des booléens de présence : `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` et `OPENROUTER_RATE_JSON` sont renseignés ; `COMPOSIO_API_KEY`, fal.ai, SasPay, Resend, `SCHEDULER_SECRET`, les portes de vente, d'autonomie et de sauvegarde sont absents/inactifs. Aucun secret n'a été lu ou recopié.
+`.env.example` liste les variables sans valeurs. `.dev.vars` est ignoré par Git. Recontrôle local effectué le 18 octobre 2026, avec affichage des seules présences : `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` et `OPENROUTER_RATE_JSON` sont renseignés ; `COMPOSIO_API_KEY`, `FAL_KEY`, les trois secrets SasPay, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_TEST_RECIPIENT`, `SCHEDULER_SECRET`, Meta et le chiffrement des tokens sont absents. Aucun secret n'a été lu ou recopié.
 
 L'onglet Composio est connecté. L'écran d'accueil affiche que sa clé API a été créée et copiée ; Aïra ne la reçoit pas automatiquement. La variable `COMPOSIO_API_KEY` reste absente de l'environnement local d'Aïra. La clé n'a pas été consultée, collée ou exposée.
 
-Le navigateur était aussi connecté à Cloudflare, SasPay et Resend. Le Worker Cloudflare affiché était `livefoot` (autre produit) ; aucun changement n'a été fait. Aucun e-mail de test ni paiement n'a été lancé. Le propriétaire a indiqué ne pas encore avoir de domaine ni d'adresse e-mail de test.
+Le navigateur est connecté aux tableaux de bord Cloudflare, SasPay et Resend. La recherche Cloudflare « Aira » retourne « No projects found » dans le compte consulté ; le compte comporte des projets d'autres produits. Le tableau SasPay actuellement ouvert identifie le produit marchand `FlowPay` ; cela ne prouve ni un compte marchand Aïra ni le mode sandbox, ni l'activation XAF des méthodes. La page Resend des clés API est ouverte, mais aucune clé n'a été créée, lue ou copiée. Aucun paiement ni e-mail de test n'a été lancé. Le propriétaire a indiqué ne pas encore avoir de domaine ni d'adresse de test.
 
 ## État Git et conditions de lancement
 
-Branche locale : `audit/2026-10-18`. Aucun remote Git n'est configuré dans ce checkout. Aucune poussée ni mise en production n'a été effectuée.
+Branche locale : `audit/2026-10-18`, remote `origin` vers `https://github.com/Braand-web/Aira.git`. Le code et l'audit précédents sont poussés sur cette branche ; la présente mise à jour des constats est commitée localement mais son push a échoué, car cette session ne dispose pas d'une authentification GitHub utilisable. Aucun déploiement Aïra vers Cloudflare ni changement live n'a été effectué.
 
 La documentation publique de prix est datée du 18 octobre 2026 dans `COST_SOURCES.md`. Les prix publics ne remplacent pas les tarifs/factures du compte réel. Le seuil de marge de 75 % n'est pas démontré : coûts fournisseur, frais de paiement, taxes, change, support et consommation réelle restent à mesurer.
 

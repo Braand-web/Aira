@@ -86,10 +86,10 @@ Les réponses de fournisseurs sont simulées dans toutes les suites. Les tests d
 
 ### Défauts non corrigés et dépendances bloquantes
 
-- **P1 — Fournisseurs réels absents/non vérifiés.** `COMPOSIO_API_KEY`, fal.ai, SasPay, Resend et secrets Meta ne sont pas configurés dans Aïra. La clé affichée dans le dashboard Composio ne passe pas automatiquement à l'application. `OPENROUTER_API_KEY`, le modèle et le barème local sont présents, mais aucun appel de modèle réel n'a été envoyé.
+- **P1 — Fournisseurs réels absents/non vérifiés.** Le relevé de présence local du 18 octobre confirme `OPENROUTER_API_KEY`, modèle et barème, mais aucun appel réel n'a été envoyé. `COMPOSIO_API_KEY`, fal.ai, SasPay, Resend et Meta restent absents d'Aïra. La clé affichée chez Composio ne passe pas automatiquement à l'application.
 - **P1 — Campagnes.** L'agent peut découvrir des outils et préparer des écritures avec approbation exacte, mais aucun utilisateur, compte Meta, actif publicitaire, créatif ou campagne de test réel n'a été connecté/exécuté. App Review et permissions Meta restent inconnues.
 - **P1 — Paiement et fiscalité.** Aucun checkout SasPay sandbox. Le compte marchand, frais, méthodes disponibles en XAF, taxe et remboursement externe doivent être confirmés. Aucun remboursement n'a été exécuté.
-- **P1 — Production Cloudflare.** Le build produit le cron et les bindings, mais aucun Worker Aïra, secret, D1/R2 de staging, déclencheur distant, sauvegarde R2 ou restauration distante n'a été configuré/testé. La session visible montrait le Worker `livefoot`, un autre produit.
+- **P1 — Production Cloudflare.** Le build produit le cron et les bindings, mais aucun Worker Aïra, secret, D1/R2 de staging, déclencheur distant, sauvegarde R2 ou restauration distante n'a été configuré/testé. La recherche « Aira » dans le compte Cloudflare connecté retourne « No projects found ».
 - **P1 — Domaine, e-mail et support.** Le propriétaire a indiqué ne pas encore avoir de domaine ou d'adresse de test. SPF/DKIM/DMARC, réception d'un e-mail, alertes extérieures et canal support ne peuvent pas être validés.
 - **P1 — Rentabilité.** La marge de 75 % n'est pas prouvée. `COST_SOURCES.md` et `margin-sensitivity.json` sont des sources/sensibilités, non des factures ni un coût constaté. Les coûts variables réels, taux de change, taxes, support et comportements d'usage manquent.
 - **P1 — Fonctions produit bornées.** L'autonomie actuelle ne couvre que l'analyse, les lectures connectées et les brouillons privés ; une campagne ou mutation externe exige une confirmation séparée. Les pages exigent une origine dédiée et un abonnement actif.
@@ -105,7 +105,7 @@ Les réponses de fournisseurs sont simulées dans toutes les suites. Les tests d
 4. Pour SasPay : accès sandbox, identifiants marchands, secret webhook, liste des méthodes activées, confirmation XAF/CM, tarifs et procédure de remboursement.
 5. Pour e-mail : domaine contrôlé par le propriétaire, adresse d'expéditeur et destinataire de test ; ajouter DNS SPF/DKIM/DMARC seulement après choix du domaine.
 6. Pour commercialiser : identité légale, validation de taxes/CGU/confidentialité/remboursement, canal de support et budget de gratuité.
-7. Pour publier/pousser le code : ce checkout n'a aucun `git remote` configuré. Fournir ou configurer le remote Git souhaité si une publication distante est attendue.
+7. Le code antérieur est poussé sur `origin/audit/2026-10-18` (`https://github.com/Braand-web/Aira.git`). Ce commit de mise à jour du rapport est local : le push a échoué car aucun identifiant GitHub exploitable n'est disponible dans cette session. Cela ne déploie pas l'application. Créer l'environnement Cloudflare Aïra et valider le staging avant tout déploiement live.
 
 ## 5. Manques et améliorations
 
