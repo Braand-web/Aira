@@ -19,7 +19,7 @@ La migration additive `0010_operations.sql` crée les journaux des tâches, aler
 
 ## Planification et reprise
 
-Le Worker Aïra possède maintenant un `scheduled()` handler. Sa configuration Cloudflare Vite demande un tick toutes les cinq minutes et exécute en série `billing-tick`, `mission-tick`, puis `operations-tick`. Chaque route vérifie le même secret serveur d'au moins 32 caractères ; le helper compare les condensats à taille constante. Un échec de tâche crée une alerte sans journaliser le secret ni le corps d'erreur. Le test des fonctions de tâches est local ; il ne prouve pas qu'un déclencheur Cron est attaché au Worker Aïra hébergé.
+Le Worker Aïra possède un `scheduled()` handler. La configuration Cloudflare Vite utilise `triggers.crons: ["*/5 * * * *"]` et le build génère ce déclencheur dans `dist/server/wrangler.json`. `tests/worker-config.test.mjs` vérifie le cron et les bindings D1/R2 générés. La syntaxe correspond au champ Wrangler `triggers.crons` décrit dans la [documentation Cloudflare](https://developers.cloudflare.com/workers/wrangler/configuration/). Le worker exécute en série `billing-tick`, `mission-tick`, puis `operations-tick`. Chaque route vérifie le même secret serveur d'au moins 32 caractères ; le helper compare les condensats à taille constante. Un échec de tâche crée une alerte sans journaliser le secret ni le corps d'erreur. Ces preuves sont locales : le Worker Aïra n'a pas été déployé et aucun déclencheur Cron distant n'a été observé.
 
 `runOperationsTick()` regroupe :
 

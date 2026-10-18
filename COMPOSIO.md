@@ -4,7 +4,7 @@ Intégration locale ajoutée le 18 octobre 2026. Aïra conserve sa boucle Messag
 
 ## Installation et configuration
 
-Node >=22.13.0 ; `npm ci`. SDK verrouillés : `@composio/core@0.25.0` et `@composio/anthropic@0.11.5`.
+Node >=22.22.3 ; `npm ci`. SDK verrouillés : `@composio/core@0.25.0` et `@composio/anthropic@0.11.5`.
 
 Ajouter `COMPOSIO_API_KEY=` dans le fichier **existant** `.dev.vars`, puis renseigner la valeur dans l’éditeur. Ne pas remplacer les autres variables et ne jamais envoyer la clé dans le chat. Le modèle de configuration sans secret est `.env.example`.
 

@@ -1,43 +1,44 @@
-# État des lieux avant préparation à la production
+# État du dépôt et des dépendances de production
 
-Relevé du 18 octobre 2026. Les observations de code précèdent les modifications de chaque module. Les essais utilisent exclusivement des données fictives, une base locale isolée et des réponses fournisseurs simulées, sauf mention contraire explicite.
+Relevé final du 18 octobre 2026. Les vérifications applicatives ont été faites en local avec des données temporaires. Aucun déploiement, paiement, remboursement, e-mail, génération média, appel réel au modèle ou changement DNS n'a été effectué.
 
-| Domaine | Présent au départ | Absent ou à corriger | Preuve |
+## Stack et capacités
+
+| Zone | Présent | À vérifier / compléter | Preuve |
 |---|---|---|---|
-| Application | Next 16 / React 19, TypeScript, Vinext / Cloudflare Worker | Correctifs de dépendances et validation complète | `package.json`, `vite.config.ts` |
-| Données | D1, Drizzle, R2 ; organisations, rôles, ressources, messages, paiements, journal de crédits | Sauvegarde/restauration démontrée, nouvelles tables des modules ci-dessous | `db/*`, `drizzle/*` |
-| Identité | Authentification hébergée Sites ; simulation locale sur boucle locale | Connexion publique distante à vérifier après préparation staging | `app/chatgpt-auth.ts`, `scripts/dev-local.mjs` |
-| IA | Adaptateurs OpenRouter / Anthropic, streaming, mesure et réservation | Clés et tarifs effectivement validés dans l'environnement cible | `lib/llm.ts`, `lib/metering.ts` |
-| Créations | Catalogue fal.ai et proposition à approuver | Catalogue évalué, preuve d'un livrable réel, prix futur accepté à tort | `lib/providers.ts`, `app/api/proposals/[id]/route.ts` |
-| Composio / Meta | Découverte dynamique, comptes séparés, contrôle d'approbation dans le serveur | Clé Composio, configuration Meta Ads, connexion réelle, validation permissions et parcours campagne ; Instant doit rester OFF | `lib/composio.ts`, `COMPOSIO.md` |
-| Pages | Brouillon, versions, aperçu, export | Publication sur une origine séparée et collecte de demandes | `lib/pages.ts`, `app/api/pages/[id]/route.ts` |
-| Autonomie | Plan enregistré | Exécution persistante, mandat, reprise et ordonnanceur vérifié | `lib/agent.ts` |
-| Paiements | Catalogue XAF, devis, checkout SasPay, HMAC, réservations atomiques, annuels, rapprochement | Format canonique de vérification, remboursements/avoirs, contrat carte/USD, test sandbox fournisseur | `lib/billing.ts`, `lib/billing-core.mjs` |
-| Tâches | Route interne billing-tick avec secret, allocation et rapprochement | Déclencheur cloud, surveillance, notifications et preuve d'exécution planifiée | `app/api/internal/billing-tick/route.ts` |
-| Exploitation | Hébergement Sites public existant, D1/R2 déclarés | Staging, sauvegarde distincte, alertes reçues, support et contrats | `.openai/hosting.json`, tableau de bord Sites |
+| Application | React 19, Next/Vinext, TypeScript, Worker Cloudflare | Déploiement sur le Worker et l'environnement Aïra corrects | `package.json`, build local réussi |
+| Données | D1, Drizzle, migrations SQL ; stockage R2 | Identifiants et bindings réels, sauvegarde distante distincte | Manifeste local et tests SQLite/R2 simulé |
+| Identité et organisations | Authentification Sites, rôles, isolation par organisation | Parcours public hébergé et revue complète IDOR | tests d'API et tests métier locaux |
+| Modèle | OpenRouter/Anthropic, streaming, réservation et rapprochement | Aucun appel réel ; configuration de coûts à rapprocher à une facture | `lib/llm.ts`, `lib/metering.ts`, 16 tests simulés |
+| Composio | SDK, découverte paginée, session par utilisateur, connexions et approbations d'écriture | Clé serveur absente d'Aïra ; OAuth Meta et outil réel non testés | 29 tests de politique, 8 tests SDK, 6 tests HTTP simulés |
+| fal.ai | Adaptateurs, catalogue et estimation de coût | Clé/catalogue vide ; aucun rendu réel évalué | `lib/providers.ts`, aucun appel externe |
+| Meta Ads | Lectures et outils Composio dynamiques ; écritures protégées par approbation | App/auth config/scopes, compte test, création et mesure de campagne | parcours simulés seulement |
+| Paiements | Catalogue XAF, commandes, webhooks, allocations, remboursements administrés et avoirs | SasPay test, coûts réels, règles fiscales et remboursements fournisseur | 21 + 11 contrôles avec fournisseur simulé |
+| Pages | Brouillon, version, approbation, publication isolée et formulaire | `PAGES_ORIGIN`, abonnement et hébergement réel | 19 contrôles de runtime locaux |
+| Missions autonomes | Mandats bornés, exécution persistante, suspension, checkpoints | Planificateur et modèle réels ; seulement analyses, lectures et brouillons sont autorisés | 19 contrôles de runtime locaux |
+| Exploitation | Tâches, alertes/outbox, sauvegarde chiffrée et restauration test | Resend, R2, alertes extérieures et exercice cloud | 12 contrôles SQLite/Web Crypto ; services externes simulés |
+| Cron Worker | `scheduled()` appelle les trois tâches ; le manifeste local contient `triggers.crons` | Déployer le Worker Aïra et vérifier un tick réel | build + `tests/worker-config.test.mjs` |
 
-## Inventaire des routes et des écrans
+## Routes et données principales
 
-Écrans : chat, recherche, missions, tableau de bord, créations, fichiers, pages, campagnes, compétences, intégrations, forfait/crédits, administration financière. Le navigateur distant est annoncé comme indisponible.
+Écrans : chat, missions, tableau de bord, créations, fichiers, pages, campagnes, intégrations, compétences, paramètres, facturation et administration.
 
-API existantes : workspace, chat (streaming/reprise), ressources/version, fichiers et téléversement multipart, pages/aperçu, propositions média, Meta/OAuth/callback, connecteurs/catalogue/connexion/actions, facturation/catalogue/devis/checkout/commandes/usage/factures/remboursements, webhook SasPay, administration financière et tâche billing-tick. Les nouvelles routes sont documentées dans les rapports de modules ; leur présence seule ne prouve pas une activation distante.
+Routes construites : `/api/admin/billing`, `/api/admin/operations`, `/api/billing/*`, `/api/chat`, `/api/connectors/*`, `/api/files*`, `/api/health`, `/api/internal/{billing,mission,operations}-tick`, `/api/meta*`, `/api/missions/:id`, `/api/pages/:id`, `/api/proposals/:id`, `/api/published/:id`, `/api/resources/:id`, `/api/webhooks/saspay` et `/api/workspace`.
 
-Variables : inventaire sans valeurs dans `.env.example`. Secrets locaux et hébergés contrôlés uniquement par leur présence. Aucun secret n'est reproduit ici.
+Les modèles couvrent organisations, membres/rôles, projets, conversations, événements de streaming, fichiers, propositions, connexions, abonnements, paiements, lots/mouvements/réservations de crédits, remboursements, coûts fournisseurs, missions, tâches, notifications, audits et manifestes de sauvegarde. Les migrations sont additives ; ne pas effacer les écritures financières pour revenir en arrière.
 
-## Accès externes vérifiés en lecture seule
+## Environnement et secrets — présence uniquement
 
-- Sites : projet Aïra existant, rôle propriétaire, audience publique, aucune automatisation attachée. Environnement distant : seulement `LLM_PROVIDER` et `OPENROUTER_MODEL` ; aucune clé fournisseur renseignée dans cet environnement. Aucun changement réalisé.
-- Cloudflare : session connectée mais onglet ouvert sur le Worker **livefoot**, autre produit. Ce Worker n'est pas modifié ni réutilisé pour Aïra.
-- Resend : session connectée ; clés visibles dédiées à d'autres produits, aucune clé Aïra identifiée. Aucune clé copiée ou créée et aucun e-mail envoyé.
-- SasPay : tableau de bord accessible ; aucune transaction créée ni modifiée.
-- Recherche de connecteurs natifs Cloudflare / Resend / SasPay : aucun résultat disponible. Les onglets de tableaux de bord ne constituent pas des secrets serveur déjà configurés.
+`.env.example` liste les variables sans valeurs. `.dev.vars` est ignoré par Git. La vérification locale n'a affiché que des booléens de présence : `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` et `OPENROUTER_RATE_JSON` sont renseignés ; `COMPOSIO_API_KEY`, fal.ai, SasPay, Resend, `SCHEDULER_SECRET`, les portes de vente, d'autonomie et de sauvegarde sont absents/inactifs. Aucun secret n'a été lu ou recopié.
 
-## Dépendances déclarées par le propriétaire
+L'onglet Composio est connecté. L'écran d'accueil affiche que sa clé API a été créée et copiée ; Aïra ne la reçoit pas automatiquement. La variable `COMPOSIO_API_KEY` reste absente de l'environnement local d'Aïra. La clé n'a pas été consultée, collée ou exposée.
 
-Le propriétaire ne possède pas encore le domaine demandé ni n'a fourni d'adresse destinataire de test. Vérification SPF/DKIM/DMARC, livraison des alertes et DNS de production restent BLOQUÉS. Préparer les configurations et tests locaux ne nécessite aucun changement DNS.
+Le navigateur était aussi connecté à Cloudflare, SasPay et Resend. Le Worker Cloudflare affiché était `livefoot` (autre produit) ; aucun changement n'a été fait. Aucun e-mail de test ni paiement n'a été lancé. Le propriétaire a indiqué ne pas encore avoir de domaine ni d'adresse e-mail de test.
 
-## Référence d'exécution
+## État Git et conditions de lancement
 
-Premier passage `node --test tests/*.test.mjs` de cette phase : 63/65 passent, les deux contrôles de séparation des bundles échouent car `dist/client/_next/static/chunks` n'existe pas avant compilation. Ils seront relancés après le build sans modifier les assertions. Les tests de chaque module et résultats finaux sont conservés dans `PRODUCTION_READINESS.md`.
+Branche locale : `audit/2026-10-18`. Aucun remote Git n'est configuré dans ce checkout. Aucune poussée ni mise en production n'a été effectuée.
 
-La marge de 75 %, une livraison d'e-mail, un débit réel, un remboursement réel et une diffusion publicitaire ne sont jamais déduits des simulations locales.
+La documentation publique de prix est datée du 18 octobre 2026 dans `COST_SOURCES.md`. Les prix publics ne remplacent pas les tarifs/factures du compte réel. Le seuil de marge de 75 % n'est pas démontré : coûts fournisseur, frais de paiement, taxes, change, support et consommation réelle restent à mesurer.
+
+Le manifeste de build contient `DB`, `BUCKET` et le cron de cinq minutes ; cela prouve uniquement la configuration générée localement. Les ressources Cloudflare, secrets, domaine, déclencheur distant, e-mails, comptes Meta et SasPay demeurent à valider en staging avant toute bascule live.

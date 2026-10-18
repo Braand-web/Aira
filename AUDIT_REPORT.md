@@ -1,242 +1,161 @@
-# Audit Aïra — rapport final
+# Audit et préparation production — Aïra
 
-Date : 18 octobre 2026  
-Branche : `audit/2026-10-18`  
-Périmètre : code et aperçu local uniquement. Aucun paiement, e-mail, SMS, appel OpenRouter/fal.ai/Meta ou accès à la production n’a été déclenché.
+Date : 18 octobre 2026
+Branche : `audit/2026-10-18`
+Dépôt : `outputs/aira`
+Périmètre : code, build et tests locaux ; aucune bascule live, aucun paiement/remboursement, e-mail, dépense média, publication publique ou modification DNS.
 
-> Audit effectué exclusivement en local avec données temporaires et appels fournisseurs simulés. Aucun secret n’a été lu ou copié. L’aperçu utilisateur sur `127.0.0.1:4180` est resté actif.
+Les appels fournisseur des suites sont interceptés ou simulés. Les secrets n'ont pas été affichés. L'onglet Composio indique qu'une clé a été créée et copiée ; seule sa présence côté Aïra a été vérifiée, et `COMPOSIO_API_KEY` n'y est pas configurée. Je n'ai pas lu le presse-papiers.
 
 ## 1. Résumé exécutif
 
-Aïra possède un socle testable de chat, d’outils, de fichiers, de pages privées, de créations fal.ai, d’analyses Meta en lecture et de facturation protégée par des barrières de lancement. Le dépôt décrit explicitement cette livraison comme une préversion : les paiements ne sont pas activés et les campagnes Meta ne peuvent pas être diffusées.
+**Aïra n'est pas prête à recevoir des clients payants ni à gérer des campagnes en production.** Le socle local est substantiel et vérifié : build et types réussis, tests des routes, facturation, fichiers, Composio et missions. Les preuves externes manquent encore : comptes de test des fournisseurs, secrets serveur Aïra, domaine, validation Meta, coûts marchands réels et déploiement Cloudflare.
 
-Le produit n’est pas prêt pour une ouverture commerciale complète en l’état. Le build et TypeScript passent ; 75 tests locaux passent avec fournisseurs simulés. Le lint échoue encore sur 156 erreurs de code source. Aucun paiement, appel réel au modèle, à fal.ai ou à Meta n’a été effectué. Les P1 liés aux remboursements, à fal.ai, à l’ordonnanceur et aux fonctions non livrées restent à traiter avant de vendre ces capacités.
-
-| Domaine | Note provisoire /10 | Preuve |
+| Domaine | Note /10 | Motif |
 |---|---:|---|
-| Fonctionnel | 6 | VÉRIFIÉ sur les tests locaux/fournisseurs simulés ; diffusion et autonomie absentes |
-| Sécurité | 7 | VÉRIFIÉ sur les tests d’isolation/auth et audit de dépendances de production ; revue de code statique pour le reste |
-| Performance | 5 | DÉDUIT DU CODE ; aucune mesure de charge de cette session |
-| UX | 7 | VÉRIFIÉ partiellement dans le navigateur local ; parcours commerciaux incomplets |
-| Qualité du code | 6 | 75 contrôles réussis, build et types passent ; lint incomplet avec 156 erreurs |
+| Fonctionnel | 7 | Beaucoup de parcours locaux testés ; fournisseurs et campagnes réels non vérifiés |
+| Sécurité | 6 | Isolation, approbations, fichiers et webhooks testés ; 5 avis modérés dans les dépendances de production, revue externe absente |
+| Performance | 5 | Pas de test de charge ni mesure d'une vraie conversation avec le fournisseur |
+| UX | 6 | Aperçu local consulté en lecture seule ; pas de test mobile/utilisateur complet |
+| Qualité du code | 5 | Build/types/tests passent ; lint global échoue sur 141 erreurs |
 
-### Cinq points clés
+Les cinq constats prioritaires :
 
-1. Les achats sont fermés côté serveur tant que les prérequis de lancement ne sont pas activés ; l’interface le dit aussi.
-2. La création de campagne Meta, sa publication, l’autonomie persistante et l’hébergement public des pages ne sont pas implémentés.
-3. La base de crédits, l’idempotence des commandes et la confirmation serveur SasPay sont déjà structurées, mais l’intégration réelle reste à certifier.
-4. Les demandes de remboursement sont enregistrées et gèlent les crédits ; le remboursement fournisseur et le dégel après décision n’ont pas de parcours complet.
-5. Les reprises d’opérations média après une réponse fournisseur incertaine et la planification durable demandent une vérification/correction avant d’engager des clients.
-6. Aucun défaut P0 n’a été reproduit dans les parcours testés ; plusieurs risques P1 restent explicitement non résolus.
+1. J'ai corrigé un défaut de configuration : le build ne contenait aucun cron, car le Vite config utilisait le mauvais champ. Le manifeste généré inclut désormais le déclencheur et un test le protège ; le Worker distant reste à déployer.
+2. La connexion au dashboard Composio ne configure pas Aïra : la clé est absente du serveur local et le compte publicitaire de l'utilisateur n'est pas connecté depuis Aïra.
+3. Les intégrations OpenRouter, fal.ai, SasPay, Resend, Meta et Cloudflare n'ont pas passé de test externe de bout en bout. Aucune dépense réelle n'a été faite.
+4. La cible de marge de 75 % n'est pas démontrée avec les coûts et frais réels. Les prix publics ne suffisent pas.
+5. `npm run lint` échoue encore et l'audit NPM trouve des avis de sécurité, dont cinq modérés dans les dépendances de production.
 
-## 2. Cartographie fonctionnelle
+## 2. Cartographie et état des fonctionnalités
 
-| Zone | Statut | Preuve | Action restante |
+| Fonctionnalité | Statut | Preuve | Action restante |
 |---|---|---|---|
-| Chat et streaming du modèle | PARTIEL | VÉRIFIÉ : erreurs sans clé, flux natif et reprise simulés ; aucun appel réel au modèle | Tester le fournisseur en mode autorisé et vérifier reprise après coupure |
-| Recherche, projets et historique | PARTIEL | VÉRIFIÉ sur création, lecture, renommage versionné et refus d’une ancienne version ; historique complet non couvert | Parcours de recherche, pagination et isolation multi-organisation complémentaires |
-| Import et téléchargement de fichiers | PARTIEL | VÉRIFIÉ : aller-retour texte privé et refus d’un fichier à signature incorrecte sur HTTP local | Tester quotas d’espace/transfert et formats sur hébergement de test |
-| Pages de destination | PARTIEL | DÉDUIT DU CODE ; brouillons structurés, aperçu isolé et export | Hébergement public, formulaires et conversions absents |
-| Créations média fal.ai | PARTIEL | DÉDUIT DU CODE ; propositions approuvées, réservation et polling | Tester fournisseur fictif ; améliorer la reprise persistante des opérations incertaines |
-| Meta Analytics | PARTIEL | DÉDUIT DU CODE ; OAuth et lectures de comptes/insights | Vérifier callback, droits réels et compte sandbox |
-| Création/diffusion de campagnes Meta | NON IMPLÉMENTÉ | VÉRIFIÉ dans les capacités serveur (`publishing:false`) et textes de l’interface | Implémenter Marketing API et validation avant vente de cette fonction |
-| Missions autonomes hors ligne | NON IMPLÉMENTÉ | VÉRIFIÉ dans les capacités serveur (`autonomy:false`) et textes de l’interface | Moteur durable, mandat, révocation, planification et tests de reprise |
-| Marketplace publique de compétences | PARTIEL | DÉDUIT DU CODE ; compétences intégrées et candidates privées | Évaluation, promotion commune et retour arrière absents |
-| Plans, recharges et crédits | PARTIEL | VÉRIFIÉ : tarifs, répartition annuelle, prorata, idempotence et réservations testés ; paiements réels désactivés | Certifier coûts réels, allocations hébergées, fiscalité et comptabilité |
-| SasPay | NON TESTABLE | Aucun appel réel ou sandbox n’a été effectué ; configuration de lancement verrouillée | Valider XAF, pays CM, frais, signature, webhooks et moyens de paiement sur compte test |
-| E-mail / notifications externes | NON IMPLÉMENTÉ | DÉDUIT DU CODE ; invitations présentées sous forme de lien, sans envoi e-mail | Ajouter un service et des modèles après décision explicite |
-| Cron/planificateur hébergé | NON TESTABLE | Aucun déclencheur planifié visible dans la configuration du dépôt | Confirmer l’intégration planifiée et exécuter une reprise hors navigateur |
+| Interface locale et navigation | FONCTIONNE | Aperçu `127.0.0.1:4180` inspecté en lecture seule ; build réussi | Tests responsive, accessibilité et parcours utilisateur |
+| Chat et streaming OpenRouter | PARTIEL | 16 tests avec réponses simulées ; configuration locale présente sans en afficher les valeurs | Appel de test réel avec plafond de coût et rapprochement vérifiés |
+| Connexion Composio et découverte | PARTIEL | 29 tests de politique, 8 tests du SDK, 6 tests HTTP ; l'API locale échoue proprement si la clé manque | Ajouter la clé comme secret serveur Aïra, connecter un compte test depuis Aïra et exécuter une lecture réelle |
+| Skills Composio | PARTIEL | Test vérifie la conservation intégrale des résultats de recherche, dont les skills | Vérifier une réponse réelle sur compte autorisé |
+| Meta Ads — lecture/Analytics | PARTIEL | Connecteur générique et garde-fous testés ; aucune requête Meta réelle | Configuration OAuth, droits/App Review et compte publicitaire de test |
+| Meta Ads — créer/modifier/lancer | PARTIEL | Les écritures Composio demandent une approbation exacte côté serveur ; aucune action réelle testée | Parcours créatif → annonce → campagne → résultats avec actifs de test et budget nul/test |
+| Créations fal.ai | PARTIEL | Politique de catalogue/coûts et réservation présentes ; clé absente et catalogue non validé | Mesurer les coûts/qualité et tester le rendu sur le compte fournisseur |
+| Fichiers et aperçus | FONCTIONNE | 71 contrôles HTTP de téléversement/sécurité/rétention et 2 tests de bundles | Tester les quotas sur hébergement distant et la volumétrie réelle |
+| Pages de destination | PARTIEL | 19 contrôles de publication, versions, consentement et isolation | `PAGES_ORIGIN`, compte actif et formulaire de bout en bout sur staging |
+| Missions hors ligne | PARTIEL | 19 contrôles de checkpoint, révocation, concurrence et états incertains | Déployer le cron, configurer le modèle et tester une mission réelle bornée |
+| Abonnements, recharges, crédits | PARTIEL | 21 tests de facturation et 11 de règlement/remboursement interne | SasPay sandbox, configuration fiscale et documents commerciaux |
+| SasPay XAF, Mobile Money et carte | NON TESTABLE | Aucune clé/transaction de test ; devis et webhooks simulés | Activer le compte test et confirmer séparément pays, monnaie, moyens et frais |
+| Remboursement et avoir | PARTIEL | Calcul, gel, écritures compensatoires et avoir testés ; pas de remboursement fournisseur | Confirmer la procédure manuelle ou une API disponible sur le compte SasPay |
+| E-mails Resend | PARTIEL | 12 contrôles ops ; le transport est simulé et verrouillé par défaut | Domaine, expéditeur, destinataire, SPF/DKIM/DMARC et réception de test |
+| Cron / tâches Cloudflare | PARTIEL | Build généré avec `triggers.crons`, D1/R2 ; test de manifeste réussi | Déployer sur le Worker Aïra et observer un déclenchement réel |
+| Sauvegarde/restauration | PARTIEL | Archivage AES-GCM et restauration SQLite réels en test ; bucket R2 simulé | Deux buckets Cloudflare distincts et restauration sur staging |
+| Marge de 75 % | NON TESTABLE | Moteur refuse les coûts absents ; sensibilité documentée, non assimilée à une preuve | Factures/taux réels, coûts par usage, taxes, frais, change et support |
+| Export/suppression et conformité | NON TESTABLE | L'audit n'a pas validé les obligations de conservation, export/suppression et textes légaux | Décider/valider les règles applicables avant ouverture |
 
-### Routes, données et dépendances
+Écrans : chat, missions, tableau de bord, créations, fichiers, pages, campagnes, intégrations, compétences, paramètres et facturation. Routes incluses au build : workspace/chat, fichiers et uploads, ressources, pages/publications, propositions, Meta, connecteurs, facturation, remboursements/admin, webhooks SasPay, missions, santé et ticks internes. Modèles principaux : organisations/membres/rôles, ressources/conversations/messages, fichiers, connexions, tâches/missions, propositions, abonnements/commandes, journal et réservations de crédits, usage fournisseur, notifications et audits.
 
-- **Écrans :** accueil/chat, `/pricing`, bibliothèque (créations, fichiers, pages, campagnes, projets, compétences), missions, Analytics, paramètres, espace de facturation/équipe et `/admin/billing`.
-- **API :** `/api/chat`, `/api/workspace`, `/api/files`, `/api/resources/:id`, `/api/pages/:id`, `/api/proposals/:id`, `/api/meta`, `/api/meta/connect`, `/api/meta/callback`, `/api/billing/*`, `/api/admin/billing`, `/api/webhooks/saspay` et `/api/internal/billing-tick`.
-- **Données :** organisations, espaces, membres, ressources/messages, runs/événements, opérations, connexions OAuth, abonnements, devis/commandes, remboursements, lots/réservations/journal de crédits, usage fournisseur, limites et audits. Les migrations SQL versionnées sont dans `drizzle/`.
-- **Rôles :** owner, admin, editor, approver et reader, appliqués côté serveur ; l’intégration HTTP a vérifié les refus d’accès et l’isolation des espaces sur ses cas testés.
-- **Fournisseurs :** OpenRouter ou Anthropic, fal.ai, Meta Graph API, SasPay, Cloudflare D1/R2 et identité fournie par Sites. Noms de configuration relevés uniquement : `OPENROUTER_*`, `ANTHROPIC_*`, `FAL_*`, `META_*`, `TOKEN_ENCRYPTION_KEY`, `SASPAY_*`, `BILLING_*`, `FREE_DAILY_CREDITS`, `SCHEDULER_SECRET`. Aucune valeur de secret n’a été lue ou copiée dans ce rapport.
-- **Tâches de fond :** route de tick pour rapprochement, allocations et notifications ; aucun cron/horaire de déploiement n’est présent dans la configuration versionnée.
-- **Code incomplet repéré :** le dépôt ne contient pas de marqueurs `TODO`/`FIXME` explicites dans les zones principales, mais les états de préversion et les fonctions manquantes sont documentés.
-- **Déploiement/ops :** bindings Sites D1/R2 déclarés ; aucune configuration versionnée de CI/CD, surveillance, alerte ou sauvegarde restaurable n’a été trouvée. Ces éléments sont à vérifier sur le compte d’hébergement sans toucher à la production.
+## 3. Vérifications exécutées
 
-## 3. État de départ exécuté
-
-Commandes lancées avant toute correction d’audit :
-
-| Vérification | Résultat | Niveau de preuve |
+| Contrôle | Résultat | Niveau de preuve |
 |---|---|---|
-| `npm run build` | ÉCHEC : dépendance `vinext` absente de `node_modules` | VÉRIFIÉ |
-| `npm run lint` | ÉCHEC : exécutable `eslint` absent | VÉRIFIÉ |
-| TypeScript initial avec configuration de vérification locale | RÉUSSI | VÉRIFIÉ |
-| `node --test tests/*.test.mjs` | 25/25 réussis | VÉRIFIÉ |
-| Démarrage du site | Aperçu local déjà disponible sur `127.0.0.1:4180` | VÉRIFIÉ lors du travail précédent ; non redémarré pour préserver la session |
-| Test de paiement/fournisseur réel | Non lancé | NON TESTABLE volontairement dans le périmètre local sans appels externes |
+| `npm run build` | Réussi ; routes API et Worker produits | VÉRIFIÉ |
+| `npx tsc --noEmit` | Réussi | VÉRIFIÉ |
+| `node --test tests/*.test.mjs` | 68/68 réussis | VÉRIFIÉ |
+| `npm run test:http-integration` | 22 contrôles API + 6 contrôles Composio HTTP réussis | VÉRIFIÉ, serveur/base temporaires, zéro appel fournisseur |
+| `npm run test:file-upload-integration` | 71 contrôles réussis | VÉRIFIÉ, localhost et stockage temporaire |
+| `npm run test:file-preview-bundle` | 2/2 réussis | VÉRIFIÉ après build |
+| Facturation | 21 + 11 contrôles réussis | VÉRIFIÉ avec SasPay simulé, aucun débit/remboursement réel |
+| Runtime et exploitation | 19 + 12 contrôles réussis | VÉRIFIÉ localement ; Resend/R2 simulés |
+| Composio | 29 politiques + 8 contrats SDK + test navigateur sans clé | VÉRIFIÉ avec SDK réel intercepté ; aucun compte fournisseur utilisé |
+| OpenRouter | 16 contrôles réussis | VÉRIFIÉ avec API simulée ; aucun appel payant |
+| Économie / Instant | 4 tests économiques réussis ; Instant reste désactivé | VÉRIFIÉ par simulation ; marge réelle non vérifiée |
+| Manifeste Worker | `triggers.crons=["*/5 * * * *"]`, binding `DB` et `BUCKET` | VÉRIFIÉ par build et `npm run test:worker-config` |
+| `npm run lint` | ÉCHEC : 141 erreurs et 18 avertissements après exclusion des artefacts temporaires générés ; 136 erreurs `no-explicit-any` | VÉRIFIÉ |
+| `npm audit --json` | ÉCHEC : 19 avis au total (8 élevés, 9 modérés, 2 faibles, aucun critique) | VÉRIFIÉ |
+| `npm audit --omit=dev --json` | ÉCHEC : 5 avis modérés de production (aucun élevé/critique) | VÉRIFIÉ |
+| `npm audit fix --dry-run` | 0 changement proposé par la simulation ; aucun correctif forcé appliqué | VÉRIFIÉ |
 
-Pas de script `npm test` n’est défini dans `package.json`. Après libération d’espace, les dépendances ont été installées et les contrôles complets ont pu être exécutés.
+Les réponses de fournisseurs sont simulées dans toutes les suites. Les tests de sauvegarde utilisent SQLite/Web Crypto et un stockage simulé : ils ne prouvent pas une sauvegarde Cloudflare ou une réception Resend réelle. Le build vinext avertit que certaines routes ne sont pas classifiées statiquement ; le build finit néanmoins avec succès.
 
-### Vérifications locales supplémentaires
+### Défauts corrigés
 
-- `npm run build` après les changements finaux : réussi — **VÉRIFIÉ**. Le rapport de build avertit que certaines routes API ne peuvent pas être classifiées statiquement par vinext ; cela n’a pas empêché le build.
-- `npx tsc --noEmit` après les changements finaux : réussi — **VÉRIFIÉ**.
-- `node --test tests/*.test.mjs` : 25/25 — **VÉRIFIÉ**.
-- `tests/billing.integration.mjs` : 21 contrôles réussis avec SQLite en mémoire et SasPay simulé — **VÉRIFIÉ** ; aucun paiement ni appel fournisseur réel.
-- `tests/openrouter.integration.mjs` : 16 contrôles réussis avec `fetch` simulé — **VÉRIFIÉ** ; aucun appel modèle réel.
-- `tests/http.integration.mjs` : 13 contrôles réussis après les modifications, sur les vraies routes avec serveur local isolé et base SQLite temporaire — **VÉRIFIÉ**.
-- `npm run lint` : échec sur 156 erreurs et 15 avertissements dans les sources : 151 `no-explicit-any` et 5 `react-hooks/set-state-in-effect`. Les bundles `.local-build` sont maintenant ignorés. Aucune règle de code source n’a été désactivée — **VÉRIFIÉ**.
-- `npm audit --omit=dev --audit-level=high` : zéro vulnérabilité de dépendance de production — **VÉRIFIÉ**.
-- `npm audit` complet : 20 avis résiduels dans la chaîne de développement (7 modérés, 13 élevés) — **VÉRIFIÉ**.
-- Navigateur local : aperçu `4180` répond HTTP 200 ; l’arbre d’accessibilité montre l’accueil et l’ouverture du sélecteur accompagné/autonome. Aucun message n’a été envoyé — **VÉRIFIÉ**.
-- `GET /api/billing/catalog` et `GET /api/billing/price?quantity=150` sur `127.0.0.1:4180` : 200, paiements fermés, devise XAF, 7 packs et prix de 7 250 XAF — **VÉRIFIÉ**.
-- L’instance de test `127.0.0.1:4176` a été arrêtée ; l’aperçu utilisateur `127.0.0.1:4180` n’a pas été arrêté ni redémarré. Le client `.local-build/app.js` partagé a été rebâti depuis les sources pour les tests ; la page 4180 n’a pas été rechargée pendant l’audit.
+| Gravité | Symptôme et cause | Correctif | Test |
+|---|---|---|---|
+| P1 | Le manifeste Workers sortait `crons: []` : `vite.config.ts` utilisait une propriété `schedules` ignorée au niveau Worker | Configuration remplacée par `triggers.crons` | Nouveau `tests/worker-config.test.mjs` : cron et bindings vérifiés après build |
+| P2 | Les ticks d'autonomie ont correctement été refusés avec 503, mais le nouveau test HTTP attendait 200 alors que l'autonomie est désactivée par défaut | Attendu corrigé vers `autonomy_not_ready` ; aucun garde-fou abaissé | `npm run test:http-integration` : 22 contrôles passent |
+| P2 | Le test HTTP n'avait pas de lanceur isolé et pouvait écrire son résultat dans le projet | Lanceur dédié avec serveur, SQLite, configuration et fichiers temporaires ; clés fournisseur retirées de l'environnement de test | 22 API + 6 connecteurs HTTP passent sans fournisseur |
+| P3 | ESLint inspectait des artefacts générés sous `.tmp` et `.wrangler` | Répertoires générés ignorés ; règles de lint sur le code source inchangées | Le lint donne un résultat source mesurable, mais reste en échec |
 
-Le total des contrôles réussis est de 75 (25 unitaires, 21 facturation, 16 OpenRouter simulés et 13 HTTP). Les données HTTP ont été stockées dans un répertoire temporaire distinct.
+### Défauts non corrigés et dépendances bloquantes
 
-## 4. Défauts et risques relevés
+- **P1 — Fournisseurs réels absents/non vérifiés.** `COMPOSIO_API_KEY`, fal.ai, SasPay, Resend et secrets Meta ne sont pas configurés dans Aïra. La clé affichée dans le dashboard Composio ne passe pas automatiquement à l'application. `OPENROUTER_API_KEY`, le modèle et le barème local sont présents, mais aucun appel de modèle réel n'a été envoyé.
+- **P1 — Campagnes.** L'agent peut découvrir des outils et préparer des écritures avec approbation exacte, mais aucun utilisateur, compte Meta, actif publicitaire, créatif ou campagne de test réel n'a été connecté/exécuté. App Review et permissions Meta restent inconnues.
+- **P1 — Paiement et fiscalité.** Aucun checkout SasPay sandbox. Le compte marchand, frais, méthodes disponibles en XAF, taxe et remboursement externe doivent être confirmés. Aucun remboursement n'a été exécuté.
+- **P1 — Production Cloudflare.** Le build produit le cron et les bindings, mais aucun Worker Aïra, secret, D1/R2 de staging, déclencheur distant, sauvegarde R2 ou restauration distante n'a été configuré/testé. La session visible montrait le Worker `livefoot`, un autre produit.
+- **P1 — Domaine, e-mail et support.** Le propriétaire a indiqué ne pas encore avoir de domaine ou d'adresse de test. SPF/DKIM/DMARC, réception d'un e-mail, alertes extérieures et canal support ne peuvent pas être validés.
+- **P1 — Rentabilité.** La marge de 75 % n'est pas prouvée. `COST_SOURCES.md` et `margin-sensitivity.json` sont des sources/sensibilités, non des factures ni un coût constaté. Les coûts variables réels, taux de change, taxes, support et comportements d'usage manquent.
+- **P1 — Fonctions produit bornées.** L'autonomie actuelle ne couvre que l'analyse, les lectures connectées et les brouillons privés ; une campagne ou mutation externe exige une confirmation séparée. Les pages exigent une origine dédiée et un abonnement actif.
+- **P2 — Dépendances.** Cinq avis modérés de production suivent la chaîne `@composio/anthropic` → Mastra → `gray-matter` → `js-yaml` → `argparse` → `sprintf-js`. Un dry-run npm n'a modifié aucun paquet. Les 14 avis restants sont de développement. Voir `docs/production/DEPENDENCY_SECURITY.md`.
+- **P2 — Lint.** 141 erreurs subsistent dans 20 fichiers, principalement `any` explicites ; 18 avertissements. Aucun skip ni assouplissement de règle n'a été ajouté. Ces erreurs n'ont pas toutes été corrigées car elles traversent de nombreux modules et exigent une campagne de typage dédiée.
+- **P2 — Preuves absentes.** Aucun test de charge, audit WCAG complet, exercice de restauration cloud, alerte externe reçue, export/suppression complète ni revue externe OWASP n'a été réalisé.
 
-### [P1] Une génération fal.ai incertaine peut rester bloquée
+## 4. Ce qu'il faut fournir ou décider
 
-- **Symptôme :** une réservation peut rester immobilisée après une réponse incertaine du fournisseur.
-- **Cause :** l’API marque l’opération `needs_reconciliation`, mais le polling ne reprend que `waiting_external` et `settling`. Aucun réconciliateur fal.ai n’est présent dans `tick()`.
-- **Preuve :** DÉDUIT DU CODE dans `app/api/proposals/[id]/route.ts`, `lib/billing.ts` et `lib/providers.ts` ; test d’incident restant à ajouter/exécuter.
-- **Correctif :** à décider après test isolé ; la récupération d’un identifiant fournisseur non enregistré exige une stratégie d’idempotence compatible fal.ai.
+1. Définir l'environnement de staging Cloudflare Aïra (Worker, D1, R2 distincts) et y saisir les secrets depuis le gestionnaire serveur. Ne pas coller de clé dans le chat. Le dashboard Composio indique qu'une clé existe ; elle doit être ajoutée comme `COMPOSIO_API_KEY` au secret de staging, puis un compte publicitaire de test doit être connecté depuis Aïra. Pour un test local volontaire, la variable se lit depuis `.dev.vars`, mais le secret ne doit pas être commit.
+2. Pour Meta : identifiants de l'application, URI de rappel et configuration d'authentification personnalisée Composio, puis approbations/scopes Meta requis et un compte/Page/compte publicitaire de test.
+3. Pour fal.ai et OpenRouter : compte fournisseur, plafond de dépense de test et validation du barème du modèle par les factures/retours réels. Aucun appel payant n'a été fait.
+4. Pour SasPay : accès sandbox, identifiants marchands, secret webhook, liste des méthodes activées, confirmation XAF/CM, tarifs et procédure de remboursement.
+5. Pour e-mail : domaine contrôlé par le propriétaire, adresse d'expéditeur et destinataire de test ; ajouter DNS SPF/DKIM/DMARC seulement après choix du domaine.
+6. Pour commercialiser : identité légale, validation de taxes/CGU/confidentialité/remboursement, canal de support et budget de gratuité.
+7. Pour publier/pousser le code : ce checkout n'a aucun `git remote` configuré. Fournir ou configurer le remote Git souhaité si une publication distante est attendue.
 
-### [P1] Le remboursement client ne va pas jusqu’à la résolution
+## 5. Manques et améliorations
 
-- **Symptôme :** l’utilisateur peut demander un remboursement, mais aucun bouton/endpoint d’administration ne peut approuver, rejeter, rembourser via SasPay ou libérer le portefeuille après rejet.
-- **Cause :** l’interface et l’API ne gèrent que la création d’une demande et le gel des crédits.
-- **Preuve :** DÉDUIT DU CODE dans `lib/billing.ts`, `app/api/admin/billing/route.ts` et `app/admin/billing/page.tsx`.
-- **Correctif :** terminer un processus manuel audité ou une intégration de remboursement vérifiée avant de vendre les offres. Aucun mouvement de fonds ne sera ajouté sans contrat fournisseur confirmé.
-
-### [P1] Les tâches périodiques ne sont pas reliées à un ordonnanceur visible
-
-- **Symptôme :** les webhooks sont stockés durablement, mais leur traitement, les rappels d’échéance et le rapprochement automatique dépendent d’un appel à `billing-tick`.
-- **Cause :** aucune configuration de cron n’est visible dans le dépôt ; la route existe et attend un secret.
-- **Preuve :** VÉRIFIÉ par recherche de configuration et DÉDUIT DU CODE ; environnement d’hébergement non accessible dans cet audit.
-- **Correctif :** confirmer un ordonnanceur fiable, surveillé et sécurisé puis tester les tâches après arrêt du navigateur.
-
-### [P1] L’intégration de paiement XAF n’est pas certifiée
-
-- **Symptôme :** la plateforme annonce FCFA/XAF et `country: CM`, mais aucune requête n’a confirmé que le compte SasPay du marchand accepte cette combinaison, les frais et les moyens Mobile Money/carte souhaités.
-- **Cause :** cette validation dépend du compte marchand et du sandbox fournisseur.
-- **Preuve :** NON TESTABLE ici. La documentation publique SasPay fournit un exemple de checkout en XOF et explique que `fee_charge_mode` dépend d’un réglage marchand ; cela ne prouve ni ne réfute l’acceptation de XAF pour ce compte. [Checkout SasPay](https://docs.saspay.me/api-reference/payments/checkout-create)
-- **Correctif :** tester un paiement en mode test et confirmer les frais, le pays, les méthodes et la signature webhook avant d’ouvrir le verrou.
-
-### [P1] Plusieurs fonctions prévues ne sont pas livrées
-
-- **Symptôme :** lancement des publicités Meta, hébergement public de pages et missions autonomes ne sont pas disponibles.
-- **Cause :** ces modules ne figurent pas encore dans l’implémentation actuelle.
-- **Preuve :** VÉRIFIÉ par les flags `publishing:false`, `autonomy:false` et l’interface.
-- **Correctif :** ne pas les inclure parmi les capacités commerciales tant que les modules et leurs contrôles ne sont pas terminés.
-
-### [P2] Le rapprochement OpenRouter peut ralentir le début d’une conversation
-
-- **Symptôme :** un nouvel envoi attend le rapprochement séquentiel d’anciennes consommations fournisseur avant d’ouvrir le flux.
-- **Cause :** `startRunBudget()` attend jusqu’à cinq appels `generationCost()` ; chacun peut attendre jusqu’à huit secondes.
-- **Preuve :** DÉDUIT DU CODE dans `lib/metering.ts` et `lib/llm.ts` ; mesure chronométrée à faire avec `fetch` simulé.
-- **Correctif :** déplacer le rapprochement vers une tâche de fond fiable ou réduire sa latence sans autoriser une nouvelle dépense hors plafond.
-
-### [P2] Certains coûts OpenRouter sans identifiant fournisseur peuvent rester à rapprocher
-
-- **Symptôme :** une réponse livrée sans `X-Generation-Id` peut garder la réservation de crédits en attente indéfiniment.
-- **Cause :** les lignes `estimated/unknown` sans `request_id` ne sont pas sélectionnées par `reconcileOpenRouterUsage()`.
-- **Preuve :** VÉRIFIÉ par le cas `missing_id` de `tests/openrouter.integration.mjs` : la réservation reste en rapprochement sans identifiant ; le test libère ensuite le solde uniquement pour nettoyer sa base isolée.
-- **Correctif :** définir une règle bornée de rapprochement manuel ou de libération, avec audit et information utilisateur.
-
-### [P2] Le contrôle quotidien de conversations annoncé dans le document n’existe pas dans les routes
-
-- **Symptôme :** `IMPLEMENTATION.md` annonce une limite de 20 tours par utilisateur et par jour, mais aucun compteur de tours correspondant n’est appliqué par `/api/chat`.
-- **Cause :** la réservation de crédits borne le coût par solde, mais ne matérialise pas cette limite quotidienne.
-- **Preuve :** VÉRIFIÉ par recherche des routes et DÉDUIT DU CODE ; le document du dépôt mentionne lui-même que le contrôle doit devenir atomique avant usage public.
-- **Correctif :** soit implémenter un quota atomique cohérent avec l’offre, soit corriger le texte produit avant ouverture commerciale.
-
-### [P2] La suppression d’un fichier peut désynchroniser R2 et D1
-
-- **Symptôme :** si la suppression de l’objet R2 réussit puis l’écriture D1 échoue, la ressource peut rester visible alors que son fichier a disparu.
-- **Cause :** `/api/files` supprime d’abord le blob et marque ensuite la ressource comme supprimée ; aucun processus de réconciliation des suppressions n’est présent.
-- **Preuve :** DÉDUIT DU CODE dans `app/api/files/route.ts` ; panne D1 non simulée.
-- **Correctif :** rendre la suppression récupérable par état/outbox et réconciliation, puis ajouter un test de panne entre les deux opérations.
-
-### [P2] Une connexion Meta expirée reste affichée comme active
-
-- **Symptôme :** `workspace` traite la présence d’une ligne de connexion comme `metaConnected`, même si `expires_at` est dépassé ; `metaToken()` refuse ensuite les lectures avec 412. L’écran peut continuer à présenter la connexion comme active.
-- **Cause :** l’expiration est contrôlée lors de l’appel fournisseur, mais pas dans l’état de capacité envoyé au client ; aucun renouvellement automatique de jeton n’est présent.
-- **Preuve :** DÉDUIT DU CODE dans `app/api/workspace/route.ts` et `lib/providers.ts` ; aucune session Meta réelle utilisée.
-- **Correctif :** exposer l’état expiré et proposer une reconnexion explicite, puis valider sur un compte test.
-
-### [P2] Les rappels d’abonnement ne sont pas visibles pour le client
-
-- **Symptôme :** `tick()` écrit des lignes de notification, mais aucune route ou surface UI n’affiche ou ne marque ces notifications comme lues ; aucun e-mail n’est envoyé.
-- **Cause :** modèle de données de rappel présent sans canal de livraison et sans ordonnanceur confirmé.
-- **Preuve :** DÉDUIT DU CODE (`billing.ts`, `BillingPanel` et routes API) ; parcours de notification absent.
-- **Correctif :** ajouter une boîte de notifications et/ou un canal transactionnel une fois l’ordonnanceur et les préférences utilisateur définis.
-
-### [P2] La chaîne de développement conserve des avis de sécurité
-
-- **Symptôme :** l’audit NPM complet trouve 20 avis (7 modérés, 13 élevés), principalement dans Vite, Cloudflare Vite Plugin, Wrangler, vinext, RSC et leurs dépendances.
-- **Cause :** les versions actuelles de la chaîne sont fixées ensemble ; plusieurs corrections NPM demandent des mises à jour en dehors des versions déclarées ou une évolution plus large de l’outillage.
-- **Preuve :** VÉRIFIÉ par `npm audit` après mise à jour de Next.js et des dépendances compatibles, y compris sharp 0.35.5. `npm audit --omit=dev` ne trouve aucun avis.
-- **Correctif :** planifier une mise à jour isolée de l’outillage de développement, avec build et tests Cloudflare/Vite ; aucun `--force` n’a été utilisé.
-
-## 5. Défauts corrigés pendant l’audit
-
-- **P2 — état faux de disponibilité de l’IA :** `modelReadiness()` distingue désormais clé absente, tarif à vérifier, tarif invalide et configuration opérationnelle. `/api/workspace` transmet cet état et l’interface ne marque Opus opérationnel que si la clé et les tarifs sont valides. Le test OpenRouter couvre les trois états et le test HTTP confirme l’état sans clé. Le fournisseur n’a pas été appelé.
-- **P2 — lint de compétence :** renommage du callback `useSkill` en `applySkill`. Ce callback n’utilise aucun Hook React ; le nom trompeur déclenchait une erreur `rules-of-hooks`. Le build passe et cette erreur a disparu du lint.
-- **P2 — lint de bundles :** `.local-build/**` est exclu du lint parce qu’il s’agit d’un bundle généré ; les sources restent soumises aux mêmes règles.
-- **P1 sécurité dépendances production :** mise à jour non majeure de Next.js de `16.3.4` à `16.4.2`, mises à jour transitives compatibles et correctif sharp `0.35.5`. L’avis critique a disparu ; l’audit NPM de production est à zéro. Le build et les tests passent après mise à jour.
-- Les fichiers `app/studio.tsx`, `app/api/workspace/route.ts`, `lib/metering.ts` et `tests/openrouter.integration.mjs` avaient déjà des changements non commités avant l’audit. Ils ont été conservés ; les corrections d’audit qui les touchent restent dans le worktree pour éviter d’inclure ces modifications antérieures dans un commit. `tests/http.integration.mjs` était propre et ne contient que l’assertion de non-régression ajoutée ici.
-
-## 6. Ce qui reste nécessaire
-
-- Configuration et compte de test SasPay pour vérifier XAF, pays CM, Mobile Money/carte, frais et webhooks. Aucun paiement réel ne sera lancé.
-- Accès de test Meta pour valider OAuth et lectures ; la diffusion publicitaire reste hors périmètre tant qu’elle n’est pas implémentée.
-- Confirmation de l’ordonnanceur disponible dans l’hébergement, sans activation de production.
-- Validation légale/fiscale, textes de facturation et politique de remboursement avant toute ouverture des paiements.
-- Une décision pour la mise à niveau de la chaîne Vite/Cloudflare/Wrangler, si l’ouverture commerciale inclut la chaîne de développement administrée par votre équipe.
-
-## 7. Manques et améliorations
-
-| Amélioration | Impact | Effort | Priorité |
+| Manque | Impact | Effort | Priorité |
 |---|---|---:|---:|
-| Réconciliateur fal.ai durable avec récupération des opérations incertaines | Fort | M | P1 |
-| Décision de remboursement avec gel/dégel, écriture d’audit et rapprochement SasPay | Fort | M/L | P1 |
-| Cron contrôlé pour webhooks, commandes, allocations et notifications | Fort | M | P1 |
-| Validation XAF/CM, frais et moyens de paiement sur sandbox SasPay | Fort | S/M | P1 |
-| Diffusion publicitaire Meta, approbation versionnée, budgets et suivi d’événements | Fort | L | P1 |
-| Missions durables hors ligne, mandat, arrêt/révocation et reprise après crash | Fort | L | P1 |
-| Rapprochement d’OpenRouter sans identifiant et sans coût final affiché comme confirmé | Fort | M | P1 |
-| Export/suppression du compte, politique de rétention et suppression planifiée des médias | Fort | M | P1 |
-| Pages publiques isolées, formulaires et suivi de conversions validées | Fort | L | P1 |
-| En-têtes de sécurité, limitation de débit serveur et vérification des protections de déploiement | Moyen/Fort | M | P2 |
-| Réconciliation des suppressions R2/D1 et test de panne intermédiaire | Fort | M | P2 |
-| Aligner le quota journalier annoncé avec le vrai comportement de `/api/chat` | Moyen | S/M | P2 |
-| Détecter les jetons Meta expirés et permettre la reconnexion claire | Moyen | S | P2 |
-| Afficher et distribuer les rappels d’échéance | Moyen | M | P2 |
-| Mettre à jour la chaîne Vite/Cloudflare/Wrangler avec tests de compatibilité | Moyen/Fort | M/L | P2 |
-| Tableau de marge avec revenus bruts/nets, taxes, frais réels et crédits à servir | Fort | M | P2 |
-| Tests de charge, restauration D1/R2, alertes et file d’échecs opérable | Fort | M/L | P2 |
-| Pagination/recherche serveur et rétention des messages/événements | Moyen | M | P2 |
-| Onboarding et invitations d’équipe avec e-mail transactionnel | Moyen | M | P2 |
-| Audit WCAG complet et test utilisateur débutant sur mobile | Moyen | M | P2 |
+| Clés staging et tests réels Composio/OpenRouter/fal.ai | Fort | S | P1 |
+| Meta OAuth/App Review et parcours campagne de bout en bout | Fort | L | P1 |
+| SasPay sandbox, XAF, paiements et remboursements rapprochés | Fort | M | P1 |
+| Déployer Worker Aïra, scheduler, D1/R2 et exercice de restauration | Fort | M | P1 |
+| Domaine, e-mail test, alertes extérieures et support | Fort | M | P1 |
+| Mesurer marge par offre avec coûts réels et usages extrêmes | Fort | M | P1 |
+| Traiter cinq vulnérabilités modérées de production | Fort | M | P1 |
+| Résorber erreurs lint et compléter les types | Moyen | L | P2 |
+| Test de charge chat, fichiers, missions et facturation | Moyen | M | P2 |
+| Audit WCAG et parcours mobile par des débutants | Moyen | M | P2 |
+| Export/suppression et politique de conservation vérifiée | Fort | M | P1 |
+| Rapprochement opérateur pour appels IA/media et remboursements incertains | Fort | M | P1 |
 
-## 8. Feuille de route
+## 6. Feuille de route
 
 | Quand | Action |
 |---|---|
-| Maintenant | Concevoir la reprise durable fal.ai, un parcours complet de remboursement et l’ordonnanceur ; garder ces fonctions non commercialisées tant qu’elles ne sont pas vérifiées |
-| Ensuite | Valider SasPay/XAF sur sandbox ; traiter les coûts OpenRouter sans identifiant ; corriger quota quotidien, expiration Meta et notifications |
-| Avant production commerciale | Vérifier fiscalité, contrats, restauration D1/R2, surveillance, budget de marge et permissions Meta ; exécuter les parcours avec comptes de test |
-| Plus tard | Mettre à niveau l’outillage Cloudflare/Vite/RSC avec campagne de compatibilité ; livrer campagnes Meta, autonomie durable, pages publiques et conversions |
+| Maintenant | Créer un environnement staging Aïra et y configurer les secrets ; connecter un compte Meta test ; valider les appels fournisseurs et leurs coûts sans publier de campagne |
+| Ensuite | Tester SasPay sandbox, e-mail de test, tick Cloudflare, pages publiques et restauration sur ressources dédiées ; résoudre les avis production et calculer la marge réelle |
+| Avant l'ouverture payante | Valider textes légaux/fiscaux, support, permissions Meta, toutes les routes financières, alertes, coûts par offre et seuil de 75 % |
+| Plus tard | Corriger les erreurs lint, réaliser charge/WCAG/OWASP complets et développer la diffusion autonome uniquement dans les limites expressément approuvées |
 
-## 9. Commandes de reprise
+## 7. Commandes de reprise
+
+À exécuter dans le dépôt :
 
 ```powershell
-cd "C:\Users\Braand\Documents\Codex\2026-10-15\https-lovable-dev-blog-introducing-growth\outputs\aira"
-npm run install:ci
+npm ci
 npm run build
-npm run lint
 npx tsc --noEmit
+npm run lint
 node --test tests/*.test.mjs
+npm run test:http-integration
+npm run test:file-upload-integration
+npm run test:file-preview-bundle
+npm run test:worker-config
 node tests/billing.integration.mjs
+node tests/production-billing.integration.mjs
+node tests/production-runtime.integration.mjs
+node tests/production-operations.integration.mjs
+node tests/composio.integration.mjs
+node tests/composio-sdk.integration.mjs
 node tests/openrouter.integration.mjs
+npm audit --json
+npm audit --omit=dev --json
 ```
 
-`tests/http.integration.mjs` exige un serveur local de test sur `127.0.0.1:4176`, une valeur `AIRA_DATA_DIR` dans un dossier `%TEMP%` neuf et `AIRA_TEST_URL=http://127.0.0.1:4176`. Exécuter le script depuis un dossier temporaire pour que `verification-api.json` n’écrase pas un fichier du projet. Les clés OpenRouter doivent rester vides pour ce test ; les réponses fournisseurs sont simulées.
+`npm run test:http-integration` et `npm run test:file-upload-integration` démarrent un serveur sur loopback avec base et fichiers temporaires. Les tests fournisseurs interceptent les appels. `npm run lint` est actuellement en échec (141 erreurs/18 avertissements) ; `npm audit` reste en échec jusqu'au traitement ou à l'acceptation documentée des avis. Le déploiement live n'est pas inclus dans ces commandes.
