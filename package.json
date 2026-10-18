@@ -12,6 +12,8 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test:file-preview-bundle": "node --test tests/file-preview-bundle.test.mjs",
+    "test:http-integration": "node tests/run-http-integration.mjs",
+    "test:worker-config": "node --test tests/worker-config.test.mjs",
     "test:file-upload-integration": "node tests/run-file-upload-integration.mjs",
     "db:generate": "drizzle-kit generate"
   },

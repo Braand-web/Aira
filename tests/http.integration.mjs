@@ -8,6 +8,12 @@ let r=await request("/api/workspace");assert.equal(r.status,401);results.push("U
 r=await request("/api/workspace","GET",undefined,{"oai-authenticated-user-id":"fake","oai-authenticated-user-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
 r=await request("/signin-with-chatgpt");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
 r=await request("/api/workspace");assert.equal(r.status,200);assert.equal(r.data.development,true);assert.equal(r.data.capabilities.model,false);assert.equal(r.data.capabilities.modelReady,false);assert.equal(r.data.capabilities.modelStatus,"missing_key");assert.equal(r.data.capabilities.autonomy,false);results.push("Local identity + truthful capability flags");
+r=await request("/api/health");assert.equal(r.status,200);assert.deepEqual(r.data,{status:"ok"});results.push("Health route is reachable through the local adapter");
+r=await request("/api/internal/operations-tick","POST",{});assert.equal(r.status,401);results.push("Operations scheduler denies calls without its secret");
+r=await request("/api/internal/operations-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Operations tick is routed and runs with a test-only secret");
+r=await request("/api/internal/mission-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,503);assert.equal(r.data.code,"autonomy_not_ready");results.push("Mission tick is routed but autonomy remains safely disabled without its production gates");
+r=await request("/api/internal/billing-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Billing tick is routed with a test-only secret");
+r=await request("/api/admin/operations");assert.equal(r.status,200);results.push("Operations admin route is routed for the explicit local test admin");
 r=await request("/api/workspace","POST",{kind:"project",title:"Test technique — isolé",data:{description:"Donnée de test"}});assert.equal(r.status,201);const id=r.data.id;assert.equal(r.data.version,1);results.push("Project persisted by actual server route");
 r=await request("/api/workspace");assert.ok(r.data.resources.some(p=>p.id===id));results.push("Project survives independent read");
 r=await request("/api/resources/"+id,"PATCH",{version:1,action:"rename",title:"Test technique renommé"});assert.equal(r.status,200);assert.equal(r.data.version,2);
