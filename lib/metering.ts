@@ -3,7 +3,7 @@ import {AppError,parseSSE} from './core.mjs';
 import {reserve,settleHold,type BillingIdentity} from './billing';
 import {usageUnits} from './billing-core.mjs';
 import {modelConnection,modelRequest,estimateInputTokens,requestCostUnits,generationCost} from './llm';
-export type RunBudget={who:BillingIdentity;holdId:string;limit:number;runId:string;rate:any};
+export type RunBudget={who:BillingIdentity;holdId:string;limit:number;runId:string;rate:any;beforeTool?:()=>Promise<void>};
 export function modelRate(){
  const connection=modelConnection();let rate:any;try{rate=JSON.parse(config()[connection.rateKey]||'{}');}catch{throw new AppError('Tarif du modèle invalide.',503);}
  const fields=['input','output','cacheWrite','cacheRead','usdXaf','overheadXaf'];

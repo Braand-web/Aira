@@ -81,7 +81,7 @@ export async function runSpecialist(tenant:string,runId:string,input:unknown,emi
    const calls=blocks.filter(b=>b.type==="tool_use");
    if(!calls.length)break;
    const results=[];
-   for(const call of calls){await authorize(tenant,budget.who.user.userId,"write");if(!allowed.has(call.name))throw new AppError("Outil interdit au spécialiste.",403);try{const result=await executeTool(tenant,call.name,call.input);results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});}catch(error){results.push({type:"tool_result",tool_use_id:call.id,content:error instanceof AppError?error.message:"Lecture indisponible.",is_error:true});}}
+   for(const call of calls){await authorize(tenant,budget.who.user.userId,"write");await budget.beforeTool?.();if(!allowed.has(call.name))throw new AppError("Outil interdit au spécialiste.",403);try{const result=await executeTool(tenant,call.name,call.input);results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});}catch(error){results.push({type:"tool_result",tool_use_id:call.id,content:error instanceof AppError?error.message:"Lecture indisponible.",is_error:true});}}
    messages.push({role:"user",content:results});
    if(round===2)throw new AppError("Limite d’étapes du spécialiste atteinte.",409);
   }
@@ -125,7 +125,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
   messages.push({role:"assistant",content:blocks});
   const calls=blocks.filter(b=>b.type==="tool_use");if(!calls.length)return;
   const results=[];
-  for(const call of calls){await authorize(tenant,budget.who.user.userId,"write");
+  for(const call of calls){await authorize(tenant,budget.who.user.userId,"write");await budget.beforeTool?.();
    const state=await db().prepare("SELECT status FROM runs WHERE id=?").bind(runId).first<{status:string}>();if(state?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");
    try{if(call.name==="delegate_specialist"&&++specialistCount>3)throw new AppError("Limite de trois spécialistes par réponse atteinte.",409);const result=call.name==="delegate_specialist"?await runSpecialist(tenant,runId,call.input,emit,signal,budget):call.name.startsWith("COMPOSIO_")||call.name.startsWith("aira_")?await executeConnectorAgentTool(budget.who,conversationId,call.name,call.input):await executeTool(tenant,call.name,call.input);await auditLog(tenant,"tool."+call.name,runId);results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});await emit("tool_result",{name:call.name,id:call.id,result});}
    catch(error){const message=error instanceof AppError?error.message:"Paramètres d’outil invalides ou service indisponible.";results.push({type:"tool_result",tool_use_id:call.id,content:message,is_error:true});await emit("tool_result",{name:call.name,id:call.id,error:message});}

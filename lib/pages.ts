@@ -37,9 +37,11 @@ export async function preparePagePublication(who:BillingIdentity,id:string,input
  const p=z.object({version:z.number().int().positive(),form:formSchema.optional()}).parse(input),resource=await getResource(who.tenant,id);
  if(resource.kind!=='page'||resource.status==='deleted')throw new AppError('Page introuvable.',404);
  if(resource.version!==p.version)throw new AppError('La page a changé. Vérifiez la nouvelle version.',409,'stale_version');
+ const active=await db().prepare("SELECT status FROM page_publications WHERE resource_id=? AND workspace_id=?").bind(id,who.tenant).first<{status:string}>();
+ if(active?.status==='published')throw new AppError('Retirez explicitement la version publique avant de préparer son remplacement.',409,'page_suspend_before_replacement');
  if(p.form?.enabled&&(config().PAGE_FORM_SECRET||'').length<32)throw new AppError('La protection des formulaires n’est pas configurée.',503,'page_form_not_configured');
  const snapshot=JSON.stringify(publicationSchema.parse({page:resource.data.current,form:p.form})),hash=await digest(snapshot),now=Date.now(),publicationId=uid();
- // Preparing a replacement suspends the former snapshot. No draft can become public without a new approval.
+ // A replacement cannot implicitly unpublish a live version; the owner must suspend it first.
  await db().prepare("INSERT INTO page_publications(id,workspace_id,organization_id,resource_id,resource_version,snapshot,digest,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'awaiting_approval',?,?) ON CONFLICT(resource_id) DO UPDATE SET resource_version=excluded.resource_version,snapshot=excluded.snapshot,digest=excluded.digest,status='awaiting_approval',approved_by=NULL,approved_at=NULL,updated_at=excluded.updated_at").bind(publicationId,who.tenant,who.organization,id,p.version,snapshot,hash,now,now).run();
  const result=await pagePublication(who,id);await publicationAudit(who,'page.publication.prepared',id);
  return {...result,approval:{version:p.version,digest:hash,publicOrigin:origin,formEnabled:p.form?.enabled===true},html:renderPublishedPage(snapshot,result!.id)};

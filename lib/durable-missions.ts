@@ -64,21 +64,28 @@ export async function runDurableTick(runner?:MissionRunner){
    const stepId=m.id+':'+m.cursor,runId='durable:'+stepId;const conversation=m.cursor===0?await createResource(m.workspace_id,'conversation','Mission : '+resource.title,{},'saved'):await getResource(m.workspace_id,(await q('SELECT conversation_id FROM durable_steps WHERE mission_id=? ORDER BY ordinal LIMIT 1',m.id).first<{conversation_id:string}>())!.conversation_id);
    const who:BillingIdentity={tenant:m.workspace_id,organization:m.organization_id,role:(await authorize(m.workspace_id,m.actor_id,'write')).role,user:{userId:m.actor_id,email:'',displayName:''}};
    let budget:RunBudget|undefined;const abort=new AbortController();let needsApproval=false,lastHeartbeat=0,delivered=false;const approvalIds:string[]=[];
+   const mandateTimer=setTimeout(()=>abort.abort(),Math.max(0,m.expires_at-Date.now()));
    try{
     const existingHold=await q('SELECT status FROM credit_holds WHERE reference=?','chat:'+runId).first<{status:string}>();if(existingHold?.status==='settled')throw new AppError('La réservation de cette étape doit être rapprochée.',409,'mission_needs_reconciliation');
     budget=await startRunBudget(who,runId,mandate.stepCredits);
     await db().batch([q("INSERT INTO durable_steps(id,mission_id,ordinal,status,run_id,conversation_id,reserved_units,started_at) VALUES (?,?,?,'running',?,?,?,?)",stepId,m.id,m.cursor,runId,conversation.id,units,Date.now()),q('UPDATE durable_missions SET reserved_units=? WHERE id=? AND lease_token=?',units,m.id,token),q("INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,'streaming',?,?)",runId,m.workspace_id,conversation.id,Date.now(),Date.now()),q("UPDATE resources SET status='running',updated_at=? WHERE id=?",Date.now(),m.id),q("INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'user',?,?)",uid(),m.workspace_id,conversation.id,JSON.stringify([{type:'text',text:'Mandat autonome approuvé : '+JSON.stringify(mandate)+'\nÉtape '+(m.cursor+1)+' : '+mandate.steps[m.cursor]+'\nExécute seulement cette étape. Les publications, modifications externes et dépenses publicitaires exigent toujours une approbation distincte. Arrête et explique si une condition d’arrêt s’applique.'}]),Date.now())]);
+    const assertMandate=async()=>{
+     if(abort.signal.aborted)throw new AppError('Le mandat de la mission est expiré ou interrompu.',409,'mandate_expired');
+     const current=await q('SELECT status,expires_at FROM durable_missions WHERE id=? AND lease_token=?',m.id,token).first<{status:string;expires_at:number}>(),latest=await getResource(m.workspace_id,m.id);
+     if(current?.status!=='running'||['cancelled','suspended'].includes(latest.status)){abort.abort();throw new AppError('Mission suspendue.',499,'cancelled');}
+     if(!current||current.expires_at<=Date.now()||latest.version!==m.approved_version){abort.abort();throw new AppError('Le mandat a expiré ou le plan a changé. Aucune nouvelle étape ne sera exécutée.',409,'mandate_expired');}
+     await authorize(m.workspace_id,m.actor_id,'write');
+    };
+    budget.beforeTool=assertMandate;
     const emit=async(type:string,data:unknown)=>{
      if(Date.now()-lastHeartbeat>1000||type==='tool_start'){
-      const current=await q('SELECT status FROM durable_missions WHERE id=?',m.id).first<{status:string}>(),resource=await getResource(m.workspace_id,m.id);
-      if(current?.status!=='running'||['cancelled','suspended'].includes(resource.status)){abort.abort();throw new AppError('Mission suspendue.',499,'cancelled');}
-      await authorize(m.workspace_id,m.actor_id,'write');lastHeartbeat=Date.now();await db().batch([q('UPDATE durable_missions SET lease_until=? WHERE id=? AND lease_token=?',Date.now()+240000,m.id,token),q('UPDATE runs SET updated_at=? WHERE id=?',Date.now(),runId)]);
+      await assertMandate();lastHeartbeat=Date.now();await db().batch([q('UPDATE durable_missions SET lease_until=? WHERE id=? AND lease_token=?',Date.now()+240000,m.id,token),q('UPDATE runs SET updated_at=? WHERE id=?',Date.now(),runId)]);
      }
      const result=typeof data==='object'&&data!==null&&'result' in data?(data as {result:Record<string,unknown>}).result:null;if(result&&(result.status==='awaiting_approval'||result.kind==='connector_action'&&result.status==='pending')){needsApproval=true;if(typeof result.id==='string')approvalIds.push(result.id);}
      if(type==='text_delta'&&data&&typeof data==='object'&&'text' in data&&typeof data.text==='string'&&data.text.trim()||result&&typeof result.id==='string'&&typeof result.kind==='string')delivered=true;
      await q('INSERT INTO events(run_id,type,data,created_at) VALUES (?,?,?,?)',runId,type,JSON.stringify(data),Date.now()).run();
     };
-    const execute=runner||(await import('./agent')).runAgent;await execute(m.workspace_id,conversation.id,runId,emit,AbortSignal.any([abort.signal,AbortSignal.timeout(180000)]),budget);
+    const execute=runner||(await import('./agent')).runAgent;await execute(m.workspace_id,conversation.id,runId,emit,AbortSignal.any([abort.signal,AbortSignal.timeout(180000)]),budget);await assertMandate();
     if(!delivered)throw new AppError('Aucun résultat vérifiable n’a été enregistré pour cette étape.',502,'mission_result_missing');
     await q("UPDATE runs SET status='completed',updated_at=? WHERE id=? AND status='streaming'",Date.now(),runId).run();await finishRunBudget(budget);
     const hold=await q('SELECT status,actual FROM credit_holds WHERE id=?',budget.holdId).first<{status:string;actual:number}>();
@@ -92,8 +99,8 @@ export async function runDurableTick(runner?:MissionRunner){
     if(budget)await finishRunBudget(budget).catch(()=>undefined);
     await q("UPDATE durable_steps SET status='uncertain',error=?,finished_at=? WHERE id=?",error instanceof AppError?error.code:'step_failed',Date.now(),stepId).run();
     await stopMission(m,'waiting_user','uncertain');waiting++;
-   }
-  }catch(error){await stopMission(m,'waiting_user',error instanceof AppError?error.code:'intervention');waiting++;}
+   }finally{clearTimeout(mandateTimer);}
+   }catch(error){await stopMission(m,'waiting_user',error instanceof AppError?error.code:'intervention');waiting++;}
  }
  return {checked:rows.results.length,interrupted:stale.results.length,completed,waiting};
 }
