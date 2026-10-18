@@ -42,7 +42,9 @@ function XlsxContent({ state }: { state: OfficePreviewState }) {
     {sheet && <section id="office-sheet-panel" role="tabpanel" aria-labelledby={`office-sheet-tab-${activeSheet}`} className="office-sheet-panel">
       {sheet.hidden && <p className="office-reader-note">Cette feuille est masquée dans le classeur d’origine.</p>}
       <SheetTable key={sheet.name} sheet={sheet}/>
-      {(sheet.truncated || state.result.truncated) && <p className="office-reader-note">L’aperçu affiche au maximum {FILE_POLICY.officeMaxPreviewRowsPerSheet.toLocaleString("fr-FR")} lignes et {FILE_POLICY.officeMaxPreviewColumnsPerSheet} colonnes par feuille ; {state.result.truncated ? `seules les ${FILE_POLICY.officeMaxSheets} premières feuilles sont affichées.` : "les lignes restantes sont omises."}</p>}
+      {sheet.truncated && <p className="office-reader-note">L’aperçu affiche au maximum {FILE_POLICY.officeMaxPreviewRowsPerSheet.toLocaleString("fr-FR")} lignes et {FILE_POLICY.officeMaxPreviewColumnsPerSheet} colonnes par feuille ; certaines lignes ou colonnes sont omises.</p>}
+      {state.result.truncatedSheets && <p className="office-reader-note">Seules les {FILE_POLICY.officeMaxSheets} premières feuilles sont affichées.</p>}
+      {state.result.truncatedByText && <p className="office-reader-note">La limite de texte de l’aperçu est atteinte ; certaines valeurs ne sont pas affichées.</p>}
     </section>}
     <p className="office-reader-note">Les valeurs enregistrées dans le fichier sont affichées. Aucune formule n’est exécutée.</p>
   </div>;

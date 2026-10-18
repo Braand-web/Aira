@@ -1,6 +1,7 @@
 "use client";
 
 import type { OfficePreviewState } from "./office-reader-types";
+import { FILE_POLICY } from "@/lib/file-policy.mjs";
 import { OfficeReaderState } from "./office-reader-state";
 import { useOfficePreview } from "./use-office-preview";
 
@@ -14,7 +15,8 @@ function PptxContent({ state }: { state: OfficePreviewState }) {
       <div className="office-slide-heading"><span>Diapositive {slide.number}</span><h2>{slide.title}</h2></div>
       <div className="office-slide-text">{slide.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}{slide.hasImages && <p className="office-reader-note">Cette diapositive contient des images qui ne sont pas affichées dans cet aperçu.</p>}</div>
     </article>)}
-    {state.result.truncated && <p className="office-reader-note">Seules les {state.result.slides.length} premières diapositives sont affichées.</p>}
+    {state.result.truncatedSlides && <p className="office-reader-note">Seules les {FILE_POLICY.officeMaxSlides} premières diapositives sont affichées.</p>}
+    {state.result.truncatedByText && <p className="office-reader-note">La limite de texte de l’aperçu est atteinte ; certains contenus ne sont pas affichés.</p>}
   </div>;
 }
 
