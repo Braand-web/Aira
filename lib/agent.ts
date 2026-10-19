@@ -6,6 +6,7 @@ import {AppError,parseSSE} from "./core.mjs";
 import {pageSchema,proposalSchema,missionSchema} from "./contracts";
 import {falCatalog,metaGet} from "./providers";
 import {connectorAgentTools,executeConnectorAgentTool} from "./composio";
+import {agentToolsForMode,agentToolAllowedForMode} from "./agent-mode.mjs";
 const object=(properties:Record<string,unknown>,required:string[])=>({type:"object",properties,required,additionalProperties:false});
 const str={type:"string"};
 export const toolDefinitions=[
@@ -91,18 +92,19 @@ export async function runSpecialist(tenant:string,runId:string,input:unknown,emi
  }catch(error){await updateResource(tenant,record.id,record.version,{status:"failed",data:{...record.data,error:error instanceof AppError?error.message:"Analyse indisponible."}});throw error;}
 }
 
-export async function runAgent(tenant:string,conversationId:string,runId:string,emit:(type:string,data:unknown)=>Promise<void>,signal:AbortSignal,budget:RunBudget){
+export async function runAgent(tenant:string,conversationId:string,runId:string,emit:(type:string,data:unknown)=>Promise<void>,signal:AbortSignal,budget:RunBudget,workMode:"accompanied"|"autonomous"="accompanied"){
  let specialistCount=0;
  let connectorTools:Awaited<ReturnType<typeof connectorAgentTools>>=[];
- try{connectorTools=await connectorAgentTools(budget.who,conversationId);}catch{await emit("connector_unavailable",{message:"Les connecteurs sont temporairement indisponibles. La discussion reste disponible."});}
- const tools=[...toolDefinitions,...connectorTools];
+ if(workMode==="accompanied")try{connectorTools=await connectorAgentTools(budget.who,conversationId);}catch{await emit("connector_unavailable",{message:"Les connecteurs sont temporairement indisponibles. La discussion reste disponible."});}
+ const tools=agentToolsForMode(workMode,toolDefinitions,connectorTools);
  const history=await db().prepare("SELECT role,content FROM (SELECT * FROM messages WHERE conversation_id=? AND workspace_id=? ORDER BY created_at DESC LIMIT 40) ORDER BY created_at ASC").bind(conversationId,tenant).all<{role:string;content:string}>();
  const messages:any[]=history.results.map(m=>({role:m.role,content:JSON.parse(m.content)}));
  const budgetContext=`Plafond de cette demande : ${budget.limit/100} crédits. C’est un maximum, pas une estimation ni une dépense déjà effectuée. Si ce plafond devient pertinent pour une opération coûteuse ou une demande en plusieurs étapes, explique-le naturellement dans la conversation avant d’utiliser les outils. N’encombre pas une réponse simple avec ce détail et ne prétends pas connaître la consommation réelle avant son rapprochement.`;
+ const modeContext=workMode==="autonomous"?"Mode choisi : Autonome — préparation de mission uniquement. Construis un plan utile et borné, puis enregistre-le uniquement comme brouillon avec plan_mission. Les missions autonomes en arrière-plan ne sont pas validées ici : ne lance, ne programme, ne publie, ne génère, ne dépense et ne modifie rien. Tu ne disposes que des lectures et de l’outil de brouillon de mission. Explique clairement que l’utilisateur devra examiner et approuver séparément toute exécution future.":"Mode choisi : Accompagné. Réponds et prépare les livrables selon les outils et approbations disponibles.";
  for(let round=0;round<8;round++){
   const state=await db().prepare("SELECT status FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first<{status:string}>();
   if(state?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");
-  const response=await meteredMessage(budget,"master",{max_tokens:4096,stream:true,system:[{type:"text",text:systemPrompt,cache_control:{type:"ephemeral"}},{type:"text",text:budgetContext}],messages,tools},AbortSignal.any([signal,AbortSignal.timeout(120000)]));
+  const response=await meteredMessage(budget,"master",{max_tokens:4096,stream:true,system:[{type:"text",text:systemPrompt,cache_control:{type:"ephemeral"}},{type:"text",text:budgetContext},{type:"text",text:modeContext}],messages,tools},AbortSignal.any([signal,AbortSignal.timeout(120000)]));
   if(!response.ok||!response.body)throw new AppError(response.status===401?"La clé du modèle est invalide.":response.status===429?"Le modèle a atteint sa limite temporaire.":"Le modèle n’a pas pu répondre.",503,"model_unavailable");
   const blocks:any[]=[],jsonParts:Record<number,string>={};let ended=false,lastCheck=Date.now();
   for await(const item of parseSSE(response.body)){
@@ -127,7 +129,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
   const results=[];
   for(const call of calls){await authorize(tenant,budget.who.user.userId,"write");await budget.beforeTool?.();
    const state=await db().prepare("SELECT status FROM runs WHERE id=?").bind(runId).first<{status:string}>();if(state?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");
-   try{if(call.name==="delegate_specialist"&&++specialistCount>3)throw new AppError("Limite de trois spécialistes par réponse atteinte.",409);const result=call.name==="delegate_specialist"?await runSpecialist(tenant,runId,call.input,emit,signal,budget):call.name.startsWith("COMPOSIO_")||call.name.startsWith("aira_")?await executeConnectorAgentTool(budget.who,conversationId,call.name,call.input):await executeTool(tenant,call.name,call.input);await auditLog(tenant,"tool."+call.name,runId);results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});await emit("tool_result",{name:call.name,id:call.id,result});}
+   try{if(!agentToolAllowedForMode(workMode,call.name))throw new AppError("En mode Autonome, seules les lectures autorisées et la création d’un brouillon de mission sont disponibles.",403,"autonomy_planning_only");if(call.name==="delegate_specialist"&&++specialistCount>3)throw new AppError("Limite de trois spécialistes par réponse atteinte.",409);const result=call.name==="delegate_specialist"?await runSpecialist(tenant,runId,call.input,emit,signal,budget):call.name.startsWith("COMPOSIO_")||call.name.startsWith("aira_")?await executeConnectorAgentTool(budget.who,conversationId,call.name,call.input):await executeTool(tenant,call.name,call.input);await auditLog(tenant,"tool."+call.name,runId);results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});await emit("tool_result",{name:call.name,id:call.id,result});}
    catch(error){const message=error instanceof AppError?error.message:"Paramètres d’outil invalides ou service indisponible.";results.push({type:"tool_result",tool_use_id:call.id,content:message,is_error:true});await emit("tool_result",{name:call.name,id:call.id,error:message});}
   }
   messages.push({role:"user",content:results});
