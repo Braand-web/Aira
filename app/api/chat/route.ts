@@ -7,6 +7,7 @@ import {startRunBudget,finishRunBudget,type RunBudget} from '@/lib/metering';
 import {FILE_POLICY,safeFileDto} from '@/lib/file-policy.mjs';
 import type {FileRecord} from '@/lib/contracts';
 import {chatAttachmentBlocks} from '@/lib/chat-attachments.mjs';
+import {responseSources,responseStatus} from '@/lib/response-metadata.mjs';
 export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
@@ -34,14 +35,24 @@ export async function POST(request:Request){
  }catch(error){if(budget)await finishRunBudget(budget);if(locked)await db().prepare("UPDATE resources SET status='saved' WHERE id=? AND workspace_id=?").bind(conversationId,tenant).run();return failure(error);}
 }
 export async function GET(request:Request){try{
- const {tenant}=await identity(request),url=new URL(request.url),runId=url.searchParams.get("runId"),conversationId=url.searchParams.get("conversationId");
+ const {tenant,user}=await identity(request),url=new URL(request.url),runId=url.searchParams.get("runId"),conversationId=url.searchParams.get("conversationId");
  if(runId){const run=await db().prepare("SELECT * FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first();if(!run)throw new AppError("Réponse introuvable.",404);const cursor=Math.max(0,Number(url.searchParams.get("after"))||0);const events=await db().prepare("SELECT seq,type,data FROM events WHERE run_id=? AND seq>? ORDER BY seq LIMIT 2000").bind(runId,cursor).all<{seq:number;type:string;data:string}>();return Response.json({run,events:events.results.map(r=>({...r,data:JSON.parse(r.data)}))});}
  if(!conversationId)throw new AppError("Discussion requise.");await getResource(tenant,conversationId);
- type StoredMessage={id:string;role:string;content:string;attachments:string;created_at:number};
+ type StoredMessage={id:string;role:string;content:string;attachments:string;created_at:number;run_id:string|null;run_status:string|null;feedback:'up'|'down'|null};
  type MessageBlock={type:string;text?:string};
- const rows=await db().prepare("SELECT id,role,content,attachments,created_at FROM messages WHERE workspace_id=? AND conversation_id=? ORDER BY created_at").bind(tenant,conversationId).all<StoredMessage>();
- const messages=await Promise.all(rows.results.map(async m=>{let ids:string[]=[];try{const value=JSON.parse(m.attachments||"[]") as unknown;if(Array.isArray(value))ids=value.filter((id):id is string=>typeof id==="string");}catch{}const attachments=await Promise.all(ids.map(async id=>{const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();return file?safeFileDto(file):{id,workspaceId:tenant,name:"Fichier indisponible",size:0,mime:"application/octet-stream",status:"unavailable",createdAt:0,updatedAt:0,deletedAt:null};}));const storedContent=JSON.parse(m.content) as MessageBlock[];return {...m,attachments,content:storedContent.filter(block=>block.type==="text"||block.type==="image").map(block=>block.type==="image"?{type:"text",text:"[Image jointe]"}:block)};}));
+ const rows=await db().prepare("SELECT m.id,m.role,m.content,m.attachments,m.created_at,m.run_id,r.status run_status,f.feedback FROM messages m LEFT JOIN runs r ON r.id=m.run_id AND r.workspace_id=m.workspace_id LEFT JOIN response_feedback f ON f.message_id=m.id AND f.workspace_id=m.workspace_id AND f.user_id=? WHERE m.workspace_id=? AND m.conversation_id=? ORDER BY m.created_at,m.rowid").bind(user.userId,tenant,conversationId).all<StoredMessage>();
+ const messages=await Promise.all(rows.results.map(async m=>{let ids:string[]=[];try{const value=JSON.parse(m.attachments||"[]") as unknown;if(Array.isArray(value))ids=value.filter((id):id is string=>typeof id==="string");}catch{}const attachments=await Promise.all(ids.map(async id=>{const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();return file?safeFileDto(file):{id,workspaceId:tenant,name:"Fichier indisponible",size:0,mime:"application/octet-stream",status:"unavailable",createdAt:0,updatedAt:0,deletedAt:null};}));const storedContent=JSON.parse(m.content) as MessageBlock[];return {id:m.id,role:m.role,created_at:m.created_at,runId:m.run_id,attachments,...(m.role==='assistant'?{status:responseStatus(m.run_id,m.run_status),sources:responseSources(storedContent),feedback:m.feedback}:{}),content:storedContent.filter(block=>block.type==="text"||block.type==="image").map(block=>block.type==="image"?{type:"text",text:"[Image jointe]"}:block)};}));
  return Response.json({messages:messages.filter(m=>m.content.length||m.attachments.length)});
+ }catch(error){return failure(error);}}
+export async function PATCH(request:Request){try{
+ const {tenant,user}=await identity(request);
+ const {messageId,feedback}=z.object({messageId:z.string().min(1).max(128),feedback:z.enum(['up','down']).nullable()}).strict().parse(await request.json());
+ const now=Date.now();
+ // Match the message and workspace in the write itself so a stale check cannot
+ // insert a vote for another tenant or a non-assistant message.
+ const result=await db().prepare("INSERT INTO response_feedback(workspace_id,user_id,message_id,feedback,created_at,updated_at) SELECT workspace_id,?,id,?,?,? FROM messages WHERE id=? AND workspace_id=? AND role='assistant' ON CONFLICT(workspace_id,user_id,message_id) DO UPDATE SET feedback=excluded.feedback,updated_at=CASE WHEN response_feedback.feedback IS excluded.feedback THEN response_feedback.updated_at ELSE excluded.updated_at END").bind(user.userId,feedback,now,now,messageId,tenant).run();
+ if(!result.meta.changes)throw new AppError("Réponse introuvable.",404,"message_not_found");
+ return Response.json({messageId,feedback});
  }catch(error){return failure(error);}}
 export async function DELETE(request:Request){try{const {tenant}=await identity(request);const {runId}=z.object({runId:z.string()}).parse(await request.json());await db().prepare("UPDATE runs SET status='cancelled',updated_at=? WHERE id=? AND workspace_id=? AND status='streaming'").bind(Date.now(),runId,tenant).run();return Response.json({stopped:true});}catch(error){return failure(error);}}
 

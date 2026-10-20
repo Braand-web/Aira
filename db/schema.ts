@@ -1,8 +1,9 @@
-import { sqliteTable, text, integer, index, uniqueIndex, primaryKey } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { sqliteTable, text, integer, index, uniqueIndex, primaryKey, foreignKey, check } from "drizzle-orm/sqlite-core";
 export const workspaces=sqliteTable("workspaces",{organizationId:text("organization_id"),id:text("id").primaryKey(),name:text("name").notNull(),createdAt:integer("created_at").notNull(),credits:integer("credits").notNull().default(0),reserved:integer("reserved").notNull().default(0)});
 export const members=sqliteTable("members",{id:text("id").primaryKey(),workspaceId:text("workspace_id").notNull().references(()=>workspaces.id),userId:text("user_id").notNull(),role:text("role").notNull().default("owner")},t=>[uniqueIndex("membership").on(t.workspaceId,t.userId)]);
 export const resources=sqliteTable("resources",{id:text("id").primaryKey(),workspaceId:text("workspace_id").notNull().references(()=>workspaces.id),kind:text("kind").notNull(),title:text("title").notNull(),data:text("data").notNull().default("{}"),status:text("status").notNull().default("draft"),version:integer("version").notNull().default(1),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull()},t=>[index("resource_workspace").on(t.workspaceId,t.kind)]);
-export const messages=sqliteTable("messages",{id:text("id").primaryKey(),workspaceId:text("workspace_id").notNull(),conversationId:text("conversation_id").notNull().references(()=>resources.id),role:text("role").notNull(),content:text("content").notNull(),attachments:text("attachments").notNull().default("[]"),createdAt:integer("created_at").notNull()},t=>[index("conversation_messages").on(t.conversationId,t.createdAt)]);
+export const messages=sqliteTable("messages",{id:text("id").primaryKey(),workspaceId:text("workspace_id").notNull(),conversationId:text("conversation_id").notNull().references(()=>resources.id),role:text("role").notNull(),content:text("content").notNull(),attachments:text("attachments").notNull().default("[]"),runId:text("run_id").references(()=>runs.id,{onDelete:"set null"}),createdAt:integer("created_at").notNull()},t=>[index("conversation_messages").on(t.conversationId,t.createdAt),index("message_run").on(t.workspaceId,t.runId),uniqueIndex("message_workspace_identity").on(t.id,t.workspaceId)]);
 export const files=sqliteTable("files",{
  id:text("id").primaryKey(),workspaceId:text("workspace_id").notNull().references(()=>workspaces.id),ownerId:text("owner_id"),legacyResourceId:text("legacy_resource_id"),
  displayName:text("display_name").notNull(),storageName:text("storage_name").notNull(),sizeBytes:integer("size_bytes").notNull().default(0),detectedMime:text("detected_mime").notNull().default("application/octet-stream"),
@@ -34,3 +35,5 @@ export * from "./billing-schema";
 export * from "./composio-schema";
 export * from "./runtime-schema";
 export * from "./operations-schema";
+
+export const responseFeedback=sqliteTable("response_feedback",{workspaceId:text("workspace_id").notNull(),userId:text("user_id").notNull(),messageId:text("message_id").notNull(),feedback:text("feedback",{enum:["up","down"]}),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull()},t=>[primaryKey({columns:[t.workspaceId,t.userId,t.messageId]}),foreignKey({columns:[t.messageId,t.workspaceId],foreignColumns:[messages.id,messages.workspaceId]}).onDelete("cascade"),check("response_feedback_value",sql`${t.feedback} IN ('up','down') OR ${t.feedback} IS NULL`)]);

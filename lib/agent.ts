@@ -7,6 +7,7 @@ import {pageSchema,proposalSchema,missionSchema} from "./contracts";
 import {falCatalog,metaGet} from "./providers";
 import {connectorAgentTools,executeConnectorAgentTool} from "./composio";
 import {agentToolsForMode,agentToolAllowedForMode} from "./agent-mode.mjs";
+import {appendCitationDelta,responseSources} from "./response-metadata.mjs";
 import {modelEventSchema,modelBlockStartSchema,modelBlockDeltaSchema,modelBlockStopSchema,modelRecordSchema,isModelToolUse,type ModelContentBlock,type ModelMessage} from './model-protocol';
 const object=(properties:Record<string,unknown>,required:string[])=>({type:"object",properties,required,additionalProperties:false});
 const str={type:"string"};
@@ -73,7 +74,7 @@ export async function runSpecialist(tenant:string,runId:string,input:unknown,emi
     if(Date.now()-lastCheck>1000){lastCheck=Date.now();const active=await db().prepare("SELECT status FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first<{status:string}>();if(active?.status!=="streaming")throw new AppError("Analyse arrêtée.",499,"cancelled");}
     if(e.type==="error"||e.error)throw new AppError("Analyse interrompue par le modèle.",502);
     if(e.type==="content_block_start"){const event=modelBlockStartSchema.parse(e);blocks[event.index]=event.content_block;if(event.content_block.type==="tool_use")parts[event.index]="";}
-    if(e.type==="content_block_delta"){const event=modelBlockDeltaSchema.parse(e),b=blocks[event.index];if(!b)throw new AppError('Bloc du spécialiste manquant.',502);if(event.delta.type==="text_delta")b.text=(b.text||"")+(event.delta.text??'');else if(event.delta.type==="input_json_delta")parts[event.index]=(parts[event.index]||"")+(event.delta.partial_json??'');else if(event.delta.type==="thinking_delta")b.thinking=(b.thinking||"")+(event.delta.thinking??'');else if(event.delta.type==="signature_delta")b.signature=(b.signature||"")+(event.delta.signature??'');}
+    if(e.type==="content_block_delta"){const event=modelBlockDeltaSchema.parse(e),b=blocks[event.index];if(!b)throw new AppError('Bloc du spécialiste manquant.',502);if(event.delta.type==="text_delta")b.text=(b.text||"")+(event.delta.text??'');else if(event.delta.type==="input_json_delta")parts[event.index]=(parts[event.index]||"")+(event.delta.partial_json??'');else if(event.delta.type==="thinking_delta")b.thinking=(b.thinking||"")+(event.delta.thinking??'');else if(event.delta.type==="signature_delta")b.signature=(b.signature||"")+(event.delta.signature??'');else if(event.delta.type==="citations_delta")b.citations=appendCitationDelta(b.citations,event.delta);}
     if(e.type==="content_block_stop"){const event=modelBlockStopSchema.parse(e);if(blocks[event.index]?.type==="tool_use")blocks[event.index].input=JSON.parse(parts[event.index]||"{}");}
     if(e.type==="message_stop")complete=true;
    }
@@ -118,13 +119,16 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
     else if(event.delta.type==="input_json_delta")jsonParts[event.index]=(jsonParts[event.index]||"")+(event.delta.partial_json??'');
     else if(event.delta.type==="thinking_delta")b.thinking=(b.thinking||"")+(event.delta.thinking??'');
     else if(event.delta.type==="signature_delta")b.signature=(b.signature||"")+(event.delta.signature??'');
+    else if(event.delta.type==="citations_delta")b.citations=appendCitationDelta(b.citations,event.delta);
    }
    if(e.type==="content_block_stop"){const event=modelBlockStopSchema.parse(e);if(blocks[event.index]?.type==="tool_use")blocks[event.index].input=JSON.parse(jsonParts[event.index]||"{}");}
    if(e.type==="message_delta"&&e.usage)await emit("usage",modelRecordSchema.parse(e.usage));
    if(e.type==="message_stop")ended=true;
   }
   if(!ended)throw new AppError("Le flux du modèle a été interrompu.",502,"provider_interrupted");
-  await db().prepare("INSERT INTO messages (id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'assistant',?,?)").bind(uid(),tenant,conversationId,JSON.stringify(blocks),Date.now()).run();
+  const messageId=uid();
+  await db().prepare("INSERT INTO messages (id,workspace_id,conversation_id,role,content,run_id,created_at) VALUES (?,?,?,'assistant',?,?,?)").bind(messageId,tenant,conversationId,JSON.stringify(blocks),runId,Date.now()).run();
+  await emit("assistant_message",{messageId,runId,sources:responseSources(blocks)});
   messages.push({role:"assistant",content:blocks});
   const calls=blocks.filter(isModelToolUse);if(!calls.length)return;
   const results=[];
