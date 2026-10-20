@@ -25,16 +25,20 @@ class NativeInputRequiredError extends Error {
  constructor(inputRequests,requestState){super('Fixture native input required');this.inputRequests=inputRequests;this.requestState=requestState;}
 }
 const approvalQuestion={type:'elicitation',mode:'form',message:'Approve exact fixture call',requested_schema:{type:'object',properties:{decision:{type:'string',oneOf:[{const:'approve'},{const:'always_approve'},{const:'deny'}]}},required:['decision']}};
-let actualCharge='0.10',executionResult='completed',executeThrows=false,forceForeignAccount=false,nativeChallenge=null;
+let actualCharge='0.10',executionResult='completed',executeThrows=false,forceForeignAccount=false,nativeChallenge=null,catalogueSlugs=['metaads','exa'];
 function toolkitFor(session,slug){
  const account=forceForeignAccount?accounts.get('account_other'):[...accounts.values()].find(value=>value.userId===session.userId&&value.toolkit.slug===slug);
- return {slug,name:slug==='metaads'?'Meta Ads':'Exa',isNoAuth:slug==='exa',...(account?{connection:{isActive:account.status==='ACTIVE',connectedAccount:{id:account.id,status:account.status}}}:{})};
+ return {slug,name:({metaads:'Meta Ads',exa:'Exa',github:'GitHub',notion:'Notion'})[slug]||slug,isNoAuth:slug==='exa',...(account?{connection:{isActive:account.status==='ACTIVE',connectedAccount:{id:account.id,status:account.status}}}:{})};
 }
 function makeSession(id,userId,options){
  const session={sessionId:id,userId,config:{user_id:userId,instant:options.instant,workbench:options.sandbox,proxy_execute:{enable:options.proxyExecute},manage_connections:{enabled:false}},sandbox:options.sandbox,async tools(){return definitions;},async toolkits(params={}){
   calls.push({kind:'toolkits',session:id,params});
   if(params.toolkits)return {items:params.toolkits.map(slug=>toolkitFor(session,slug)),cursor:undefined,totalPages:1};
-  return {items:[toolkitFor(session,params.cursor?'exa':'metaads')],cursor:params.cursor?undefined:'fixture-next-page',totalPages:2};
+  let items=catalogueSlugs.map(slug=>toolkitFor(session,slug));
+  if(params.isConnected===true)items=items.filter(item=>item.connection?.isActive);
+  if(params.search)items=items.filter(item=>(item.name+' '+item.slug).toLowerCase().includes(params.search.toLowerCase()));
+  const page=params.cursor==='fixture-next-page'?1:Number(params.cursor?.replace('fixture-page-','')||0),next=page+1;
+  return {items:items.slice(page,next),cursor:next<items.length?(next===1?'fixture-next-page':'fixture-page-'+next):undefined,totalPages:items.length};
  },async authorize(toolkit){authorized.push({userId,toolkit});return {id:'auth_fixture',redirectUrl:'https://connect.composio.dev/link/fixture'};},async executeMeta(name,input){calls.push({kind:'meta',session:id,name,input});return searchResult;},async search(input){calls.push({kind:'instant-search',session:id,input});return {toolkitConnectionStatuses:[{toolkit:'exa',instantAccount:{allowedToolSlugs:['EXA_SEARCH']}}]};},async execute(name,input,executionOptions){
   calls.push({kind:'execute',session:id,name,input:structuredClone(input),options:structuredClone(executionOptions)});
   if(nativeChallenge&&(!executionOptions?.inputResponses||nativeChallenge.repeat)){nativeChallenge.onChallenge?.();throw new NativeInputRequiredError(nativeChallenge.requests,nativeChallenge.state);}
@@ -85,7 +89,50 @@ await check('SEARCH result including long skill, plan, pitfalls and schemas reac
 });
 await check('Connector catalogue follows the SDK cursor and retains user-scoped connection state',async()=>{
  const first=await c.listConnectorToolkits(who,new URLSearchParams());assert.equal(first.items[0].connected,true);assert.equal(first.nextCursor,'fixture-next-page');
+ assert.equal(Object.hasOwn(calls.at(-1).params,'isConnected'),false);assert.equal(calls.at(-1).params.limit,30);
  const second=await c.listConnectorToolkits(who,new URLSearchParams({cursor:first.nextCursor}));assert.equal(second.items[0].slug,'exa');assert.equal(second.nextCursor,null);
+ assert.equal(Object.hasOwn(calls.at(-1).params,'isConnected'),false);assert.equal(calls.at(-1).params.cursor,first.nextCursor);
+});
+await check('Connected catalogue uses native filtering before pagination and composes with search without scanning the full catalogue',async()=>{
+ const {scopeUser}=await c.connectorSession(who),other=await secondUser(),foreign=await c.connectorSession(other),previous=catalogueSlugs;
+ accounts.set('account_catalogue_github',{id:'account_catalogue_github',userId:scopeUser,toolkit:{slug:'github'},status:'ACTIVE'});
+ accounts.set('account_catalogue_notion',{id:'account_catalogue_notion',userId:foreign.scopeUser,toolkit:{slug:'notion'},status:'ACTIVE'});
+ catalogueSlugs=['metaads','exa','notion','github'];
+ try{
+  const before=calls.length,first=await c.listConnectorToolkits(who,new URLSearchParams({connected:'true'}));
+  assert.equal(calls.length,before+1);assert.deepEqual(first.items.map(item=>item.slug),['metaads']);assert.equal(first.nextCursor,'fixture-next-page');
+  assert.equal(calls.at(-1).params.isConnected,true);
+  const second=await c.listConnectorToolkits(who,new URLSearchParams({connected:'true',cursor:first.nextCursor}));
+  assert.equal(calls.length,before+2);assert.deepEqual(second.items.map(item=>item.slug),['github']);assert.equal(second.nextCursor,null);assert.equal(second.items[0].accountId,'account_catalogue_github');
+  assert.deepEqual(calls.at(-1).params,{search:undefined,cursor:first.nextCursor,limit:30,isConnected:true});
+  const matching=await c.listConnectorToolkits(who,new URLSearchParams({connected:'true',search:'GitHub'}));
+  assert.equal(calls.length,before+3);assert.deepEqual(matching.items.map(item=>item.slug),['github']);assert.equal(matching.nextCursor,null);assert.equal(calls.at(-1).params.search,'GitHub');
+  const noAuth=await c.listConnectorToolkits(who,new URLSearchParams({connected:'true',search:'Exa'}));
+  assert.equal(calls.length,before+4);assert.deepEqual(noAuth.items,[]);assert.equal(noAuth.nextCursor,null);
+ }finally{catalogueSlugs=previous;accounts.delete('account_catalogue_github');accounts.delete('account_catalogue_notion');}
+});
+await check('Connected catalogue isolates other users and a second workspace belonging to the same user',async()=>{
+ const other=await secondUser(),foreign=await c.listConnectorToolkits(other,new URLSearchParams({connected:'true'}));
+ assert.deepEqual(foreign.items.map(item=>item.accountId),['account_other']);assert.equal(foreign.nextCursor,null);
+ const space='catalogue_secondary_workspace';sql.prepare('INSERT INTO workspaces(id,name,created_at,organization_id) VALUES (?,?,?,?)').run(space,'Catalogue fixture',Date.now(),who.organization);
+ try{
+  const scoped=await s.identity(request('GET',undefined,space)),result=await c.listConnectorToolkits(scoped,new URLSearchParams({connected:'true'}));
+  assert.deepEqual(result.items,[]);assert.equal(result.nextCursor,null);
+  const ownSession=await c.connectorSession(who),secondSession=await c.connectorSession(scoped);
+  assert.notEqual(ownSession.scopeUser,secondSession.scopeUser);assert.notEqual(ownSession.session.sessionId,secondSession.session.sessionId);assert.equal(calls.at(-1).session,secondSession.session.sessionId);
+ }finally{sql.prepare('DELETE FROM connector_sessions WHERE workspace_id=?').run(space);sql.prepare('DELETE FROM workspaces WHERE id=?').run(space);}
+});
+await check('Catalogue HTTP query accepts only connected=true and validates filters before contacting the SDK',async()=>{
+ const catalogueRequest=query=>new Request('https://aira.test/api/connectors/toolkits?'+query,{headers:request().headers});
+ const response=await route.GET(catalogueRequest('connected=true&search=Meta'),context('toolkits'));
+ assert.equal(response.status,200);assert.deepEqual((await response.json()).items.map(item=>item.slug),['metaads']);assert.equal(calls.at(-1).params.isConnected,true);assert.equal(calls.at(-1).params.search,'Meta');
+ const before=calls.length,sessionCount=created.length;
+ for(const query of ['connected=','connected=false','connected=1','connected=TRUE','connected=true&connected=true','connected=true&connected=false','connected=true&search='+('s'.repeat(201)),'connected=true&cursor='+('c'.repeat(2001))]){
+  const invalid=await route.GET(catalogueRequest(query),context('toolkits'));assert.equal(invalid.status,400,query.slice(0,80));assert.equal((await invalid.json()).code,'validation_error');
+ }
+ assert.equal(calls.length,before);assert.equal(created.length,sessionCount);
+ const key=env.COMPOSIO_API_KEY;delete env.COMPOSIO_API_KEY;
+ try{assert.equal((await route.GET(catalogueRequest('connected=invalid'),context('toolkits'))).status,400);const unavailable=await route.GET(catalogueRequest('connected=true'),context('toolkits'));assert.equal(unavailable.status,200);assert.deepEqual((await unavailable.json()).items,[]);}finally{env.COMPOSIO_API_KEY=key;}
 });
 await check('Authorization returns only a hosted Connect Link without creating accounts or accepting consent',async()=>{
  const before=accounts.size,result=await c.authorizeConnector(who,'metaads');assert.equal(result.redirectUrl,'https://connect.composio.dev/link/fixture');assert.equal(accounts.size,before);assert.equal(authorized.at(-1).toolkit,'metaads');

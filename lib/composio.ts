@@ -77,11 +77,13 @@ export async function connectorSession(who:BillingIdentity,conversationId='catal
 }
 
 export async function listConnectorToolkits(who:BillingIdentity,params:URLSearchParams){
+ const search=z.string().max(200).parse(params.get('search')||''),cursor=z.string().max(2000).optional().parse(params.get('cursor')||undefined);
+ // Only opt into the native connected filter; an omitted value preserves the full catalogue.
+ const connected=z.array(z.literal('true')).max(1).parse(params.getAll('connected')).length>0;
  if(!connectorConfigured())return {configured:false,items:[],nextCursor:null,instant:await connectorStatus(who)};
  const {session}=await connectorSession(who);
- const search=z.string().max(200).parse(params.get('search')||''),cursor=z.string().max(2000).optional().parse(params.get('cursor')||undefined);
  try{
-  const result=await session.toolkits({search:search||undefined,cursor,limit:30});
+  const result=await session.toolkits({search:search||undefined,cursor,limit:30,...(connected?{isConnected:true}:{})});
   return {configured:true,items:result.items.map(t=>({slug:t.slug,name:t.name,logo:t.logo,isNoAuth:t.isNoAuth,connected:!!t.connection?.isActive,status:t.connection?.connectedAccount?.status||(t.isNoAuth?'available':'not_connected'),accountId:t.connection?.connectedAccount?.id})),nextCursor:result.cursor||null,instant:await connectorStatus(who)};
  }catch{throw providerError();}
 }
