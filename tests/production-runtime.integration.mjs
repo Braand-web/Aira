@@ -16,6 +16,7 @@ const out=path.join(project,'.local-build','production-runtime-test.mjs');mkdirS
 const modules={server:'lib/server.ts',pages:'lib/pages.ts',runtime:'lib/durable-missions.ts',pageRoute:'app/api/pages/[id]/route.ts',publicRoute:'app/api/published/[id]/route.ts',missionRoute:'app/api/missions/[id]/route.ts',tick:'app/api/internal/mission-tick/route.ts'};
 await build({stdin:{contents:Object.entries(modules).map(([name,file])=>'export * as '+name+' from '+JSON.stringify(path.join(project,file).replaceAll('\\','/'))+';').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',plugins:[{name:'runtime-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'runtime'}));b.onLoad({filter:/.*/,namespace:'runtime'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__runtimeTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__runtimeTest.headers;}':'export function redirect(){throw Error("unexpected redirect");}'}));b.onResolve({filter:/^\.\/agent$/},a=>a.importer.endsWith('durable-missions.ts')?{path:'agent',namespace:'agent'}:null);b.onLoad({filter:/.*/,namespace:'agent'},()=>({contents:'export async function runAgent(){throw Error("No real provider calls allowed in this test");}'}));}}]});
 const {server:s,pages:p,runtime:r,pageRoute,publicRoute,missionRoute,tick}=await import(pathToFileURL(out).href),env=globalThis.__runtimeTest.env;
+globalThis.fetch=async()=>{throw new Error('Unexpected external provider call in isolated runtime test');};
 const req=(url='https://admin.test/api/pages',method='GET',body,headers={})=>new Request(url,{method,headers:{'content-type':'application/json',...headers},...(body?{body:JSON.stringify(body)}:{})});
 const context=id=>({params:Promise.resolve({id})}),who=await s.identity(req());let checks=0;
 const check=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
@@ -37,13 +38,15 @@ await check('Autonomy requires verified scheduler and explicit bounded approval'
 env.ANTHROPIC_RATE_JSON=JSON.stringify({model:'claude-opus-5-5',input:5,output:25,cacheWrite:6.25,cacheRead:0.5,usdXaf:600,overheadXaf:1,verifiedAt:new Date().toISOString()});
 sql.prepare("INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES ('runtime-credits','owner','test','test',10000,10000,?,?)").run(now,now);
 let executions=0;const runner=async(tenant,conversationId,runId,emit,signal,budget)=>{executions++;await emit('text_delta',{text:'Analyse fictive enregistrée.'});sql.prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,usage,cost_xaf,status,created_at) VALUES (?,?,?,?,?,'anthropic','master',?,?,1.45,'complete',?)").run(crypto.randomUUID(),who.organization,tenant,runId,budget.holdId,JSON.stringify(budget.rate),JSON.stringify({input_tokens:100,output_tokens:10}),Date.now());};
-await check('Offline tick checkpoints each step; repeated ticks do not duplicate completed work',async()=>{await r.runDurableTick(runner);let state=await r.missionState(who,mission.id);assert.equal(state.cursor,1);assert.equal(state.status,'queued');await r.runDurableTick(runner);state=await r.missionState(who,mission.id);assert.equal(state.cursor,2);assert.equal(state.status,'completed');await r.runDurableTick(runner);assert.equal(executions,2);assert.equal(state.steps.length,2);assert.ok(state.spent_units>0&&state.spent_units<=2000);});
+const decision=(state,ordinal=state.steps.at(-1).ordinal)=>{const step=state.steps.find(step=>step.ordinal===ordinal);return {version:state.approved_version,ordinal,runId:step.run_id,digest:step.review.digest,approved:true};};
+const confirm=async(id,ordinal)=>r.reviewMissionStep(who,id,'confirm-step',decision(await r.missionState(who,id),ordinal));
+await check('Text alone checkpoints execution but only explicit result validation advances the mission',async()=>{await r.runDurableTick(runner);let state=await r.missionState(who,mission.id);assert.equal(state.cursor,1);assert.equal(state.status,'waiting_user');assert.equal(state.steps[0].review.validation.status,'pending');await r.runDurableTick(runner);assert.equal(executions,1);await assert.rejects(()=>r.controlMission(who,mission.id,'resume'),/validez/);await confirm(mission.id);await r.controlMission(who,mission.id,'resume');await r.runDurableTick(runner);state=await r.missionState(who,mission.id);assert.equal(state.cursor,2);assert.equal(state.status,'waiting_user');await confirm(mission.id);state=await r.missionState(who,mission.id);assert.equal(state.status,'completed');await r.runDurableTick(runner);assert.equal(executions,2);assert.equal(state.steps.length,2);assert.ok(state.spent_units>0&&state.spent_units<=2000);});
 await check('Expired worker lease becomes uncertain and is not blindly executed again',async()=>{const m=await s.createResource(who.tenant,'mission','Interrupted',missionPlan);await r.activateMission(who,m.id,mandate);sql.prepare("UPDATE durable_missions SET status='running',lease_until=? WHERE id=?").run(Date.now()-1,m.id);await r.runDurableTick(runner);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');assert.equal(executions,2);});
 await check('Revoked member cannot continue an approved offline mandate',async()=>{const m=await s.createResource(who.tenant,'mission','Revoked',missionPlan);await r.activateMission(who,m.id,mandate);sql.prepare("UPDATE organization_members SET active=0 WHERE organization_id='owner' AND user_id='owner'").run();await r.runDurableTick(runner);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');assert.equal(executions,2);sql.prepare("UPDATE organization_members SET active=1 WHERE organization_id='owner' AND user_id='owner'").run();});
 await check('Concurrent scheduler calls claim one step and pending approval blocks further execution',async()=>{
  const m=await s.createResource(who.tenant,'mission','Approval',missionPlan);await r.activateMission(who,m.id,mandate);let calls=0,proposal;
  const awaitApproval=async(...args)=>{calls++;proposal=await s.createResource(who.tenant,'proposal','Approval fixture',{},'awaiting_approval');await args[3]('tool_result',{result:proposal});};
- await Promise.all([r.runDurableTick(awaitApproval),r.runDurableTick(awaitApproval)]);assert.equal(calls,1);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');await assert.rejects(()=>r.controlMission(who,m.id,'resume'),/proposition/);await s.updateResource(who.tenant,proposal.id,1,{status:'rejected'});await r.controlMission(who,m.id,'resume');await r.runDurableTick(runner);assert.equal((await r.missionState(who,m.id)).status,'completed');
+ await Promise.all([r.runDurableTick(awaitApproval),r.runDurableTick(awaitApproval)]);assert.equal(calls,1);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');await assert.rejects(()=>confirm(m.id),/proposition/);await s.updateResource(who.tenant,proposal.id,1,{status:'rejected'});await confirm(m.id);await r.controlMission(who,m.id,'resume');await r.runDurableTick(runner);await confirm(m.id);assert.equal((await r.missionState(who,m.id)).status,'completed');
 });
 await check('Cancellation during a step is preserved after safe settlement',async()=>{
  const m=await s.createResource(who.tenant,'mission','Cancel',missionPlan);await r.activateMission(who,m.id,mandate);await r.runDurableTick(async()=>{await r.controlMission(who,m.id,'cancel');});assert.equal((await r.missionState(who,m.id)).status,'cancelled');
@@ -55,7 +58,75 @@ await check('Mandate expiration and plan edits are checked immediately before ea
  for(const mode of ['expired','edited']){const m=await s.createResource(who.tenant,'mission','Guard '+mode,missionPlan);await r.activateMission(who,m.id,mandate);let actions=0;await r.runDurableTick(async(_tenant,_conversation,_run,_emit,_signal,budget)=>{if(mode==='expired')sql.prepare('UPDATE durable_missions SET expires_at=? WHERE id=?').run(Date.now()-1,m.id);else sql.prepare('UPDATE resources SET version=version+1 WHERE id=?').run(m.id);await budget.beforeTool?.();actions++;});assert.equal(actions,0);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');}
 });
 await check('Composio pending connector actions pause the mission before any next step',async()=>{
- const m=await s.createResource(who.tenant,'mission','Connector approval',missionPlan);await r.activateMission(who,m.id,mandate);await r.runDurableTick(async(...args)=>{const proposal=await s.createResource(who.tenant,'connector_action','Connector fixture',{},'pending');await args[3]('tool_result',{result:proposal});});assert.equal((await r.missionState(who,m.id)).status,'waiting_user');await assert.rejects(()=>r.controlMission(who,m.id,'resume'),/proposition/);
+ const m=await s.createResource(who.tenant,'mission','Connector approval',missionPlan);await r.activateMission(who,m.id,mandate);await r.runDurableTick(async(...args)=>{const proposal=await s.createResource(who.tenant,'connector_action','Connector fixture',{},'pending');await args[3]('tool_result',{result:proposal});});assert.equal((await r.missionState(who,m.id)).status,'waiting_user');await assert.rejects(()=>confirm(m.id),/proposition/);
+});
+const singlePlan={...missionPlan,steps:['Produire une analyse'],maxCredits:10},singleMandate={...mandate,maxCredits:10};
+const fixtureMission=async title=>{const m=await s.createResource(who.tenant,'mission',title,singlePlan);await r.activateMission(who,m.id,singleMandate);return m;};
+await check('Review endpoint requires explicit approval, current plan and exact persisted evidence; replay never charges twice',async()=>{
+ const m=await fixtureMission('Review binding');await r.runDurableTick(runner);let state=await r.missionState(who,m.id);const payload=decision(state),endpoint='https://admin.test/api/missions/'+m.id;
+ assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...payload,approved:false}),context(m.id))).status,400);
+ assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...payload,digest:'0'.repeat(64)}),context(m.id))).status,409);
+ assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...payload,version:2}),context(m.id))).status,409);
+ sql.prepare("INSERT INTO events(run_id,type,data,created_at) VALUES (?,'text_delta',?,?)").run(payload.runId,JSON.stringify({text:' Complément enregistré.'}),Date.now());
+ await assert.rejects(()=>r.reviewMissionStep(who,m.id,'confirm-step',payload),/résultat a changé/);
+ state=await r.missionState(who,m.id);const current=decision(state),before=sql.prepare("SELECT COUNT(*) count FROM credit_ledger WHERE kind='consume'").get().count;
+ assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...current}),context(m.id))).status,200);
+ await r.reviewMissionStep(who,m.id,'confirm-step',current);assert.equal((await r.missionState(who,m.id)).status,'completed');assert.equal(sql.prepare("SELECT COUNT(*) count FROM credit_ledger WHERE kind='consume'").get().count,before);
+ await assert.rejects(()=>r.reviewMissionStep({...who,tenant:'other'},m.id,'confirm-step',current));
+});
+await check('Interrupted step with settled local receipts can be reconciled and reviewed without another provider submission',async()=>{
+ const m=await fixtureMission('Recover completed receipts');let calls=0;
+ await r.runDurableTick(async(...args)=>{calls++;await runner(...args);throw Error('Worker interrupted after delivery');});
+ let state=await r.missionState(who,m.id);assert.equal(state.steps[0].status,'uncertain');assert.equal(state.steps[0].review.costSettled,true);
+ const charged=sql.prepare("SELECT SUM(actual) amount FROM credit_holds WHERE status='settled'").get().amount;
+ const recovery=decision(state);await r.reviewMissionStep(who,m.id,'reconcile-step',recovery);state=await r.missionState(who,m.id);assert.equal(state.steps[0].status,'completed');assert.equal(state.status,'waiting_user');await assert.rejects(()=>r.reviewMissionStep(who,m.id,'reconcile-step',recovery),/ne nécessite pas/);
+ await confirm(m.id);await r.runDurableTick(runner);assert.equal((await r.missionState(who,m.id)).status,'completed');assert.equal(calls,1);assert.equal(sql.prepare("SELECT SUM(actual) amount FROM credit_holds WHERE status='settled'").get().amount,charged);
+});
+await check('Unknown costs prevent reconciliation; explicit cancellation preserves the reservation and forbids replay',async()=>{
+ const m=await fixtureMission('Recover unknown charge');let calls=0,holdId;
+ await r.runDurableTick(async(tenant,_conversation,runId,emit,_signal,budget)=>{calls++;holdId=budget.holdId;await emit('text_delta',{text:'Résultat partiel.'});sql.prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,status,created_at) VALUES (?,?,?,?,?,'anthropic','master',?,'unknown',?)").run(crypto.randomUUID(),who.organization,tenant,runId,holdId,JSON.stringify(budget.rate),Date.now());throw Error('Simulated unconfirmed cost');});
+ const state=await r.missionState(who,m.id);await assert.rejects(()=>r.reviewMissionStep(who,m.id,'reconcile-step',decision(state)),/coût reste inconnu/);
+ await assert.rejects(()=>confirm(m.id),/Rapprochez/);const reserved=sql.prepare('SELECT SUM(reserved) amount FROM credit_lots').get().amount;
+ await r.controlMission(who,m.id,'cancel');assert.equal((await r.missionState(who,m.id)).status,'cancelled');assert.equal(sql.prepare('SELECT status FROM durable_steps WHERE mission_id=?').get(m.id).status,'failed');assert.equal(sql.prepare('SELECT status FROM credit_holds WHERE id=?').get(holdId).status,'needs_reconciliation');assert.equal(sql.prepare('SELECT SUM(reserved) amount FROM credit_lots').get().amount,reserved);
+ await assert.rejects(()=>r.controlMission(who,m.id,'resume'));await r.runDurableTick(runner);assert.equal(calls,1);
+});
+await check('Missing and foreign artifacts cannot be accepted as outcome evidence',async()=>{
+ const m=await fixtureMission('No real outcome'),foreign=await s.createResource('client-space','page','Foreign outcome',{current:page});await r.runDurableTick(async(...args)=>{await args[3]('tool_result',{result:{id:'missing-fixture',kind:'page'}});await args[3]('tool_result',{result:foreign});});
+ const state=await r.missionState(who,m.id);assert.equal(state.steps[0].review.hasEvidence,false);await assert.rejects(()=>r.reviewMissionStep(who,m.id,'reconcile-step',decision(state)),/Aucun résultat/);await r.controlMission(who,m.id,'cancel');assert.equal((await r.missionState(who,m.id)).status,'cancelled');
+});
+await check('Existing mandates and legacy completed steps require review before any further work',async()=>{
+ const m=await fixtureMission('Legacy checkpoint');await r.runDurableTick(runner);sql.prepare("UPDATE durable_steps SET result=json_remove(result,'$.validation') WHERE mission_id=?").run(m.id);sql.prepare("UPDATE durable_missions SET status='queued' WHERE id=?").run(m.id);
+ let calls=0;await r.runDurableTick(async()=>{calls++;});assert.equal(calls,0);assert.equal((await r.missionState(who,m.id)).status,'waiting_user');await confirm(m.id);assert.equal((await r.missionState(who,m.id)).status,'completed');
+});
+await check('Evidence, resource, mandate, run and billing races are rejected atomically at the review write',async()=>{
+ for(const mode of ['event','resource','mandate','run','cost']){
+  const m=await fixtureMission('Review race '+mode);let artifact;
+  await r.runDurableTick(async(...args)=>{await runner(...args);artifact=await s.createResource(who.tenant,'page','Review snapshot',{current:page});await args[3]('tool_result',{result:artifact});});
+  const state=await r.missionState(who,m.id),payload=decision(state),prepare=DB.prepare;let injected=false;
+  DB.prepare=query=>{if(!injected&&query.startsWith('UPDATE durable_steps SET result=')){
+   injected=true;
+   if(mode==='event')sql.prepare("INSERT INTO events(run_id,type,data,created_at) VALUES (?,'text_delta',?,?)").run(payload.runId,JSON.stringify({text:'Unseen concurrent result.'}),Date.now());
+   if(mode==='resource')sql.prepare('UPDATE resources SET version=version+1 WHERE id=?').run(artifact.id);
+   if(mode==='mandate')sql.prepare('UPDATE resources SET version=version+1 WHERE id=?').run(m.id);
+   if(mode==='run')sql.prepare("UPDATE runs SET status='streaming' WHERE id=?").run(payload.runId);
+   if(mode==='cost'){const hold=sql.prepare('SELECT hold_id,rate FROM provider_usage WHERE run_id=?').get(payload.runId);sql.prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,status,created_at) VALUES (?,?,?,?,?,'anthropic','master',?,'unknown',?)").run(crypto.randomUUID(),who.organization,who.tenant,payload.runId,hold.hold_id,hold.rate,Date.now());}
+  }return prepare(query);};
+  try{await assert.rejects(()=>r.reviewMissionStep(who,m.id,'confirm-step',payload),/résultat de cette étape a changé/);}finally{DB.prepare=prepare;}
+  assert.equal(injected,true);const saved=await r.missionState(who,m.id);assert.equal(saved.status,'waiting_user');assert.notEqual(saved.steps[0].review.validation?.status,'accepted');
+  await r.controlMission(who,m.id,'cancel');
+ }
+});
+await check('An approver without write permission can reconcile and validate via HTTP; a reader cannot',async()=>{
+ sql.prepare("UPDATE billing_subscriptions SET plan='business' WHERE id='test-sub'").run();
+ for(const [userId,role] of [['review-approver','approver'],['review-reader','reader']]){sql.prepare("INSERT INTO organization_members(organization_id,user_id,role,active) VALUES ('owner',?,?,1)").run(userId,role);sql.prepare("INSERT INTO members(id,workspace_id,user_id,role) VALUES (?,'owner',?,?)").run(userId,userId,role);}
+ const m=await fixtureMission('Role review');await r.runDurableTick(async(...args)=>{await runner(...args);throw Error('Interrupted after persisted output');});let state=await r.missionState(who,m.id);const endpoint='https://admin.test/api/missions/'+m.id,headers=globalThis.__runtimeTest.headers;
+ const asUser=userId=>{globalThis.__runtimeTest.headers=new Headers({'oai-authenticated-user-id':userId,'oai-authenticated-user-email':userId+'@test.invalid'});};
+ try{
+  asUser('review-reader');assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'reconcile-step',...decision(state)},{'x-aira-workspace':'owner'}),context(m.id))).status,403);
+  asUser('review-approver');assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'reconcile-step',...decision(state)},{'x-aira-workspace':'owner'}),context(m.id))).status,200);
+  state=await r.missionState(who,m.id);asUser('review-reader');assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...decision(state)},{'x-aira-workspace':'owner'}),context(m.id))).status,403);
+  asUser('review-approver');assert.equal((await missionRoute.POST(req(endpoint,'POST',{action:'confirm-step',...decision(state)},{'x-aira-workspace':'owner'}),context(m.id))).status,200);assert.equal((await r.missionState(who,m.id)).status,'completed');
+ }finally{globalThis.__runtimeTest.headers=headers;sql.prepare("UPDATE billing_subscriptions SET plan='pro' WHERE id='test-sub'").run();}
 });
 await check('Scheduler endpoint denies missing credentials and mission route denies foreign scope',async()=>{assert.equal((await tick.POST(req('https://admin.test/api/internal/mission-tick','POST',{}))).status,503);assert.equal((await missionRoute.GET(req('https://admin.test/api/missions/'+mission.id,'GET',undefined,{'x-aira-workspace':'other'}),context(mission.id))).status,403);});
 console.log(checks+' production runtime checks passed; external provider calls: 0.');
