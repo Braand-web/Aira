@@ -1,15 +1,16 @@
 "use client";
 
 import {useCallback,useEffect,useId,useRef,useState} from "react";
-import {AlertCircle,ArrowUpRight,CheckCircle2,ChevronDown,Link2,LoaderCircle,RefreshCw,Search,ShieldCheck,Unplug,X} from "lucide-react";
+import {AlertCircle,ArrowUpRight,CheckCircle2,ChevronDown,Link2,LoaderCircle,RefreshCw,Search,ShieldCheck,Unplug,Eye,SlidersHorizontal,X} from "lucide-react";
 import {api,post} from "../lib/client-api";
 import type {Resource} from "../lib/contracts";
 import "./connectors.css";
+import "../components/connector-catalog.css";
 
 export type ConnectorToolkit={slug:string;name:string;description?:string;logo?:string;isNoAuth?:boolean;connected:boolean;status:string;accountId?:string};
 type InstantSettings={enabled:boolean;monthlyLimitUsd:number;perCallLimitUsd:number;note:string};
 type ToolkitPage={items:ConnectorToolkit[];nextCursor:string|null;configured:boolean;instant:InstantSettings};
-type ConnectorsPanelProps={onChange?:()=>void};
+type ConnectorsPanelProps={onChange?:()=>void;embedded?:boolean};
 const dollars=(value:number)=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"USD",maximumFractionDigits:6}).format(value);
 const amount=(value:unknown)=>typeof value==="number"&&Number.isFinite(value)&&value>=0?dollars(value):"Non renseigné";
 const errorMessage=(error:unknown)=>error instanceof Error?error.message:"Impossible de terminer cette opération. Réessayez.";
@@ -39,24 +40,29 @@ function ToolkitLogo({item}:{item:ConnectorToolkit}){
  return <span className="connector-logo" aria-hidden="true">{src&&!failed?<img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>:<Link2 size={20}/>}</span>;
 }
 
-export function ConnectorsPanel({onChange}:ConnectorsPanelProps={}){
- const headingId=useId(),searchId=useId(),resultsId=useId();
- const [query,setQuery]=useState(""),[items,setItems]=useState<ConnectorToolkit[]>([]),[nextCursor,setNextCursor]=useState<string|null>(null);
+export function ConnectorsPanel({onChange,embedded=false}:ConnectorsPanelProps={}){
+ const headingId=useId(),searchId=useId(),resultsId=useId(),detailId=useId();
+ const [query,setQuery]=useState(""),[filter,setFilter]=useState<"available"|"connected">("available"),[items,setItems]=useState<ConnectorToolkit[]>([]),[nextCursor,setNextCursor]=useState<string|null>(null);
  const [configured,setConfigured]=useState<boolean|null>(null),[instant,setInstant]=useState<InstantSettings|null>(null);
  const [loading,setLoading]=useState(true),[loadingMore,setLoadingMore]=useState(false),[catalogError,setCatalogError]=useState("");
  const [actionError,setActionError]=useState(""),[notice,setNotice]=useState(""),[busyToolkit,setBusyToolkit]=useState(""),[reload,setReload]=useState(0);
- const [authorizationLinks,setAuthorizationLinks]=useState<Record<string,string>>({});
- const generation=useRef(0),request=useRef<AbortController|null>(null),pendingAction=useRef(false),pendingPage=useRef(false),mounted=useRef(true);
+ const [authorizationLinks,setAuthorizationLinks]=useState<Record<string,string>>({}),[selected,setSelected]=useState<ConnectorToolkit|null>(null),[confirmDisconnect,setConfirmDisconnect]=useState(false);
+ const generation=useRef(0),request=useRef<AbortController|null>(null),pendingAction=useRef(false),pendingPage=useRef(false),mounted=useRef(true),detailDialog=useRef<HTMLDialogElement|null>(null),returnFocus=useRef<HTMLElement|null>(null);
  const resetCatalog=()=>{generation.current++;request.current?.abort();pendingPage.current=false;setItems([]);setNextCursor(null);setCatalogError("");setLoading(true);setLoadingMore(false);};
  const refresh=()=>{resetCatalog();setReload(value=>value+1);};
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;request.current?.abort();};},[]);
- const load=useCallback(async(search:string,cursor:string|null,append:boolean,revision:number)=>{
+ useEffect(()=>{
+  const dialog=detailDialog.current;
+  if(selected&&!dialog?.open)dialog?.showModal();
+  if(!selected&&dialog?.open){dialog.close();if(returnFocus.current?.isConnected)returnFocus.current.focus();else document.getElementById(searchId)?.focus();}
+ },[selected,searchId]);
+ const load=useCallback(async(search:string,cursor:string|null,append:boolean,revision:number,connectedOnly:boolean)=>{
   if(generation.current!==revision)return;
   request.current?.abort();const controller=new AbortController();request.current=controller;pendingPage.current=true;
   if(append)setLoadingMore(true);else setLoading(true);
   setCatalogError("");
   try{
-   const params=new URLSearchParams();if(search)params.set("search",search);if(cursor)params.set("cursor",cursor);
+   const params=new URLSearchParams();if(search)params.set("search",search);if(cursor)params.set("cursor",cursor);if(connectedOnly)params.set("connected","true");
    const data=await api<ToolkitPage>("/api/connectors/toolkits"+(params.size?"?"+params.toString():""),{signal:controller.signal});
    if(controller.signal.aborted||!mounted.current||generation.current!==revision)return;
    if(!Array.isArray(data.items)||typeof data.configured!=="boolean")throw new Error("Le catalogue reçu est incomplet. Réessayez.");
@@ -64,17 +70,21 @@ export function ConnectorsPanel({onChange}:ConnectorsPanelProps={}){
    setItems(previous=>{const all=append?[...previous,...page]:page;return [...new Map(all.map(item=>[item.slug,item])).values()];});
    setNextCursor(typeof data.nextCursor==="string"&&data.nextCursor&&data.nextCursor!==cursor?data.nextCursor:null);
    setConfigured(data.configured);setInstant(data.instant||null);
+   setSelected(previous=>previous?page.find(item=>item.slug===previous.slug)||previous:null);
    setAuthorizationLinks(previous=>{const next={...previous};for(const item of page)if(item.connected&&!needsReauth(item))delete next[item.slug];return next;});
   }catch(error){if(!controller.signal.aborted&&mounted.current&&generation.current===revision)setCatalogError(errorMessage(error));}
   finally{if(mounted.current&&generation.current===revision){pendingPage.current=false;setLoading(false);setLoadingMore(false);}}
  },[]);
  useEffect(()=>{
   const revision=++generation.current;request.current?.abort();pendingPage.current=false;
-  const timer=window.setTimeout(()=>void load(query.trim(),null,false,revision),query?250:0);
+  const timer=window.setTimeout(()=>void load(query.trim(),null,false,revision,filter==="connected"),query?250:0);
   return()=>{window.clearTimeout(timer);request.current?.abort();};
- },[query,reload,load]);
+ },[query,filter,reload,load]);
  const changeQuery=(value:string)=>{resetCatalog();setQuery(value);};
- const more=()=>{if(loading||loadingMore||pendingPage.current||!nextCursor)return;void load(query.trim(),nextCursor,true,generation.current);};
+ const changeFilter=(value:typeof filter)=>{if(value===filter)return;resetCatalog();setFilter(value);};
+ const more=()=>{if(loading||loadingMore||pendingPage.current||!nextCursor)return;void load(query.trim(),nextCursor,true,generation.current,filter==="connected");};
+ const openDetail=(item:ConnectorToolkit,trigger:HTMLElement)=>{returnFocus.current=trigger;setActionError("");setConfirmDisconnect(false);setSelected(item);};
+ const verifyConnection=(item:ConnectorToolkit)=>{setSelected(null);setFilter("available");setQuery(item.name);setNotice("Consultez l’état de "+item.name+" dans les résultats actualisés.");refresh();};
  const connect=async(item:ConnectorToolkit)=>{
   if(pendingAction.current)return;pendingAction.current=true;setBusyToolkit(item.slug);setActionError("");setNotice("");
   try{const result=await api<{redirectUrl:string}>("/api/connectors/authorize",post({toolkit:item.slug}));const url=connectLink(result.redirectUrl);if(mounted.current){setAuthorizationLinks(previous=>({...previous,[item.slug]:url}));setNotice("Lien de connexion préparé pour "+item.name+". Cliquez sur Autoriser, puis actualisez les connexions à votre retour.");}}
@@ -82,25 +92,42 @@ export function ConnectorsPanel({onChange}:ConnectorsPanelProps={}){
   finally{pendingAction.current=false;if(mounted.current)setBusyToolkit("");}
  };
  const disconnect=async(item:ConnectorToolkit)=>{
-  if(!item.accountId||pendingAction.current)return;pendingAction.current=true;setBusyToolkit(item.slug);setActionError("");setNotice("");
-  try{await api("/api/connectors/accounts/"+encodeURIComponent(item.accountId),{method:"DELETE"});if(mounted.current){setAuthorizationLinks(previous=>{const next={...previous};delete next[item.slug];return next;});setNotice("Connexion à "+item.name+" retirée de cet espace.");refresh();onChange?.();}}
+  if(!item.accountId||!confirmDisconnect||pendingAction.current)return;pendingAction.current=true;setBusyToolkit(item.slug);setActionError("");setNotice("");
+  try{await api("/api/connectors/accounts/"+encodeURIComponent(item.accountId),{method:"DELETE"});if(mounted.current){setAuthorizationLinks(previous=>{const next={...previous};delete next[item.slug];return next;});setNotice("Connexion à "+item.name+" retirée de cet espace.");setSelected(null);setConfirmDisconnect(false);refresh();onChange?.();}}
   catch(error){if(mounted.current)setActionError(errorMessage(error));}
   finally{pendingAction.current=false;if(mounted.current)setBusyToolkit("");}
  };
- return <section className="connectors-panel" aria-labelledby={headingId}>
-  <header className="connectors-heading"><div><h3 id={headingId}>Vos applications</h3><p>Retrouvez les outils du catalogue Composio et les connexions de cet espace.</p></div><button type="button" className="connector-button connector-icon-button" onClick={refresh} disabled={loading||loadingMore||!!busyToolkit} aria-label="Actualiser les connexions" title="Actualiser les connexions"><RefreshCw size={16}/></button></header>
-  <div className="connectors-search"><Search size={17} aria-hidden="true"/><label className="connector-sr-only" htmlFor={searchId}>Rechercher une application</label><input id={searchId} type="search" value={query} onChange={event=>changeQuery(event.target.value)} placeholder="Rechercher une application…" autoComplete="off" aria-controls={resultsId}/>{query&&<button type="button" aria-label="Effacer la recherche" onClick={()=>changeQuery("")}><X size={16}/></button>}</div>
+ const featured=filter==="available"&&!query.trim()?items.filter(item=>!item.connected&&!item.isNoAuth).slice(0,3):[];
+ const detailLink=selected&&authorizationLinks[selected.slug];
+ return <section className={"connectors-panel connector-catalog"+(embedded?" connector-catalog-embedded":"")} aria-labelledby={headingId}>
+  <header className={embedded?"connector-catalog-tools":"connectors-heading"}><div className={embedded?"connector-sr-only":undefined}><h3 id={headingId}>Vos applications</h3><p>Retrouvez les outils du catalogue et les connexions de cet espace.</p></div><button type="button" className="connector-button connector-icon-button" onClick={refresh} disabled={loading||loadingMore||!!busyToolkit} aria-label="Actualiser les connexions" title="Actualiser les connexions"><RefreshCw size={16}/></button></header>
+  <div className="connectors-search"><Search size={18} aria-hidden="true"/><label className="connector-sr-only" htmlFor={searchId}>Rechercher une application</label><input id={searchId} type="search" value={query} onChange={event=>changeQuery(event.target.value)} placeholder="Rechercher" autoComplete="off" aria-controls={resultsId}/>{query&&<button type="button" aria-label="Effacer la recherche" onClick={()=>changeQuery("")}><X size={16}/></button>}</div>
+  <div className="connector-segments" role="group" aria-label="Afficher les applications"><button type="button" aria-pressed={filter==="available"} onClick={()=>changeFilter("available")}>Disponible</button><button type="button" aria-pressed={filter==="connected"} onClick={()=>changeFilter("connected")}>Connecté</button></div>
   {configured===false&&<div className="connector-note"><ShieldCheck size={18} aria-hidden="true"/><div><strong>Les connexions arrivent dans cet espace</strong><p>Composio n’est pas encore configuré sur cet hébergement. Votre administrateur peut l’activer pour rendre le catalogue et les connexions disponibles.</p></div></div>}
-  {actionError&&<p className="connector-error" role="alert"><AlertCircle size={17} aria-hidden="true"/>{actionError}</p>}
+  {actionError&&!selected&&<p className="connector-error" role="alert"><AlertCircle size={17} aria-hidden="true"/>{actionError}</p>}
   <p className="connector-sr-only" role="status" aria-live="polite" aria-atomic="true">{loading?"Chargement du catalogue…":loadingMore?"Chargement d’autres applications…":items.length+" application"+(items.length>1?"s":"")+" affichée"+(items.length>1?"s":"")+"."}</p>
-  {notice&&<p className="connector-notice" role="status"><CheckCircle2 size={17} aria-hidden="true"/>{notice}</p>}
+  {notice&&!selected&&<p className="connector-notice" role="status"><CheckCircle2 size={17} aria-hidden="true"/>{notice}</p>}
   <div id={resultsId} className="connectors-results" aria-busy={loading||loadingMore}>
-   {loading?<div className="connectors-skeleton" aria-hidden="true">{[0,1,2].map(index=><div className="connector-skeleton-row" key={index}><span/><div><i/><i/></div></div>)}</div>:items.length>0?<ul className="connectors-list">{items.map(item=>{const reauth=needsReauth(item),pending=isPending(item),busy=busyToolkit===item.slug,authorizationLink=authorizationLinks[item.slug];return <li key={item.slug} className="connector-item"><div className="connector-item-main"><ToolkitLogo item={item}/><div className="connector-copy"><h4>{item.name}</h4><span className={"connector-status "+(reauth?"attention":item.connected?"connected":"")}>{item.connected&&!reauth&&!pending&&<CheckCircle2 size={12} aria-hidden="true"/>}{connectionLabel(item)}</span></div></div>{item.description&&<p className="connector-description">{item.description}</p>}<div className="connector-actions">{(!item.isNoAuth||reauth)&&(!item.connected||reauth)&&<button type="button" className={"connector-button "+(!authorizationLink?"connector-primary":"")} disabled={!configured||!!busyToolkit} onClick={()=>void connect(item)} aria-label={(authorizationLink||pending?"Générer un nouveau lien pour ":reauth?"Reconnecter ":"Connecter ")+item.name}>{busy?<LoaderCircle size={15} className="connector-spin" aria-hidden="true"/>:pending?<RefreshCw size={15} aria-hidden="true"/>:<ArrowUpRight size={15} aria-hidden="true"/>}{busy?"Préparation…":authorizationLink||pending?"Nouveau lien":reauth?"Reconnecter":"Connecter"}</button>}{authorizationLink&&<a className="connector-button connector-primary" href={authorizationLink} target="_blank" rel="noopener noreferrer">Autoriser {item.name}<ArrowUpRight size={15} aria-hidden="true"/></a>}{item.accountId&&<button type="button" className="connector-button" disabled={!configured||!!busyToolkit} onClick={()=>void disconnect(item)} aria-label={"Déconnecter "+item.name}><Unplug size={14} aria-hidden="true"/>{busy?"Patientez…":"Déconnecter"}</button>}</div>{authorizationLink&&<p className="connector-description">L’autorisation s’ouvre dans un nouvel onglet. À votre retour, actualisez les connexions pour vérifier son état.</p>}</li>;})}</ul>:!catalogError&&configured!==false?<div className="connectors-empty"><Search size={24} aria-hidden="true"/><strong>{query?"Aucune application trouvée":"Aucune application disponible"}</strong><p>{query?"Essayez le nom d’une autre application.":"Actualisez le catalogue pour réessayer."}</p>{query&&<button type="button" className="connector-button" onClick={()=>changeQuery("")}>Effacer la recherche</button>}</div>:null}
+   {loading?<div className="connectors-skeleton" aria-hidden="true">{[0,1,2].map(index=><div className="connector-skeleton-row" key={index}><span/><div><i/><i/></div></div>)}</div>:items.length>0?<>
+    {featured.length>0&&<section className="connector-discover" aria-label="À découvrir"><h4>À découvrir</h4><div className="connector-featured">{featured.map(item=><button type="button" className="connector-feature" key={item.slug} onClick={event=>openDetail(item,event.currentTarget)} aria-label={"Découvrir "+item.name}><ToolkitLogo item={item}/><strong>{item.name}</strong><span>{item.description||"Reliez votre compte pour utiliser cette application avec Aïra."}</span></button>)}</div></section>}
+    <h4 className="connector-section-title">{filter==="connected"?"Vos connexions":"Toutes les applications"}</h4>
+    <ul className="connector-catalog-list">{items.map(item=><li key={item.slug}><button type="button" className="connector-catalog-row" onClick={event=>openDetail(item,event.currentTarget)} aria-label={(item.connected||item.isNoAuth?"Voir ":"Activer ")+item.name}><ToolkitLogo item={item}/><span className="connector-row-copy"><strong>{item.name}</strong>{(item.connected||needsReauth(item)||isPending(item)||item.isNoAuth)&&<span className={"connector-status "+(needsReauth(item)?"attention":item.connected?"connected":"")}>{connectionLabel(item)}</span>}</span><span className="connector-row-action">{item.connected||item.isNoAuth?"Voir":needsReauth(item)?"Reconnecter":"Activer"}</span></button></li>)}</ul>
+   </>:!catalogError&&configured!==false?<div className="connectors-empty"><Search size={24} aria-hidden="true"/><strong>{query?"Aucune application trouvée":filter==="connected"?"Aucune application connectée":"Aucune application disponible"}</strong><p>{query?"Essayez le nom d’une autre application.":filter==="connected"?"Choisissez une application dans l’onglet Disponible pour connecter votre compte.":"Actualisez le catalogue pour réessayer."}</p>{query&&<button type="button" className="connector-button" onClick={()=>changeQuery("")}>Effacer la recherche</button>}</div>:null}
   </div>
   {catalogError&&<div className="connector-error" role="alert"><AlertCircle size={17} aria-hidden="true"/><div><p>{catalogError}</p><button type="button" className="connector-button" onClick={()=>items.length&&nextCursor?more():refresh()} disabled={loading||loadingMore}><RefreshCw size={14} aria-hidden="true"/>Réessayer</button></div></div>}
   {nextCursor&&!loading&&!catalogError&&<button type="button" className="connector-button connectors-more" onClick={more} disabled={loadingMore}>{loadingMore?<LoaderCircle size={15} className="connector-spin" aria-hidden="true"/>:<ChevronDown size={15} aria-hidden="true"/>}{loadingMore?"Chargement…":"Afficher d’autres applications"}</button>}
   {instant&&<details className="connectors-instant"><summary>Outils Instant <span>{instant.enabled?"Activés":"Désactivés"}</span></summary><p>{instant.note||"Ces limites sont définies par l’administrateur de cet hébergement."}</p><dl><div><dt>Plafond mensuel</dt><dd>{amount(instant.monthlyLimitUsd)}</dd></div><div><dt>Plafond par appel</dt><dd>{amount(instant.perCallLimitUsd)}</dd></div></dl></details>}
   <p className="connectors-footer"><ShieldCheck size={16} aria-hidden="true"/><span>La connexion passe par Composio. Les actions qui modifient une application et les appels Instant payants demandent une validation dans Aïra.</span></p>
+  <dialog ref={detailDialog} className="connector-detail" aria-labelledby={detailId} onCancel={event=>{event.stopPropagation();event.preventDefault();setSelected(null);}} onClick={event=>{event.stopPropagation();if(event.target===event.currentTarget)setSelected(null);}}>
+   {selected&&<div className="connector-detail-body"><button type="button" className="connector-detail-close" aria-label="Fermer la fiche de l’application" onClick={()=>setSelected(null)}><X size={20}/></button><header className="connector-detail-heading"><ToolkitLogo item={selected}/><h3 id={detailId}>{selected.name}</h3><p>{selected.description||"Connectez votre application pour retrouver ses outils dans vos discussions avec Aïra."}</p><span className={"connector-status "+(needsReauth(selected)?"attention":selected.connected?"connected":"")}>{connectionLabel(selected)}</span></header>
+    <div className="connector-explanations"><div><Link2 size={22} aria-hidden="true"/><div><strong>Votre compte, dans cet espace</strong><p>{selected.isNoAuth?"Cette application ne nécessite pas de compte connecté. Les appels restent soumis aux règles d’Aïra.":"Choisissez le compte et vérifiez les accès demandés dans la fenêtre d’autorisation. La connexion est gérée par Composio."}</p></div></div><div><SlidersHorizontal size={22} aria-hidden="true"/><div><strong>Vous validez les actions sensibles</strong><p>Aïra demande votre accord avant une action qui modifie une application ou un appel Instant payant, avec les paramètres à vérifier.</p></div></div><div><Eye size={22} aria-hidden="true"/><div><strong>Gardez un œil sur l’activité</strong><p>Consultez les actions dans votre discussion. Vous pouvez retirer cette connexion depuis cette fiche.</p></div></div></div>
+    {actionError&&<p className="connector-error" role="alert"><AlertCircle size={17} aria-hidden="true"/>{actionError}</p>}
+    {detailLink&&<div className="connector-auth-ready"><p role="status">Votre lien est prêt. L’autorisation s’ouvre dans un nouvel onglet.</p><a className="connector-button connector-primary" href={detailLink} target="_blank" rel="noopener noreferrer">Autoriser {selected.name}<ArrowUpRight size={16} aria-hidden="true"/></a><button type="button" className="connector-button" onClick={()=>verifyConnection(selected)} disabled={loading||!!busyToolkit}><RefreshCw size={16} aria-hidden="true"/>Actualiser après la connexion</button></div>}
+    {(!selected.isNoAuth||needsReauth(selected))&&(!selected.connected||needsReauth(selected))&&<button type="button" className={"connector-button connector-detail-connect "+(!detailLink?"connector-primary":"")} disabled={!configured||!!busyToolkit} onClick={()=>void connect(selected)}>{busyToolkit===selected.slug?<LoaderCircle size={16} className="connector-spin" aria-hidden="true"/>:null}{busyToolkit===selected.slug?"Préparation…":detailLink||isPending(selected)?"Générer un nouveau lien":needsReauth(selected)?"Reconnecter":"Connecter"}</button>}
+    {selected.accountId&&(confirmDisconnect?<div className="connector-disconnect-confirm"><p>Retirer la connexion à {selected.name} de cet espace ? Aïra ne pourra plus utiliser ce compte.</p><div><button type="button" className="connector-button connector-disconnect" disabled={!!busyToolkit} onClick={()=>void disconnect(selected)}>{busyToolkit?"Déconnexion…":"Confirmer la déconnexion"}</button><button type="button" className="connector-button" disabled={!!busyToolkit} onClick={()=>setConfirmDisconnect(false)}>Annuler</button></div></div>:<button type="button" className="connector-button connector-disconnect" disabled={!!busyToolkit} onClick={()=>setConfirmDisconnect(true)}><Unplug size={16} aria-hidden="true"/>Déconnecter {selected.name}</button>)}
+    <p className="connector-detail-footnote">Se connecter n’autorise aucune dépense. Les accès effectivement accordés dépendent de votre compte et de l’autorisation fournie.</p>
+   </div>}
+  </dialog>
  </section>;
 }
 

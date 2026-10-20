@@ -21,6 +21,16 @@ La bibliothèque de compétences adopte le même thème sombre. Les contenus Off
 
 Le responsive est une adaptation à Aïra, pas une validation du comportement mobile de Muse. Les fonctions non présentes dans Aïra, telles que ses discussions parallèles, ne sont pas ajoutées comme faux contrôles.
 
+## Paramètres et connecteurs
+
+`components/settings-panel.tsx` compose la fenêtre native (880 × 680 px au maximum) : navigation de 224 px sur ordinateur, navigation horizontale sur mobile, corps indépendant défilant. Général, Connecteurs, Portefeuille et Aide utilisent les données et les parcours existants. Les résumés financiers sont invalidés si l’utilisateur, l’espace, les crédits ou les réservations changent. Un changement d’espace dans un autre onglet recharge l’application pour garder les requêtes et l’écran sur le même périmètre.
+
+`app/connectors-panel.tsx` affiche le catalogue réel, une sélection « À découvrir », la recherche et les vues Disponible / Connecté. `GET /api/connectors/toolkits?connected=true&search=…&cursor=…` transmet le filtre natif au SDK avant pagination ; aucune liste d’applications n’est codée en dur. Sans configuration Composio, le panneau affiche son indisponibilité. Les invités sont orientés vers la connexion Aïra sans appeler les routes privées.
+
+La fiche d’application explique l’accès avant de préparer un lien OAuth. Ouvrir une fiche n’autorise rien ; « Connecter » prépare un lien Composio validé, puis l’utilisateur ouvre lui-même « Autoriser ». « Actualiser après la connexion » ferme la fiche et recherche l’application dans un catalogue rechargé, y compris si elle provenait d’une page suivante. La déconnexion exige une confirmation distincte. Les contrôles serveur des actions et dépenses ne changent pas. Les logos et descriptions apparaissent uniquement quand le catalogue les fournit ; aucun statut ou abonnement de la référence Muse n’est simulé en production.
+
+Les réglages non disponibles dans Aïra (coffre-fort, appareils, canaux de messagerie, permissions personnalisées par outil) ne sont pas ajoutés sous forme de contrôles factices. Le thème reste sombre et la langue française ; les écrans de facturation existants conservent leurs véritables tarifs.
+
 ## Vérification
 
 ```sh
@@ -32,6 +42,8 @@ node tests/agent-ui.browser.mjs
 ```
 
 La suite navigateur utilise une identité, des réponses et des catalogues de test sur loopback, bloque le réseau externe et ne fait aucun achat ni appel modèle réel. Elle vérifie notamment : tokens calculés, rail 72 px, compositeur qui grandit uniquement en hauteur jusqu’à 192 px, défilement interne, paramètres desktop/mobile, compétences, facturation, états de streaming, copie, avis, sources et reprise de demande.
+
+Les tests des connecteurs vérifient aussi l’autorisation explicite, la recherche et la pagination des comptes connectés, la confirmation de révocation, la fermeture indépendante des deux dialogues et le retour du focus. Les tests d’intégration vérifient les filtres invalides et l’isolation entre utilisateurs et espaces avec le SDK simulé ; ils ne prouvent pas une connexion OAuth à un compte réel.
 
 Les captures se trouvent dans `.tmp/agent-ui-browser/design-*.png`, ignoré par Git. Si Playwright vient d’un runtime externe, définir `AIRA_PLAYWRIGHT_MODULE` vers son module avant la commande.
 

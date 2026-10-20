@@ -23,13 +23,32 @@ const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conve
 const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
 const history=[];const votes=new Map();
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
+let workspaceReads=0,summaryReads=0,walletAvailable=200;
+const catalogRequests=[],authorizationRequests=[],revocationRequests=[];
+const connectedAccounts=new Set(['gmail','slack']);
+const connectorFixtures=[{slug:'metaads',name:'Meta Ads',description:'Catalogue de test local',connected:false,status:'disconnected'},{slug:'gmail',name:'Gmail',description:'Compte de test isolé',connected:true,status:'active',accountId:'fixture-gmail'},{slug:'slack',name:'Slack',description:'Deuxième page de connexions de test',connected:true,status:'active',accountId:'fixture-slack'}];
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
-  if(url.pathname==='/api/workspace'){json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:200,reserved:0},resources:[proposal,conversation],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
-  if(url.pathname==='/api/connectors/toolkits'){json(res,{items:[{slug:'metaads',name:'Meta Ads',description:'Catalogue de test local',connected:false,status:'disconnected'},{slug:'gmail',name:'Gmail',description:'Compte de test isolé',connected:true,status:'active',accountId:'fixture-account'}],nextCursor:null,configured:true,instant:{enabled:false,monthlyLimitUsd:0,perCallLimitUsd:0,note:'Test local'}});return;}
+  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:[proposal,conversation],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/connectors/toolkits'){
+    catalogRequests.push({connected:url.searchParams.get('connected'),search:url.searchParams.get('search'),cursor:url.searchParams.get('cursor')});
+    const query=(url.searchParams.get('search')||'').toLowerCase(),connected=url.searchParams.get('connected')==='true',cursor=url.searchParams.get('cursor');
+    const matches=connectorFixtures.map(item=>({...item,connected:connectedAccounts.has(item.slug),status:connectedAccounts.has(item.slug)?'active':'disconnected'})).filter(item=>(!connected||item.connected)&&(!query||item.name.toLowerCase().includes(query)));
+    const paginated=connected&&!query&&matches.length>1;
+    const items=paginated?(cursor==='fixture-connected-2'?matches.slice(1):matches.slice(0,1)):matches;
+    json(res,{items,nextCursor:paginated&&!cursor?'fixture-connected-2':null,configured:true,instant:{enabled:false,monthlyLimitUsd:0,perCallLimitUsd:0,note:'Test local'}});return;
+  }
+  if(url.pathname==='/api/connectors/authorize'&&req.method==='POST'){
+    const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());authorizationRequests.push(body);
+    json(res,{redirectUrl:'https://connect.composio.dev/fixture-authorization'});return;
+  }
+  if(url.pathname.startsWith('/api/connectors/accounts/')&&req.method==='DELETE'){
+    const accountId=decodeURIComponent(url.pathname.split('/').at(-1));revocationRequests.push(accountId);const item=connectorFixtures.find(item=>item.accountId===accountId);if(item)connectedAccounts.delete(item.slug);
+    json(res,{disconnected:true});return;
+  }
   if(url.pathname==='/api/billing/catalog'){json(res,{plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:{enabled:false},free:{credits:0,days:7,enabled:false}});return;}
-  if(url.pathname==='/api/billing/summary'){json(res,{wallet:{available:200,reserved:0},lots:[],orders:[],invoices:[]});return;}
+  if(url.pathname==='/api/billing/summary'){summaryReads++;json(res,{wallet:{available:walletAvailable,reserved:12},creditAllowance:300,subscription:null,meters:{storage:10*1024*1024,transfer:20*1024*1024},lots:[],orders:[],invoices:[]});return;}
   if(url.pathname==='/api/billing/organization'){json(res,{current:'fixture',organization:'fixture',role:'owner',rights:{plan:'pro',limits:PLANS.pro},spaces:[{id:'fixture',name:'Espace de test'}],members:[],limits:[],pendingInvites:0,activeMemberCount:1,viewer:{userId:'fixture-user',email:'fixture@example.test',displayName:'Compte de test'}});return;}
   if(url.pathname==='/api/billing/usage'){json(res,{entries:[],daily:[],asOf:now});return;}
   if(url.pathname==='/api/chat'&&req.method==='GET'){json(res,{messages:history.map(message=>({...message,feedback:votes.get(message.id)??null}))});return;}
@@ -46,7 +65,7 @@ const server=createServer(async(req,res)=>{
     timers.push(setTimeout(()=>emit('tool_start',{name:'read_meta'}),350));
     timers.push(setTimeout(()=>emit('text_delta',{text:'Résultat de test conservé.'}),650));
     if(body.text==='Coupure réseau')timers.push(setTimeout(()=>res.end(),1000));
-    else if(body.text!=='Arrêt utilisateur')timers.push(setTimeout(()=>{const messageId='assistant-'+chatCalls;history.push({id:'user-'+chatCalls,role:'user',content:[{type:'text',text:body.text}],attachments:[]},{id:messageId,role:'assistant',content:[{type:'text',text:'Résultat de test conservé.'}],status:'complete',sources,attachments:[]});emit('assistant_message',{messageId,runId:'run-'+chatCalls,sources});emit('done',{runId:'run-'+chatCalls});res.end();},1700));
+    else if(body.text!=='Arrêt utilisateur')timers.push(setTimeout(()=>{if(body.text==='Bonjour')walletAvailable=195;const messageId='assistant-'+chatCalls;history.push({id:'user-'+chatCalls,role:'user',content:[{type:'text',text:body.text}],attachments:[]},{id:messageId,role:'assistant',content:[{type:'text',text:'Résultat de test conservé.'}],status:'complete',sources,attachments:[]});emit('assistant_message',{messageId,runId:'run-'+chatCalls,sources});emit('done',{runId:'run-'+chatCalls});res.end();},body.text==='Bonjour'?3500:1700));
     res.on('close',()=>timers.forEach(clearTimeout));return;
   }
   if(url.pathname==='/api/proposals/'+proposal.id){
@@ -90,15 +109,94 @@ try{
   await page.getByRole('button',{name:'Replier la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===72);assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),72);
   await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.locator('.account-trigger').click();
   await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();
+  await composer.fill('Brouillon conservé pendant les paramètres');
   await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-desktop.png'),fullPage:true});await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
-  const settings=page.getByRole('dialog',{name:'Votre espace',exact:true});await settings.waitFor();
-  assert.equal(await settings.evaluate(element=>getComputedStyle(element).gridTemplateColumns),'224px 576px');
-  await settings.getByRole('button',{name:'Connexions',exact:true}).click();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
+  const settings=page.getByRole('dialog',{name:'Paramètres',exact:true});await settings.waitFor();
+  assert.equal(await settings.locator('.settings-shell').evaluate(element=>getComputedStyle(element).gridTemplateColumns),'224px 656px');
+  await settings.getByRole('heading',{name:'Général',exact:true}).waitFor();
+  await settings.getByText('fixture@example.test',{exact:true}).waitFor();
+  await settings.getByText('Compte de test',{exact:true}).waitFor();
+  await settings.getByText('Espace de test',{exact:true}).waitFor();
+  await settings.getByText('200 crédits',{exact:true}).waitFor();
+  await settings.getByText('12 réservés',{exact:true}).waitFor();
+  assert.match(await settings.locator('.settings-storage').innerText(),/^10 Mo sur /);
+  await page.screenshot({path:path.join(output,'design-settings-general-desktop.png'),fullPage:true});
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Aide et raccourcis',exact:true}).click();
+  await settings.getByRole('heading',{name:'Raccourcis clavier',exact:true}).waitFor();
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Portefeuille',exact:true}).click();
+  await settings.getByText('300 crédits',{exact:true}).waitFor();
+  await settings.getByText('12 crédits',{exact:true}).waitFor();
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Connecteurs',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
   assert.equal(await settings.getByRole('searchbox',{name:'Rechercher une application',exact:true}).evaluate(element=>getComputedStyle(element).backgroundColor),'rgba(0, 0, 0, 0)');
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
   await page.screenshot({path:path.join(output,'design-settings-desktop.png'),fullPage:true});
+  assert.equal(await settings.getByRole('button',{name:'Disponible',exact:true}).getAttribute('aria-pressed'),'true');
+  const metaTrigger=settings.getByRole('button',{name:'Découvrir Meta Ads',exact:true});
+  await metaTrigger.click();const metaDetail=page.getByRole('dialog',{name:'Meta Ads',exact:true});await metaDetail.waitFor();
+  assert.equal(authorizationRequests.length,0,'Opening a connector must not request authorization');
+  assert.equal(revocationRequests.length,0);
+  await page.screenshot({path:path.join(output,'design-connector-detail-desktop.png'),fullPage:true});
+  await page.keyboard.press('Escape');await metaDetail.waitFor({state:'hidden'});assert.equal(await settings.isVisible(),true);
+  assert.equal(await metaTrigger.evaluate(element=>element===document.activeElement),true,'Closing a connector returns focus to its trigger');
+  await metaTrigger.click();await metaDetail.waitFor();
+  await metaDetail.getByRole('button',{name:'Connecter',exact:true}).evaluate(button=>{button.click();button.click();});
+  const authorize=metaDetail.getByRole('link',{name:'Autoriser Meta Ads',exact:true});await authorize.waitFor();
+  assert.deepEqual(authorizationRequests,[{toolkit:'metaads'}]);
+  assert.equal(await authorize.getAttribute('href'),'https://connect.composio.dev/fixture-authorization');
+  assert.equal(await authorize.getAttribute('target'),'_blank');assert.equal(await authorize.getAttribute('rel'),'noopener noreferrer');
+  assert.equal(context.pages().length,1,'OAuth must remain an explicit user-controlled link');
+  for(const action of await metaDetail.locator('button,a').all()){
+    const bounds=await action.boundingBox(),label=await action.getAttribute('aria-label')||await action.innerText();
+    assert.ok(bounds.height>=44,`Connector dialog action “${label}” needs a 44px touch target; got ${bounds.height}px`);
+  }
+  // Simulate an OAuth grant at the fixture boundary; no authorization page is opened.
+  connectedAccounts.add('metaads');
+  await metaDetail.getByRole('button',{name:'Actualiser après la connexion',exact:true}).click();await metaDetail.waitFor({state:'hidden'});
+  await settings.getByRole('button',{name:'Voir Meta Ads',exact:true}).waitFor();
+  assert.equal(await settings.getByRole('button',{name:'Disponible',exact:true}).getAttribute('aria-pressed'),'true');
+  assert.equal(await settings.getByRole('searchbox',{name:'Rechercher une application',exact:true}).inputValue(),'Meta Ads');
+  assert.ok(catalogRequests.some(request=>request.search==='Meta Ads'&&request.connected===null&&request.cursor===null));
+  await settings.getByText('Consultez l’état de Meta Ads dans les résultats actualisés.',{exact:true}).waitFor();
+  assert.deepEqual(authorizationRequests,[{toolkit:'metaads'}],'Refreshing an OAuth result must not authorize or mutate the account again');
+  connectedAccounts.delete('metaads');await settings.getByRole('button',{name:'Actualiser les connexions',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
+  await settings.getByRole('searchbox',{name:'Rechercher une application',exact:true}).fill('');await settings.getByRole('button',{name:'Voir Gmail',exact:true}).waitFor();
+  await settings.getByRole('button',{name:'Connecté',exact:true}).click();await settings.getByRole('button',{name:'Voir Gmail',exact:true}).waitFor();
+  assert.equal(await settings.getByRole('button',{name:'Connecté',exact:true}).getAttribute('aria-pressed'),'true');
+  assert.equal(await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).count(),0);
+  assert.equal(await settings.getByRole('button',{name:'Voir Slack',exact:true}).count(),0,'The connected fixture starts with one server page');
+  await settings.getByRole('button',{name:'Afficher d’autres applications',exact:true}).click();await settings.getByRole('button',{name:'Voir Slack',exact:true}).waitFor();
+  assert.ok(catalogRequests.some(request=>request.connected==='true'&&request.cursor==='fixture-connected-2'),'Connected filtering must be sent on pagination');
+  const connectorSearch=settings.getByRole('searchbox',{name:'Rechercher une application',exact:true});
+  await connectorSearch.fill('Slack');await settings.getByRole('button',{name:'Voir Slack',exact:true}).waitFor();
+  await page.waitForFunction(()=>document.querySelector('.connectors-results')?.getAttribute('aria-busy')==='false');
+  assert.equal(await settings.getByRole('button',{name:'Voir Gmail',exact:true}).count(),0);
+  assert.ok(catalogRequests.some(request=>request.connected==='true'&&request.search==='Slack'&&request.cursor===null),'Search remains server-filtered within connected accounts');
+  await connectorSearch.fill('');await settings.getByRole('button',{name:'Voir Gmail',exact:true}).waitFor();
+  await settings.getByRole('button',{name:'Voir Gmail',exact:true}).click();const gmailDetail=page.getByRole('dialog',{name:'Gmail',exact:true});await gmailDetail.waitFor();
+  await gmailDetail.getByRole('button',{name:'Déconnecter Gmail',exact:true}).click();
+  assert.equal(revocationRequests.length,0,'The first disconnect action only asks for confirmation');
+  await gmailDetail.getByRole('button',{name:'Annuler',exact:true}).click();assert.equal(revocationRequests.length,0);
+  await gmailDetail.getByRole('button',{name:'Déconnecter Gmail',exact:true}).click();
+  await gmailDetail.getByRole('button',{name:'Confirmer la déconnexion',exact:true}).evaluate(button=>{button.click();button.click();});
+  await gmailDetail.waitFor({state:'hidden'});await settings.getByRole('button',{name:'Voir Slack',exact:true}).waitFor();
+  assert.deepEqual(revocationRequests,['fixture-gmail']);assert.equal(await settings.getByRole('button',{name:'Voir Gmail',exact:true}).count(),0);
+  checks.push('Settings show real account, wallet, storage and shortcuts without invented subscription prices');
+  checks.push('Connector discovery is read-only; authorization needs one explicit click and a safe user-controlled OAuth link');
+  checks.push('OAuth refresh closes the stale dialog and fetches the selected application by name without another authorization');
+  checks.push('Connected catalog uses server-side search and pagination; disconnect requires confirmation and prevents double submission');
+  checks.push('Nested connector dialog closes independently and restores focus to the originating card');
   await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
   await page.waitForFunction(()=>document.activeElement?.classList.contains('account-trigger'));
+  assert.equal(await composer.inputValue(),'Brouillon conservé pendant les paramètres');await composer.fill('');
+  await page.goto(origin+'/?view=analytics');await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();await settings.waitFor();
+  await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});assert.equal(new URL(page.url()).searchParams.get('view'),'analytics');
+  checks.push('Opening settings preserves the composer draft and current analytics route');
+  const workspaceReadsBeforeSwitch=workspaceReads,mutationsBeforeSwitch={chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length};
+  const reloadedWorkspace=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/workspace'&&response.request().method()==='GET');
+  await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.evaluate(()=>window.dispatchEvent(new StorageEvent('storage',{key:'aira.workspace',oldValue:'fixture',newValue:'fixture-other',storageArea:localStorage,url:location.href})))]);
+  await reloadedWorkspace;assert.ok(workspaceReads>workspaceReadsBeforeSwitch);assert.equal(new URL(page.url()).searchParams.get('view'),'analytics');
+  assert.deepEqual({chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length},mutationsBeforeSwitch);
+  checks.push('A workspace change in another tab reloads its snapshot without running model, generation or connector mutations');
   await page.goto(origin+'/?view=knowledge');await page.getByRole('heading',{name:'Marketplace des compétences',exact:true}).waitFor();
   assert.equal(await page.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
   await page.screenshot({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
@@ -117,10 +215,19 @@ try{
   await page.getByRole('button',{name:'Ouvrir la navigation',exact:true}).click();await page.locator('.sidebar.mobile-open').waitFor();
   await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-mobile.png'),fullPage:true});await page.locator('.account-trigger').click();
   checks.push('Account menu remains fully visible with expanded, collapsed and mobile navigation');
-  await page.getByRole('button',{name:'Intégrations',exact:true}).click();await settings.waitFor();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
-  assert.equal(await settings.locator('.settings-tabs').evaluate(element=>getComputedStyle(element).flexDirection),'row');
+  await page.getByRole('button',{name:'Intégrations',exact:true}).click();await settings.waitFor();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
+  assert.equal(await settings.locator('.settings-navigation').evaluate(element=>getComputedStyle(element).flexDirection),'row');
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
   await page.screenshot({path:path.join(output,'design-settings-mobile.png'),fullPage:true});
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Général',exact:true}).click();await settings.getByText('fixture@example.test',{exact:true}).waitFor();
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await page.screenshot({path:path.join(output,'design-settings-general-mobile.png'),fullPage:true});
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Connecteurs',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
+  await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).click();await metaDetail.waitFor();
+  assert.ok(await metaDetail.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  const detailBounds=await metaDetail.boundingBox();assert.ok(detailBounds.x>=0&&detailBounds.x+detailBounds.width<=390);
+  await page.screenshot({path:path.join(output,'design-connector-detail-mobile.png'),fullPage:true});
+  await page.keyboard.press('Escape');await metaDetail.waitFor({state:'hidden'});assert.equal(await settings.isVisible(),true);
   await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
   await page.setViewportSize({width:1280,height:800});await page.emulateMedia({reducedMotion:'no-preference'});
   await page.goto(origin);await composer.fill('Bonjour');
@@ -132,6 +239,14 @@ try{
   await page.screenshot({path:path.join(output,'desktop-writing.png'),fullPage:true});
   assert.equal(await page.locator('[data-slot=ai-status][data-state=done]').count(),0);
   assert.equal(await page.locator('[data-slot=streaming-response][data-state=streaming]').getByRole('button').count(),0);
+  const summaryReadsBeforeRun=summaryReads;
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();await settings.waitFor();
+  await settings.getByText('200 crédits',{exact:true}).waitFor();
+  await settings.getByText('195 crédits',{exact:true}).waitFor();
+  assert.ok(summaryReads>=summaryReadsBeforeRun+2,'An open wallet must re-read its summary after the chat run settles');
+  assert.equal(await settings.getByText('200 crédits',{exact:true}).count(),0,'The old wallet amount must not survive settlement');
+  await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});
+  checks.push('An open settings wallet refreshes its real balance when a conversation run settles');
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
   assert.equal(chatCalls,1);checks.push('Chat: real stream states, one request, completion only after done');
   const response=page.locator('[data-slot=streaming-response]').first();
@@ -208,7 +323,7 @@ try{
   assert.ok(await page.locator('.response-action').last().evaluate(element=>element.getBoundingClientRect().height>=44));
   await page.screenshot({path:path.join(output,'mobile-reduced-motion.png'),fullPage:true});checks.push('Mobile: no horizontal overflow; reduced-motion animation disabled');
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
-  await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,externalProviderCalls:0},null,2));
+  await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);
 }catch(error){if(lastPage){await lastPage.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});console.error((await lastPage.locator('body').innerText()).slice(0,1200));}throw error;}
 finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
