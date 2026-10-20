@@ -65,7 +65,7 @@ export function MediaGenerationPreview({proposal,kind,onReady}:{proposal:Resourc
     document.addEventListener('visibilitychange',resume);
     window.addEventListener('online',resume);
     window.addEventListener('offline',offline);
-    void poll();
+    if(navigator.onLine) void poll(); else offline();
     return () => {disposed = true;clearTimeout(timeout);controller.abort();document.removeEventListener('visibilitychange',resume);window.removeEventListener('online',resume);window.removeEventListener('offline',offline);};
   },[proposal.id,attempt]);
   const pending = state === 'waiting' || state === 'generating' || state === 'checking';
