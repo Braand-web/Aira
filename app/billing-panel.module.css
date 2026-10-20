@@ -1,19 +1,37 @@
-.page{container-type:inline-size;position:relative;isolation:isolate;background-color:#0b0b0c;background-image:radial-gradient(ellipse 52% 36% at 0% 48%,rgba(124,92,255,.23),transparent 78%),radial-gradient(ellipse 45% 30% at 100% 38%,rgba(56,189,248,.13),transparent 78%),radial-gradient(ellipse 40% 22% at 50% 0%,rgba(143,150,255,.11),transparent 75%);padding:56px clamp(20px,4vw,64px) 72px;color:#ecebe6}
-.page .heading{position:relative;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:24px;margin-bottom:40px;isolation:isolate}
-.heading::before{position:absolute;z-index:-1;top:-56px;left:-20px;right:-20px;height:350px;background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1.2px);background-size:26px 26px;mask-image:radial-gradient(ellipse 70% 100% at 25% 0%,black,transparent);content:"";pointer-events:none}
+.page{container-type:inline-size;position:relative;background:var(--ds-bg);padding:40px clamp(20px,4vw,64px) 56px;color:var(--ds-text);font:400 14px/20px var(--ds-font);scrollbar-color:var(--ds-fill) transparent;caret-color:var(--ds-accent)}
+.page .heading{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:24px;margin-bottom:32px}
 .heading>div{min-width:0}
-.heading .label{display:flex;align-items:center;gap:8px;margin:0 0 24px;color:#a8a6a0;font-size:13px;font-weight:500;line-height:1}
-.label svg{width:16px;height:16px;flex:none;color:#a5abff}
-.heading h1{font-size:clamp(36px,5.8cqw,72px);font-weight:600;letter-spacing:-.045em;line-height:1.03;color:#f8f7f3}
-.heading h1>span{color:#a5abff}
-.heading p{margin:20px 0 0;color:#aaa8a2;font-size:16px;line-height:1.5}
-.heading>button{height:40px;margin-top:0;padding:0 16px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;color:#ecebe6;flex:none}
-.page .tabs{gap:28px;margin-bottom:40px;border-bottom-color:rgba(255,255,255,.08);scrollbar-width:thin;scrollbar-color:#353533 transparent}
-.tabs button{padding:14px 0;font-size:14px;color:#aaa8a2}
-.tabs button[aria-current=page]{border-bottom-color:#8f96ff;color:#f6f5f0}
-.page :global(.billing-footer){margin-top:40px;padding-top:24px;border-top-color:rgba(255,255,255,.08);color:#aaa8a2;font-size:12px;line-height:1.55}
+.heading .label{display:flex;align-items:center;gap:8px;margin:0 0 16px;color:var(--ds-muted);font-size:12px;font-weight:500;line-height:16px}
+.label svg{width:16px;height:16px;flex:none;color:var(--ds-muted)}
+.page .heading h1{font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:40px;color:var(--ds-text)}
+.page .heading h1>span{color:var(--ds-text)}
+.heading p{max-width:65ch;margin:12px 0 0;color:var(--ds-muted);font-size:14px;line-height:20px}
+.heading>button{height:36px;margin-top:0;padding:0 14px;border:0;border-radius:9999px;background:var(--ds-fill);font-size:14px;line-height:20px;color:var(--ds-text);flex:none}
+.heading>button:enabled:hover{background:var(--ds-hover)}
+.page .tabs{gap:24px;margin-bottom:32px;border-bottom-color:var(--ds-line);scrollbar-width:thin;scrollbar-color:var(--ds-fill) transparent}
+.tabs button{padding:12px 0;font-size:14px;line-height:20px;color:var(--ds-muted);transition:color var(--ds-fast,150ms) var(--ds-ease)}
+.tabs button:hover{color:var(--ds-text)}
+.tabs button[aria-current=page]{border-bottom-color:var(--ds-accent);color:var(--ds-text)}
+.page :global(.billing-footer){margin-top:32px;padding-top:24px;border-top-color:var(--ds-line);color:var(--ds-muted);font-size:12px;line-height:16px}
 .page :global(.billing-footer)>svg{flex:none;margin-top:2px}
+.page :global(.billing-alert){padding:12px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-radius-md);background:var(--ds-surface);color:var(--ds-success);font-size:14px;line-height:20px}
+.page :global(.billing-alert.error){color:var(--ds-error)}
 .page :global(.billing-alert):empty{display:none}
-.page button:focus-visible,.page a:focus-visible{outline:2px solid #a5abff;outline-offset:3px}
-@container(max-width:680px){.heading{gap:20px}.heading h1{font-size:clamp(34px,7.8cqw,52px)}.heading p{font-size:14px}.heading>button{position:absolute;top:-4px;right:0;width:36px;height:36px;padding:8px;font-size:0}.heading .label{margin-bottom:28px}.page .tabs{gap:24px;margin-bottom:28px}.tabs button{font-size:13px}}
+.page :global(.billing-availability),.page :global(.billing-note),.page :global(.billing-empty){color:var(--ds-muted);font-size:14px;line-height:20px}
+.page :global(.billing-review){padding:24px 0}
+.page :global(.billing-review) h2{font-size:34px;line-height:40px;font-weight:600;letter-spacing:-.02em;color:var(--ds-text)}
+.page :global(.billing-review)>p,.page :global(.billing-review) ul{color:var(--ds-muted);font-size:14px;line-height:20px}
+.page :global(.billing-total){font-size:40px;line-height:48px;font-weight:600;color:var(--ds-text)}
+.page :global(.button){border-radius:9999px;font:500 14px/20px var(--ds-font);transition:background var(--ds-fast,150ms) var(--ds-ease),filter var(--ds-fast,150ms) var(--ds-ease)}
+.page :global(.button.primary){border:0;background:var(--ds-action);color:var(--ds-action-text);box-shadow:none}
+.page :global(.button.secondary){border:0;background:var(--ds-fill);color:var(--ds-text);box-shadow:none}
+.page :global(.button.primary):enabled:hover{background:var(--ds-action);filter:brightness(1.08)}
+.page :global(.button.secondary):enabled:hover{background:var(--ds-hover)}
+.page :global(.button):enabled:active{transform:none;filter:brightness(.95)}
+.page button:focus-visible,.page a:focus-visible,.page input:focus-visible,.page select:focus-visible,.page textarea:focus-visible,.page summary:focus-visible{outline:2px solid var(--ds-focus);outline-offset:3px}
+.page input,.page select,.page textarea{border:1px solid var(--ds-line);border-radius:var(--ds-radius-sm);background:var(--ds-bg);color:var(--ds-text);font-family:var(--ds-font);caret-color:var(--ds-accent)}
+.page input::placeholder,.page textarea::placeholder{color:var(--ds-muted);opacity:1}
+.page ::selection{background:var(--ds-action);color:var(--ds-action-text)}
+@container(max-width:680px){.heading{gap:20px}.page .heading h1{font-size:34px;line-height:40px}.page .heading{position:relative}.page .heading>button:global(.button){position:absolute;top:0;right:0;width:40px;min-width:40px;height:40px;min-height:40px;padding:0;gap:0;font-size:0}.heading .label{padding-right:44px}.page .tabs{gap:24px;margin-bottom:24px}.tabs button{font-size:14px}}
 @media(max-width:680px){.page{padding:28px 20px 40px}}
+@media(prefers-reduced-motion:reduce){.page *,.page *::before,.page *::after{animation:none!important;transition:none!important}}

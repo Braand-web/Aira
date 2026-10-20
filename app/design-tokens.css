@@ -1,0 +1,70 @@
+/* Aïra · Muse reference kit v3 (authenticated measurements, 20 October 2026).
+   Semantic adaptation only; original utility sheets and proprietary assets are not imported. */
+:root {
+  color-scheme: dark;
+  --ds-bg: #181819;
+  --ds-surface: #28292b;
+  --ds-surface-raised: #323435;
+  --ds-fill: #ffffff1f;
+  --ds-hover: #ffffff26;
+  --ds-pressed: #ffffff2e;
+  --ds-line: #ffffff1f;
+  --ds-line-quiet: #ffffff0f;
+  --ds-text: #ffffff;
+  /* Raised from the reference's tertiary alpha to keep small labels readable. */
+  --ds-muted: #b0b4bd;
+  --ds-quiet: #979da6;
+  --ds-accent: #4b93ff;
+  --ds-action: #1793ff;
+  --ds-action-text: #000000;
+  --ds-focus: #1793ff;
+  --ds-success: #69d28a;
+  --ds-warning: #f1b596;
+  --ds-error: #ff8d99;
+  --ds-agent: #1f1f20;
+  --ds-user: #0074e8;
+  --ds-composer: #383838cc;
+  --ds-menu: #383838f5;
+  --ds-font: Manrope, system-ui, sans-serif;
+  --ds-space: 4px;
+  --ds-radius-sm: 12px;
+  --ds-radius-md: 16px;
+  --ds-radius-message: 22px;
+  --ds-radius-lg: 32px;
+  --ds-radius-pill: 9999px;
+  --ds-sidebar-width: 240px;
+  --ds-rail-width: 72px;
+  --ds-reading-width: 768px;
+  --ds-shadow-sm: 0 2px 8px #11111214, 0 2px 16px #1111120a;
+  --ds-shadow-lg: 0 6px 16px #11111229, 0 8px 32px #1111121f;
+  --ds-fast: 150ms;
+  --ds-ease: cubic-bezier(.2,.75,.25,1);
+}
+
+/* Compatibility aliases keep existing readers and controls in the same system. */
+html[data-design-system="muse"] {
+  --bg: var(--ds-bg);
+  --sidebar: var(--ds-bg);
+  --surface: var(--ds-surface);
+  --surface-hover: var(--ds-surface-raised);
+  --line: var(--ds-line);
+  --border: var(--ds-line);
+  --text: var(--ds-text);
+  --text-muted: var(--ds-muted);
+  --muted: var(--ds-muted);
+  --accent: var(--ds-accent);
+  --blue: var(--ds-action);
+  --font: var(--ds-font);
+  --aira-main-bg: var(--ds-bg);
+  --aira-sidebar-bg: var(--ds-bg);
+  --aira-sidebar-border: var(--ds-line-quiet);
+  --aira-sidebar-divider: var(--ds-line-quiet);
+  --aira-sidebar-hover: var(--ds-fill);
+  --aira-sidebar-active: var(--ds-fill);
+  --aira-sidebar-text: var(--ds-text);
+  --aira-sidebar-active-text: var(--ds-text);
+  --aira-sidebar-muted: var(--ds-muted);
+  --aira-sidebar-quiet: var(--ds-muted);
+  --aira-sidebar-accent: var(--ds-accent);
+  --aira-sidebar-focus: var(--ds-focus);
+}

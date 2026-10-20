@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
+import {PLANS,PACKS,topupPrice} from '../lib/billing-core.mjs';
 
 const require=createRequire(import.meta.url);
 const playwright=process.env.AIRA_PLAYWRIGHT_MODULE;
@@ -26,6 +27,11 @@ const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'applica
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
   if(url.pathname==='/api/workspace'){json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:200,reserved:0},resources:[proposal,conversation],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/connectors/toolkits'){json(res,{items:[{slug:'metaads',name:'Meta Ads',description:'Catalogue de test local',connected:false,status:'disconnected'},{slug:'gmail',name:'Gmail',description:'Compte de test isolé',connected:true,status:'active',accountId:'fixture-account'}],nextCursor:null,configured:true,instant:{enabled:false,monthlyLimitUsd:0,perCallLimitUsd:0,note:'Test local'}});return;}
+  if(url.pathname==='/api/billing/catalog'){json(res,{plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:{enabled:false},free:{credits:0,days:7,enabled:false}});return;}
+  if(url.pathname==='/api/billing/summary'){json(res,{wallet:{available:200,reserved:0},lots:[],orders:[],invoices:[]});return;}
+  if(url.pathname==='/api/billing/organization'){json(res,{current:'fixture',organization:'fixture',role:'owner',rights:{plan:'pro',limits:PLANS.pro},spaces:[{id:'fixture',name:'Espace de test'}],members:[],limits:[],pendingInvites:0,activeMemberCount:1,viewer:{userId:'fixture-user',email:'fixture@example.test',displayName:'Compte de test'}});return;}
+  if(url.pathname==='/api/billing/usage'){json(res,{entries:[],daily:[],asOf:now});return;}
   if(url.pathname==='/api/chat'&&req.method==='GET'){json(res,{messages:history.map(message=>({...message,feedback:votes.get(message.id)??null}))});return;}
   if(url.pathname==='/api/chat'&&req.method==='PATCH'){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());feedbackCalls++;if(failFeedback){failFeedback=false;json(res,{error:'Échec local de test'},503);return;}votes.set(body.messageId,body.feedback);json(res,body);return;}
   if(url.pathname==='/api/chat'&&req.method==='DELETE'){stops++;json(res,{stopped:true});return;}
@@ -54,7 +60,7 @@ const server=createServer(async(req,res)=>{
   if(url.pathname==='/app.js'||url.pathname==='/app.css'||url.pathname.startsWith('/chunks/')){
     try{const target=path.resolve(output,'.'+url.pathname);if(!target.startsWith(output+path.sep))throw Error();res.writeHead(200,{'Content-Type':url.pathname.endsWith('.css')?'text/css':'application/javascript'});res.end(await readFile(target));}catch{res.writeHead(404);res.end();}return;
   }
-  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Aïra · Test isolé</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
+  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr" data-design-system="muse"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Aïra · Test isolé</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin='http://127.0.0.1:'+server.address().port;
@@ -67,7 +73,55 @@ try{
   await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
   const page=await context.newPage();lastPage=page;const pageErrors=[];page.on('pageerror',error=>{pageErrors.push(error.message);console.error('Browser error:',error.message);});
   await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
-  await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Bonjour');
+  await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).waitFor();
+  const composer=page.getByRole('textbox',{name:'Votre demande à Aïra'});
+  const initial=await page.locator('.composer').boundingBox();
+  assert.equal(await page.locator('body').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(24, 24, 25)');
+  assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),240);
+  await composer.fill('Une ligne\nUne deuxième ligne\nUne troisième ligne');
+  await page.waitForFunction(()=>document.querySelector('.composer textarea').clientHeight>=72);
+  const grown=await page.locator('.composer').boundingBox();assert.ok(grown.height>initial.height);assert.equal(Math.round(grown.width),Math.round(initial.width));
+  await composer.fill('Document très long.\n'.repeat(100));
+  await page.waitForFunction(()=>{const field=document.querySelector('.composer textarea');return field.clientHeight===192&&field.scrollHeight>field.clientHeight&&getComputedStyle(field).overflowY==='auto';});
+  assert.equal(Math.round((await page.locator('.composer').boundingBox()).width),Math.round(initial.width));
+  await composer.fill('');await page.getByRole('heading',{name:'Faites grandir vos idées.'}).click();
+  await page.screenshot({path:path.join(output,'design-home-desktop.png'),fullPage:true});
+  await page.getByRole('button',{name:'Replier la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===72);assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),72);
+  await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
+  const settings=page.getByRole('dialog',{name:'Votre espace',exact:true});await settings.waitFor();
+  assert.equal(await settings.evaluate(element=>getComputedStyle(element).gridTemplateColumns),'224px 576px');
+  await settings.getByRole('button',{name:'Connexions',exact:true}).click();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
+  assert.equal(await settings.getByRole('searchbox',{name:'Rechercher une application',exact:true}).evaluate(element=>getComputedStyle(element).backgroundColor),'rgba(0, 0, 0, 0)');
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await page.screenshot({path:path.join(output,'design-settings-desktop.png'),fullPage:true});
+  await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
+  await page.waitForFunction(()=>document.activeElement?.classList.contains('account-trigger'));
+  await page.goto(origin+'/?view=knowledge');await page.getByRole('heading',{name:'Marketplace des compétences',exact:true}).waitFor();
+  assert.equal(await page.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
+  await page.screenshot({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
+  await page.goto(origin+'/?view=billing');await page.locator('.billing-loading').waitFor({state:'hidden'});await page.getByRole('button',{name:'Actualiser la facturation'}).waitFor();
+  await page.locator('.billing-page svg').first().waitFor();
+  await page.screenshot({path:path.join(output,'design-billing-desktop.png'),fullPage:true});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  assert.equal(await page.getByRole('button',{name:'Actualiser la facturation'}).evaluate(element=>getComputedStyle(element).fontSize),'0px');
+  const mobileRefresh=await page.getByRole('button',{name:'Actualiser la facturation'}).boundingBox();assert.ok(mobileRefresh.x+mobileRefresh.width<=390);
+  await page.screenshot({path:path.join(output,'design-billing-mobile.png'),fullPage:true});
+  await page.goto(origin);await composer.waitFor();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await page.screenshot({path:path.join(output,'design-home-mobile.png'),fullPage:true});
+  await page.getByRole('button',{name:'Ouvrir la navigation',exact:true}).click();await page.locator('.sidebar.mobile-open').waitFor();
+  await page.getByRole('button',{name:'Intégrations',exact:true}).click();await settings.waitFor();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
+  assert.equal(await settings.locator('.settings-tabs').evaluate(element=>getComputedStyle(element).flexDirection),'row');
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await page.screenshot({path:path.join(output,'design-settings-mobile.png'),fullPage:true});
+  await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
+  await page.setViewportSize({width:1280,height:800});await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.goto(origin);await composer.fill('Bonjour');
+  checks.push('Design system: shared tokens, desktop/mobile settings, catalog, billing and 72px rail');
+  checks.push('Composer grows only vertically, caps at 192px and scrolls internally');
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
