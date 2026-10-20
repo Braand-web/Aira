@@ -2,11 +2,11 @@
 
 ## Ce qui a été exécuté
 
-Le **18 octobre 2026**, `node tests/production-operations.integration.mjs` a exécuté **12 contrôles** avec les vrais services TypeScript, les vraies routes, SQLite en mémoire et Web Crypto AES-GCM. Ils passent : secret du planificateur, verrou concurrent, déduplication, erreur de tâche, outbox, refus d'envoi non configuré, demande de test, timeout incertain, garde de production, sauvegarde chiffrée et restauration complète.
+Le **20 octobre 2026**, `node tests/production-operations.integration.mjs` a exécuté **21 contrôles** avec les vrais services TypeScript, les vraies routes, SQLite en mémoire et Web Crypto AES-GCM. Ils passent : secret du planificateur, verrou concurrent, déduplication, erreur de tâche, outbox, refus d'envoi non configuré, demande de test, timeout incertain, garde de production, sauvegarde chiffrée v2 et compatibilité de restauration v1. La sauvegarde/restauration inclut réellement un fichier de **50 Mio**, **208 objets** (trois pages de métadonnées), les métadonnées HTTP et personnalisées, ainsi que le refus des corruptions, parties manquantes/interverties, limites SQL/médias, changements ETag, écritures interrompues et collisions de destination.
 
 La restauration compare toutes les tables et données du snapshot, les objets et métadonnées, les séquences SQLite et l'intégrité des clés étrangères. Les déclencheurs financiers sont recréés **après** les lignes : restaurer un lot ne réattribue pas ses crédits et ne redébite pas une allocation. Aucun `DROP`/`DELETE` ne fait partie du code de restauration.
 
-**Limite de preuve :** R2 est simulé en mémoire et Resend est remplacé par un stub HTTP. Aucun e-mail réel n'est parti, aucun e-mail n'est prouvé reçu, aucun bucket réel n'a été créé et aucune restauration Cloudflare distante n'est prouvée. Les comptes/domaine/destinataire n'étant pas configurés, les preuves externes restent **BLOQUÉES**.
+**Limite de preuve :** R2 est simulé en mémoire (lectures par plage et consommation incrémentale des flux avec contre-pression réelle Node). Le contrat `FixedLengthStream` de Cloudflare est reproduit par une fixture de taille contrôlée ; le runtime cloud reste à valider. Resend est remplacé par un stub HTTP. Aucun e-mail réel n'est parti, aucun e-mail n'est prouvé reçu, aucun bucket réel n'a été créé et aucune restauration Cloudflare distante n'est prouvée. Les comptes/domaine/destinataire n'étant pas configurés, les preuves externes restent **BLOQUÉES**.
 
 ## Routes et droits
 
@@ -72,16 +72,29 @@ BACKUP_RESTORE_ALLOWED=false
 - `BACKUP_ENCRYPTION_KEY` : **32 octets aléatoires encodés en base64**, gardés hors Git et séparément des archives. Sans cette clé, aucune récupération n'est possible. Conserver les anciennes clés sous contrôle restreint lors d'une rotation, puis tester leur récupération.
 - `BACKUP_MAINTENANCE_CONFIRMED=true` : atteste une fenêtre sans mutation applicative ni écriture R2 externe. Le contrôle est une précondition d'exploitation ; il ne suspend pas magiquement tous les utilisateurs et fournisseurs. D1 et R2 ne partagent pas de transaction globale. Ne pas affirmer qu'il existe un snapshot simultané sous charge d'écriture.
 
-`createEncryptedBackup()` lit les tables dans un batch D1, récupère les objets avec leur ETag, inclut schémas/index/triggers et séquences, chiffre l'archive AES-256-GCM avec IV aléatoire et identifiant authentifié, puis écrit dans le bucket distinct sans écrasement. Aucun contenu métier ne figure dans le manifeste de supervision.
+`createEncryptedBackup()` produit désormais une archive **v2 segmentée**, dans le bucket distinct et sans écrasement :
 
-Le parcours est volontairement **borné pour l'exercice de reprise** : archive claire maximum **8 MiB**, **10 000 lignes**, **100 objets** et **100 tables** (limites internes Aïra). Au-delà il refuse explicitement, au lieu de produire une sauvegarde partielle présentée comme complète. Ce mécanisme ne suffit pas à sauvegarder les quotas médias Business : prévoir un export D1 natif et une copie R2 durables adaptés au volume, puis exécuter un exercice sur le cloud avant lancement. La simple présence de ce code ne valide pas les engagements de sauvegarde en production.
+1. Le snapshot SQL est lu ligne par ligne, sous une borne explicite, avec schémas/index/triggers et séquences. Il est enregistré en segments chiffrés d'au plus **1 Mio**.
+2. La liste R2 est parcourue par pages de **100 objets**. Chaque objet est lu par plages d'au plus **1 Mio**, sous condition d'ETag, puis chaque plage est chiffrée séparément en AES-256-GCM avec IV aléatoire. L'identifiant de sauvegarde et le chemin logique de la partie sont authentifiés ; une partie déplacée ne s'authentifie pas.
+3. Les tailles et empreintes SHA-256 des parties, les clés d'objets et leurs métadonnées sont rangées dans des pages chiffrées d'au plus **512 Kio** et **100 entrées**. Le fichier média entier et la liste complète des objets ne sont jamais réunis en mémoire par le service.
+4. Le manifeste racine chiffré `aira-backups/<id>.bin`, préfixé `AIRA2`, est écrit **après** tous les segments, puis le manifeste de supervision D1 est enregistré. Les parties sont sous `aira-backups/<id>/`. Aucun contenu métier ne figure dans le manifeste de supervision.
+
+Un échec avant le manifeste racine laisse éventuellement des segments chiffrés orphelins, jamais une sauvegarde marquée terminée. Un échec D1 après le commit R2 peut laisser une archive complète non répertoriée ; la conserver et rapprocher son identifiant. Aucun effacement automatique n'est ajouté. Prévoir une politique d'inventaire, de rétention et de nettoyage après diagnostic ; les fragments ont un coût de stockage.
+
+Le parcours reste **borné**, et `backupReadiness().limits` expose ses limites internes :
+
+- Snapshot SQL : **8 Mio de JSON encodé**, **10 000 lignes**, **100 tables**. Cette borne indépendante des médias permet de restaurer D1 dans un seul batch transactionnel, sans contourner ses contraintes étrangères. Au-delà, utiliser un export/import D1 natif validé séparément.
+- Médias : **100 000 objets**, **1 Gio par objet**, **64 Gio cumulés**, sans chargement intégral d'un fichier en mémoire. Un fichier de 50 Mio accepté par l'application tient dans ce parcours. Au-delà des bornes, la sauvegarde est refusée explicitement.
+- Taille d'une partie claire : **1 Mio** ; pages de métadonnées : **512 Kio**. Chiffrement et lecture utilisent ces tampons bornés ; seul le petit snapshot SQL conserve une borne globale distincte.
+
+Ces plafonds sont des garde-fous, pas des capacités Cloudflare mesurées. `ready=true` signifie que la configuration requise est présente ; il ne certifie ni que les données tiennent sous les limites SQL, ni que la durée, la mémoire, le CPU et les sous-requêtes du Worker suffisent au volume voulu. Une sauvegarde et une restauration à volume cible, avec mesure de la durée et des limites réelles du cron, restent indispensables avant lancement. Les lectures SQL/R2 ne constituent pas un snapshot simultané sous charge ; une fenêtre de maintenance exclusive reste exigée.
 
 `restoreEncryptedBackup(id, targetDb, targetBucket)` :
 
 1. exige `APP_ENV=test` ou `staging` et `BACKUP_RESTORE_ALLOWED=true` ;
 2. refuse la base source, les buckets source/sauvegarde et toute destination contenant des tables applicatives ou objets ;
-3. vérifie l'authenticité AES-GCM, l'identifiant, la taille, les types et les condensats des objets **avant** la première écriture ;
-4. restaure les objets sans écrasement, puis recrée tables/données/index/triggers dans un batch transactionnel ;
+3. reconnaît les nouvelles archives **v2**, tout en conservant la lecture des anciennes archives **v1** (archive monolithique jusqu'à 8 Mio) ; vérifie l'authenticité AES-GCM, l'identifiant, les tailles, les types, les compteurs, l'ordre unique des clés et les condensats des parties **avant** la première écriture ;
+4. relit et réauthentifie les parties v2 pendant leur envoi via `FixedLengthStream`, avec condition R2 de non-existence ; aucun tampon contenant le fichier complet n'est créé. Puis recrée tables/données/index/triggers dans un batch SQL transactionnel. Les archives v1 gardent leur parcours borné historique ;
 5. n'expose **aucun endpoint de restauration de production**.
 
 La destination doit être une base neuve, **sans migrations applicatives déjà exécutées**. Les contraintes étrangères sont différées pendant l'import. Les tables internes Cloudflare ne sont pas exportées. Les types/valeurs non représentables de manière exacte sont refusés. Une erreur entre R2 et D1 peut laisser une destination partiellement remplie : la conserver pour diagnostic, ne pas la purger automatiquement et recommencer sur une **nouvelle** destination après analyse. Une restauration en production nécessitera une procédure distincte, un plan de retour et un accord explicite.
