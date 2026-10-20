@@ -86,9 +86,11 @@ try{
   assert.equal(Math.round((await page.locator('.composer').boundingBox()).width),Math.round(initial.width));
   await composer.fill('');await page.getByRole('heading',{name:'Faites grandir vos idées.'}).click();
   await page.screenshot({path:path.join(output,'design-home-desktop.png'),fullPage:true});
+  const assertAccountMenuVisible=async()=>{const menu=page.getByRole('menu',{name:'Menu du compte',exact:true});await menu.waitFor();await page.waitForFunction(()=>{const menu=document.querySelector('[role=menu][aria-label="Menu du compte"]');return menu&&getComputedStyle(menu).opacity==='1';});const bounds=await menu.boundingBox(),viewport=page.viewportSize();assert.ok(bounds.x>=8,'Account menu must stay inside the left viewport edge');assert.ok(bounds.y>=8,'Account menu must stay inside the top viewport edge');assert.ok(bounds.x+bounds.width<=viewport.width-8,'Account menu must stay inside the right viewport edge');assert.ok(bounds.y+bounds.height<=viewport.height-8,'Account menu must stay inside the bottom viewport edge');return menu;};
   await page.getByRole('button',{name:'Replier la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===72);assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),72);
+  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.locator('.account-trigger').click();
   await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();
-  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
+  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-desktop.png'),fullPage:true});await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
   const settings=page.getByRole('dialog',{name:'Votre espace',exact:true});await settings.waitFor();
   assert.equal(await settings.evaluate(element=>getComputedStyle(element).gridTemplateColumns),'224px 576px');
   await settings.getByRole('button',{name:'Connexions',exact:true}).click();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
@@ -113,6 +115,8 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await page.screenshot({path:path.join(output,'design-home-mobile.png'),fullPage:true});
   await page.getByRole('button',{name:'Ouvrir la navigation',exact:true}).click();await page.locator('.sidebar.mobile-open').waitFor();
+  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-mobile.png'),fullPage:true});await page.locator('.account-trigger').click();
+  checks.push('Account menu remains fully visible with expanded, collapsed and mobile navigation');
   await page.getByRole('button',{name:'Intégrations',exact:true}).click();await settings.waitFor();await settings.getByRole('heading',{name:'Meta Ads',exact:true}).waitFor();
   assert.equal(await settings.locator('.settings-tabs').evaluate(element=>getComputedStyle(element).flexDirection),'row');
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
