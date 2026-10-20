@@ -6,8 +6,10 @@ const q=(sql:string,...args:any[])=>db().prepare(sql).bind(...args);
 export async function organizationSummary(who:BillingIdentity){
  const spaces=await q("SELECT w.id,w.name,w.organization_id,o.name organization_name,om.role FROM workspaces w JOIN organizations o ON o.id=w.organization_id JOIN organization_members om ON om.organization_id=o.id AND om.user_id=? AND om.active=1 WHERE om.role='owner' OR EXISTS(SELECT 1 FROM members m WHERE m.workspace_id=w.id AND m.user_id=?) ORDER BY o.created_at,w.created_at",who.user.userId,who.user.userId).all();
  const members=roleAllows(who.role,'manage')?await q('SELECT user_id,role,active FROM organization_members WHERE organization_id=?',who.organization).all():{results:[]};
+ const memberCount=await q('SELECT COUNT(*) count FROM organization_members WHERE organization_id=? AND active=1',who.organization).first<{count:number}>();
  const limits=await q('SELECT scope,scope_id,units FROM billing_limits WHERE organization_id=?',who.organization).all();
- return {spaces:spaces.results,members:members.results,limits:limits.results,rights:await activeRights(who.organization),current:who.tenant,organization:who.organization,role:who.role};
+ const pendingInvites=roleAllows(who.role,'manage')?await q("SELECT COUNT(*) count FROM billing_invites WHERE organization_id=? AND status='pending' AND expires_at>?",who.organization,Date.now()).first<{count:number}>():{count:0};
+ return {spaces:spaces.results,members:members.results,activeMemberCount:memberCount?.count||0,limits:limits.results,pendingInvites:pendingInvites?.count||0,viewer:{userId:who.user.userId,email:who.user.email,displayName:who.user.displayName},rights:await activeRights(who.organization),current:who.tenant,organization:who.organization,role:who.role};
 }
 export async function changeOrganization(who:BillingIdentity,input:any){
  if(!roleAllows(who.role,'manage'))throw new AppError('Gestion réservée au propriétaire ou à un administrateur.',403);

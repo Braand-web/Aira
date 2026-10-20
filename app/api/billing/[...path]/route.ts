@@ -21,9 +21,12 @@ export async function GET(request:Request,context:Context){try{
   return Response.json(orderView(order));
  }
  if(key==='usage'){
-  if(!['owner','admin'].includes(who.role))return Response.json({entries:[],restricted:true});
-  const before=Number(new URL(request.url).searchParams.get('before'))||Date.now()+1;
-  const rows=await db().prepare('SELECT id,kind,units,reference,created_at FROM credit_ledger WHERE organization_id=? AND created_at<? ORDER BY created_at DESC,id LIMIT 100').bind(who.organization,before).all();return Response.json({entries:rows.results});
+  if(!['owner','admin'].includes(who.role))return Response.json({entries:[],daily:[],restricted:true,asOf:Date.now()});
+  const now=Date.now(),before=Number(new URL(request.url).searchParams.get('before'))||now+1,today=new Date(now),from=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate()-29);
+  const [rows,daily]=await Promise.all([
+   db().prepare('SELECT id,kind,units,reference,created_at FROM credit_ledger WHERE organization_id=? AND created_at<? ORDER BY created_at DESC,id LIMIT 100').bind(who.organization,before).all(),
+   db().prepare("SELECT date(created_at/1000,'unixepoch') day,COALESCE(SUM(units),0) units FROM credit_ledger WHERE organization_id=? AND kind='consume' AND created_at>=? AND created_at<? GROUP BY date(created_at/1000,'unixepoch') ORDER BY day").bind(who.organization,from,before).all()
+  ]);return Response.json({entries:rows.results,daily:daily.results,restricted:false,asOf:now});
  }
  if(key==='invoices'&&path[1]){
   requireBilling(who);const row=await db().prepare('SELECT * FROM billing_invoices WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<any>();if(!row)throw new AppError('Facture introuvable.',404);

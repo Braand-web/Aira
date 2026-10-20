@@ -59,7 +59,7 @@ export async function claimFree(who:BillingIdentity){
 export async function summary(org:string){
  await allocateDue(org);await expireLots(org);
  const now=Date.now();const [wallet,lots,subscription,orders,notifications,invoices,creditNotes]=await Promise.all([
- s('SELECT COALESCE(SUM(CASE WHEN frozen=0 AND starts_at<=? AND (expires_at IS NULL OR expires_at>?) THEN balance-reserved ELSE 0 END),0) available,COALESCE(SUM(reserved),0) reserved FROM credit_lots WHERE organization_id=?',now,now,org).first<any>(),
+ s('SELECT COALESCE(SUM(CASE WHEN frozen=0 AND starts_at<=? AND (expires_at IS NULL OR expires_at>?) THEN balance-reserved ELSE 0 END),0) available,COALESCE(SUM(reserved),0) reserved,COALESCE(SUM(CASE WHEN frozen=0 AND starts_at<=? AND (expires_at IS NULL OR expires_at>?) THEN granted ELSE 0 END),0) granted FROM credit_lots WHERE organization_id=?',now,now,now,now,org).first<any>(),
  s('SELECT id,source,granted,balance,reserved,starts_at,expires_at,frozen FROM credit_lots WHERE organization_id=? ORDER BY created_at DESC LIMIT 100',org).all(),currentSubscription(org),
  s('SELECT id,status,amount,currency,product,created_at FROM billing_orders WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all(),
  s('SELECT * FROM billing_notifications WHERE organization_id=? ORDER BY created_at DESC LIMIT 30',org).all(),
@@ -68,7 +68,7 @@ export async function summary(org:string){
  ]);
  const allocation=subscription?periods(subscription.start_at,subscription.cycle,PLANS[subscription.plan as keyof typeof PLANS].credits).find(p=>p.start<=now&&p.end>now):undefined;
  const meters=await s("SELECT COALESCE(SUM(CASE WHEN kind='storage' THEN quantity ELSE 0 END),0) storage,COALESCE(SUM(CASE WHEN kind='transfer' AND created_at>=? THEN quantity ELSE 0 END),0) transfer FROM billing_meter WHERE organization_id=?",now-30*DAY,org).first<any>();
- return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100},creditAllowance:subscription?PLANS[subscription.plan as keyof typeof PLANS]?.credits||0:0,lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness()};
+ return {wallet:{available:wallet.available/100,reserved:wallet.reserved/100,granted:wallet.granted/100},creditAllowance:subscription?PLANS[subscription.plan as keyof typeof PLANS]?.credits||0:0,lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness(),asOf:now};
 }
 export async function reserve(who:BillingIdentity,reference:string,units:number){
  if(!Number.isSafeInteger(units)||units<=0)throw new AppError('Plafond de crédits invalide.');
