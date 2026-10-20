@@ -14,7 +14,7 @@ Un dialogue plein écran commun ouvre les fichiers depuis le panneau de fichiers
 - `scripts/dev-local.mjs` : fournisseur racine, worker PDF local, chunks dynamiques et lecture correcte des variables de configuration contenant des chiffres.
 - `package.json` / `package-lock.json` : ajout exact de `pdfjs-dist@6.4.299` et commande du test de bundle.
 - `tests/file-preview.integration.mjs`, `tests/file-preview-bundle.test.mjs`, `tests/file-policy.test.mjs` : contrat de métadonnées, sécurité d’accès et garde contre l’inclusion de PDF.js dans les chunks initiaux.
-- `.github/workflows/file-preview-bundle.yml` : build et garde de bundle sur les changements concernés.
+- `.github/workflows/ci.yml` : vérification globale sur chaque pull request et push, incluant le build et la garde de bundle.
 
 ## Décisions et écarts
 

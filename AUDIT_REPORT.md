@@ -1,5 +1,34 @@
 # Audit et préparation production — Aïra
 
+## Mise à jour vérifiée — 20 octobre 2026
+
+Branche de correction : `audit/2026-10-20`, depuis `17f8ca5`. Les sections datées du 18 octobre ci-dessous constituent l'état initial ; leurs nombres de tests et leur constat de lint en échec sont historiques.
+
+Le socle local est renforcé. Cela ne valide pas les fournisseurs ni l'exploitation en production. Aucun paiement, remboursement, e-mail, appel fournisseur facturable, déploiement live ou changement DNS n'a été effectué.
+
+### Défauts corrigés et preuves
+
+- **P1 — Résultat d'une mission confondu avec sa réussite.** Une sortie du modèle ne termine plus une mission. Chaque étape attend la validation explicite des événements et ressources enregistrés, après rapprochement de son coût. Les versions, événements, droits, statut et réservation sont revérifiés dans l'écriture SQL. Les étapes incertaines ne sont jamais relancées automatiquement ; leur annulation conserve les coûts inconnus. Fichiers : `lib/durable-missions.ts`, `lib/mission-policy.mjs`, route missions et `components/runtime-controls.tsx`. **VÉRIFIÉ : 26 contrôles runtime et 3 tests de politique**, dont cinq mutations concurrentes, approbateur sans droit d'écriture et lecture inter-organisation refusée.
+- **P1 — Sauvegarde limitée par le chargement des médias en mémoire.** Archives v2 chiffrées AES-GCM, segments de 1 Mio, métadonnées paginées, vérification des empreintes et des ETag, écritures conditionnelles et restauration en flux. Compatibilité v1 conservée. **VÉRIFIÉ : 21 contrôles opérations**, dont restauration SQLite réelle et fichier de 50 Mio avec 208 objets. R2 et Resend sont simulés. Le SQL reste volontairement borné à 8 Mio/10 000 lignes pour sa restauration transactionnelle ; ce n'est pas une sauvegarde illimitée. Voir `docs/production/OPERATIONS.md`.
+- **P2 — Acteur du journal incorrect et documents financiers trop exposés.** Le journal conserve l'utilisateur réel ou l'acteur explicite de rapprochement ; une identité vide est refusée. Les avoirs sont masqués aux administrateurs d'espace non propriétaires. **VÉRIFIÉ : 23 contrôles facturation et 11 remboursements/production**, avec base réelle et fournisseur simulé.
+- **P2 — Pièces jointes silencieusement ignorées et protocole du modèle insuffisamment typé.** Une image absente ou supérieure à 5 Mio est rejetée avant appel et réservation ; un document non extrait est signalé comme indisponible. Les champs natifs du modèle, signatures et citations sont préservés par des schémas validés. **VÉRIFIÉ : 6 tests de pièces jointes, 4 de protocole et 16 d'intégration OpenRouter**, sans appel réel au modèle.
+- **P2 — Contrôles CI incomplets et lint global en échec.** La nouvelle CI couvre chaque push/PR : types, lint sans avertissement, build et découverte des suites unitaires, services, artefacts et HTTP. Le runner retire les secrets hérités et bloque les connexions externes. Les erreurs de typage et de lint ont été corrigées sans désactiver les règles ni retirer de tests. **VÉRIFIÉ localement** ; exécution GitHub à confirmer après le push.
+- **Interface incluse avec accord de l'utilisateur.** Statuts du chat pilotés par les vrais événements du flux, arrêt distinct de l'échec, conservation du texte interrompu, aperçu média et suivi d'une opération déjà approuvée sans second envoi. La résolution de `next/image` du serveur local et du test navigateur suit désormais le shim Vinext du build. **VÉRIFIÉ : 4 tests de statut et 7 scénarios React/Chromium**, desktop 1280×800 et mobile 390×844, réduction des animations, aucun débordement horizontal ni exception navigateur. Captures locales : `.tmp/agent-ui-browser/` (non versionnées).
+
+### Vérifications et limites restantes
+
+**VÉRIFIÉ :** typecheck, lint strict et build réussis ; 86 tests unitaires, 134 contrôles de services, 5 contrôles d'artefacts et 99 contrôles HTTP, plus 7 scénarios navigateur. Ces preuves utilisent des fixtures locales ; elles ne démontrent pas un parcours réel Meta/SasPay/Composio/fal.ai/Resend ni une restauration Cloudflare.
+
+**Dépendances, 20 octobre 2026 :** `npm audit --omit=dev --json` signale 5 dépendances modérées, 0 élevée et 0 critique. Une seule alerte racine, le déni de service de `sprintf-js`, remonte via `argparse → js-yaml → gray-matter → @mastra/core` (peer de `@mastra/mcp`, amené par `@composio/anthropic`). Source : [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c). Le registre npm indique `sprintf-js` 1.1.3 comme dernière version, encore concernée par l'avis. Aucun correctif publié vérifié : pas de faux override ni de migration majeure appliquée. Aïra n'importe pas Mastra et aucune occurrence de ces modules n'a été trouvée dans les fichiers JS du Worker construit ; cela réduit l'exposition observée sans prouver l'absence de tout risque. **P2 non corrigé :** suivre le correctif amont ou faire valider une évolution ciblée du provider, puis réauditer.
+
+L'audit complet, outillage de développement inclus, retourne **19 dépendances signalées : 8 élevées, 9 modérées, 2 faibles, 0 critique**. Les 8 élevées remontent à [braces, épuisement de pile](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) via le lint et les plugins Vinext ; les autres avis de développement concernent notamment les versions imbriquées d'esbuild ([serveur de développement](https://github.com/advisories/GHSA-67mh-4wv8-2f99), [lecture de fichiers Windows](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr)). L'esbuild directement utilisé par les tests est 0.28.2 ; cela ne corrige pas les copies imbriquées de l'outillage. npm propose notamment des retours majeurs vers `eslint-config-next` 14 et Vinext 0.0.15 : **non appliqués**, car ils changeraient la stack sans preuve de compatibilité. Les serveurs de test restent sur loopback. Ces avis ne sont ni corrigés ni acceptés pour une ouverture production : prévoir une mise à jour ciblée validée et un nouvel audit, sans `npm audit fix --force`.
+
+**Toujours BLOQUÉ/NON VÉRIFIÉ avant ouverture payante :** secrets serveur et tarifs fournisseurs vérifiés, comptes sandbox, parcours Meta et permissions App Review, paiements/remboursements SasPay XAF réels en test, domaine et e-mail reçu, scheduler et alerte Cloudflare, restauration sur ressources dédiées, documents légaux et marge de 75 % mesurée. Instant reste bloqué sans catalogue de prix vérifié. Un push GitHub ne constitue pas une mise en production.
+
+Commandes actuelles : `npm ci --include=dev --include=optional`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm test`. Instructions et test navigateur optionnel : `docs/testing.md`.
+
+---
+
 Date : 18 octobre 2026
 Branche : `audit/2026-10-18`
 Dépôt : `outputs/aira`
