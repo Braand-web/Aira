@@ -18,11 +18,16 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
 const now=Date.now();
 const proposal={id:'proposal-fixture',workspace_id:'fixture',kind:'proposal',title:'Visuel de test local',status:'awaiting_approval',version:1,created_at:now,updated_at:now,data:{kind:'media',rationale:'Fixture locale sans génération facturable',maxCredits:5,payload:{model:'fixture-image',input:{prompt:'Fixture'}}}};
 const media={id:'media-fixture',workspace_id:'fixture',kind:'media',title:proposal.title,status:'ready',version:1,created_at:now,updated_at:now,data:{model:'fixture-image',output:{images:[]}}};
-let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0;
+const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conversation',title:'Discussion de test locale',status:'saved',version:1,created_at:now,updated_at:now,data:{}};
+const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
+const history=[];const votes=new Map();
+let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
-  if(url.pathname==='/api/workspace'){json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:200,reserved:0},resources:[proposal],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/workspace'){json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:200,reserved:0},resources:[proposal,conversation],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/chat'&&req.method==='GET'){json(res,{messages:history.map(message=>({...message,feedback:votes.get(message.id)??null}))});return;}
+  if(url.pathname==='/api/chat'&&req.method==='PATCH'){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());feedbackCalls++;if(failFeedback){failFeedback=false;json(res,{error:'Échec local de test'},503);return;}votes.set(body.messageId,body.feedback);json(res,body);return;}
   if(url.pathname==='/api/chat'&&req.method==='DELETE'){stops++;json(res,{stopped:true});return;}
   if(url.pathname==='/api/chat'&&req.method==='POST'){
     const chunks=[];for await(const chunk of req)chunks.push(chunk);
@@ -35,7 +40,7 @@ const server=createServer(async(req,res)=>{
     timers.push(setTimeout(()=>emit('tool_start',{name:'read_meta'}),350));
     timers.push(setTimeout(()=>emit('text_delta',{text:'Résultat de test conservé.'}),650));
     if(body.text==='Coupure réseau')timers.push(setTimeout(()=>res.end(),1000));
-    else if(body.text!=='Arrêt utilisateur')timers.push(setTimeout(()=>{emit('done',{runId:'run-'+chatCalls});res.end();},1700));
+    else if(body.text!=='Arrêt utilisateur')timers.push(setTimeout(()=>{const messageId='assistant-'+chatCalls;history.push({id:'user-'+chatCalls,role:'user',content:[{type:'text',text:body.text}],attachments:[]},{id:messageId,role:'assistant',content:[{type:'text',text:'Résultat de test conservé.'}],status:'complete',sources,attachments:[]});emit('assistant_message',{messageId,runId:'run-'+chatCalls,sources});emit('done',{runId:'run-'+chatCalls});res.end();},1700));
     res.on('close',()=>timers.forEach(clearTimeout));return;
   }
   if(url.pathname==='/api/proposals/'+proposal.id){
@@ -61,14 +66,56 @@ try{
   const context=await browser.newContext({viewport:{width:1280,height:800}});
   await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
   const page=await context.newPage();lastPage=page;const pageErrors=[];page.on('pageerror',error=>{pageErrors.push(error.message);console.error('Browser error:',error.message);});
+  await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Bonjour');
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
   await page.screenshot({path:path.join(output,'desktop-writing.png'),fullPage:true});
   assert.equal(await page.locator('[data-slot=ai-status][data-state=done]').count(),0);
+  assert.equal(await page.locator('[data-slot=streaming-response][data-state=streaming]').getByRole('button').count(),0);
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
   assert.equal(chatCalls,1);checks.push('Chat: real stream states, one request, completion only after done');
+  const response=page.locator('[data-slot=streaming-response]').first();
+  await response.getByRole('button',{name:'Copier la réponse',exact:true}).click();
+  await response.getByRole('button',{name:'Réponse copiée',exact:true}).waitFor();
+  assert.deepEqual(await page.evaluate(()=>window.__copied),['Résultat de test conservé.']);
+  await page.evaluate(()=>{window.__copyFail=true;});
+  await response.getByRole('button',{name:'Réponse copiée',exact:true}).click();
+  await response.getByText('Copie impossible. Sélectionnez le texte pour le copier.',{exact:true}).waitFor();
+  assert.equal(await response.getByRole('button',{name:'Réponse copiée',exact:true}).count(),0);
+  await page.evaluate(()=>{window.__copyFail=false;});
+  checks.push('Copy confirms only successful clipboard writes and handles denied access');
+  await response.getByRole('button',{name:'2 sources',exact:true}).click();
+  const sourceLink=response.getByRole('link',{name:/Rapport de test/});
+  assert.equal(await sourceLink.getAttribute('href'),'https://example.org/report');
+  assert.equal(await sourceLink.getAttribute('rel'),'noopener noreferrer');
+  assert.equal(await response.getByRole('link').count(),1);
+  assert.ok((await response.innerText()).includes('<script>source non exécutable</script>'));
+  await response.getByRole('button',{name:'2 sources',exact:true}).press('Enter');
+  await sourceLink.waitFor({state:'hidden'});assert.equal(await sourceLink.isVisible(),false);
+  checks.push('Sources are escaped, unsafe URLs cannot link, disclosure is keyboard controlled');
+  const useful=response.getByRole('button',{name:'Réponse utile',exact:true});
+  await useful.click();await page.waitForFunction(()=>document.querySelector('[aria-label="Réponse utile"]').getAttribute('aria-pressed')==='true');
+  assert.equal(votes.get('assistant-1'),'up');
+  await useful.click();await page.waitForFunction(()=>document.querySelector('[aria-label="Réponse utile"]').getAttribute('aria-pressed')==='false');
+  assert.equal(votes.get('assistant-1'),null);
+  failFeedback=true;await useful.click();await response.getByText('Avis non enregistré. Réessayez.',{exact:true}).waitFor();
+  assert.equal(await useful.getAttribute('aria-pressed'),'false');assert.equal(votes.get('assistant-1'),null);
+  await useful.click();await page.waitForFunction(()=>document.querySelector('[aria-label="Réponse utile"]').getAttribute('aria-pressed')==='true');
+  assert.equal(feedbackCalls,4);checks.push('Votes persist by message, toggle back to null, and retain prior value on API failure');
+  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Mon brouillon');
+  await response.getByRole('button',{name:'Reprendre la demande',exact:true}).click();
+  assert.equal(await page.getByRole('textbox',{name:'Votre demande à Aïra'}).inputValue(),'Mon brouillon\n\nBonjour');assert.equal(chatCalls,1);
+  checks.push('Resume preserves draft and prepares request without executing a new model/tool call');
+  await page.reload();
+  await page.getByRole('button',{name:'Rechercher',exact:true}).click();
+  await page.getByRole('textbox',{name:'Rechercher dans votre espace'}).fill(conversation.title);
+  await page.locator('.search-results button').filter({hasText:conversation.title}).click();
+  await response.getByRole('button',{name:'Réponse utile',exact:true}).waitFor();
+  assert.equal(await response.getByRole('button',{name:'Réponse utile',exact:true}).getAttribute('aria-pressed'),'true');
+  assert.equal(await response.getByRole('button',{name:'2 sources',exact:true}).count(),1);
+  checks.push('History reload restores real completion status, persisted feedback and citations');
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Coupure réseau');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=error]').waitFor();
   assert.ok((await page.locator('.messages').innerText()).includes('Résultat de test conservé.'));checks.push('Interrupted stream keeps received text and never claims success');
@@ -97,8 +144,10 @@ try{
   await page.getByRole('complementary',{name:'Espace de travail'}).getByRole('button',{name:'Fermer l’espace de travail',exact:true}).click();
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Mobile');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-active]').waitFor();
-  assert.equal(await page.locator('.ai-status-icon svg path').first().evaluate(element=>getComputedStyle(element).animationName),'none');
+  await page.waitForFunction(()=>{const path=document.querySelector('[data-slot=ai-status][data-active] .ai-status-icon svg path');return path&&getComputedStyle(path).animationName==='none';});
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
+  assert.equal(await page.locator('.response-footer').last().evaluate(element=>getComputedStyle(element).animationName),'none');
+  assert.ok(await page.locator('.response-action').last().evaluate(element=>element.getBoundingClientRect().height>=44));
   await page.screenshot({path:path.join(output,'mobile-reduced-motion.png'),fullPage:true});checks.push('Mobile: no horizontal overflow; reduced-motion animation disabled');
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,externalProviderCalls:0},null,2));

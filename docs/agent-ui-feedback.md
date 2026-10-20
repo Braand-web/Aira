@@ -35,3 +35,5 @@ Si Playwright est fourni par un runtime externe, définir `AIRA_PLAYWRIGHT_MODUL
 5. Activer la réduction des animations et vérifier les mêmes actions sur mobile.
 
 La validation fournisseur de fal.ai ou du modèle reste distincte des tests de présentation simulés.
+
+Les actions de réponse (copie, avis persistants, reprise de demande et citations) sont décrites dans [Réponses en streaming](./streaming-response.md).
