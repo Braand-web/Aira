@@ -9,8 +9,8 @@ const xaf=(amount:number)=>amount.toLocaleString('fr-FR')+' FCFA';
 export default function Administration(){
  const [data,setData]=useState<AdminData>(),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[search,setSearch]=useState('');
  const [selected,setSelected]=useState<Refund|null>(null),[amount,setAmount]=useState(''),[preview,setPreview]=useState<Preview|null>(null),[reference,setReference]=useState(''),[evidence,setEvidence]=useState(''),[ack,setAck]=useState(false);
- const load=useCallback(async()=>{try{setData(await api('/api/admin/billing'));setError('');}catch(error){setError(message(error));}},[]);
- useEffect(()=>{let active=true;api('/api/admin/billing').then(result=>{if(active)setData(result);},error=>{if(active)setError(message(error));});return ()=>{active=false;};},[]);
+ const load=useCallback(async()=>{try{setData(await api<AdminData>('/api/admin/billing'));setError('');}catch(error){setError(message(error));}},[]);
+ useEffect(()=>{let active=true;api<AdminData>('/api/admin/billing').then(result=>{if(active)setData(result);},error=>{if(active)setError(message(error));});return ()=>{active=false;};},[]);
  const perform=async(action:()=>Promise<void>)=>{setBusy(true);setError('');setNotice('');try{await action();}catch(error){setError(message(error));}finally{setBusy(false);}};
  function selectRefund(refund:Refund){setSelected(refund);setAmount(String(refund.amount));setPreview(null);setReference('');setEvidence('');setAck(false);setError('');setNotice('');}
  return <main className="billing-page" style={{height:'100dvh'}}>

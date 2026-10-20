@@ -13,7 +13,7 @@ export async function metaGet(tenant:string,path:string,params:Record<string,str
  const url=new URL("https://graph.facebook.com/"+version+"/"+path);
  for(const [k,v] of Object.entries(params))url.searchParams.set(k,v);
  const response=await fetch(url,{headers:{Authorization:"Bearer "+await metaToken(tenant)},signal:AbortSignal.timeout(20000)});
- const data:any=await response.json();if(!response.ok)throw new AppError("Meta refuse cette lecture. Vérifiez les droits et l’état du compte.",response.status===401?412:502,"meta_error");return data;
+ const data:unknown=await response.json();if(!response.ok)throw new AppError("Meta refuse cette lecture. Vérifiez les droits et l’état du compte.",response.status===401?412:502,"meta_error");return z.record(z.unknown()).parse(data);
 }
 export async function submitFal(model:string,input:Record<string,unknown>){
  const item=falCatalog().find(m=>m.id===model);if(!item)throw new AppError("Modèle non validé dans le catalogue.",403);
@@ -22,7 +22,7 @@ export async function submitFal(model:string,input:Record<string,unknown>){
  // URLs can only be passed to fal. No arbitrary server-side URL fetch.
  for(const [k,v] of Object.entries(input)){if(k.endsWith("_url")&&typeof v==="string")safeWebURL(v);}
  const response=await fetch("https://queue.fal.run/"+model,{method:"POST",headers:{Authorization:"Key "+key,"Content-Type":"application/json"},body:JSON.stringify(input),signal:AbortSignal.timeout(25000)});
- const data:any=await response.json();if(!response.ok)throw new AppError("fal.ai n’a pas accepté la génération.",502,response.status>=500?'uncertain_result':'fal_rejected');if(!data.request_id)throw new AppError("Réponse média incertaine.",502,"uncertain_result");return data.request_id as string;
+ const data:unknown=await response.json();if(!response.ok)throw new AppError("fal.ai n’a pas accepté la génération.",502,response.status>=500?'uncertain_result':'fal_rejected');const submitted=z.object({request_id:z.string().min(1)}).safeParse(data);if(!submitted.success)throw new AppError("Réponse média incertaine.",502,"uncertain_result");return submitted.data.request_id;
 }
 export async function falResult(model:string,id:string){
  const key=config().FAL_KEY;if(!key)throw new AppError("Génération média non configurée.",503);
@@ -31,9 +31,9 @@ export async function falResult(model:string,id:string){
  const headers={Authorization:"Key "+key};
  const response=await fetch(endpoint+"/status",{headers,signal:AbortSignal.timeout(15000)});
  if(!response.ok)throw new AppError("Le fournisseur média ne répond pas.",502);
- const state:any=await response.json();if(state.status!=="COMPLETED")return {status:state.status};
+ const state=z.object({status:z.string()}).parse(await response.json());if(state.status!=="COMPLETED")return {status:state.status};
  const result=await fetch(endpoint,{headers,signal:AbortSignal.timeout(20000)});
  if(!result.ok)throw new AppError("Le résultat média est indisponible.",502);
- return {status:"COMPLETED",output:await result.json()};
+ const output:unknown=await result.json();return {status:"COMPLETED",output};
 }
 

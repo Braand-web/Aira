@@ -1,11 +1,12 @@
 import {z} from 'zod';
-import {identity,db,failure,config} from '@/lib/server';
+import {identity,db,failure} from '@/lib/server';
 import {AppError} from '@/lib/core.mjs';
 import {catalog,summary,makeQuote,checkout,orderView,reconcileOrder,requestRefund,claimFree,requireBilling} from '@/lib/billing';
 import {organizationSummary,changeOrganization,acceptInvite} from '@/lib/organizations';
 import {topupPrice,CATALOG_VERSION} from '@/lib/billing-core.mjs';
 import {invoiceHTML} from '@/lib/invoice';
 import {creditNoteHTML} from '@/lib/credit-note';
+import type {InvoiceDocument,OrderRow} from '@/lib/billing-types';
 type Context={params:Promise<{path:string[]}>};
 export async function GET(request:Request,context:Context){try{
  const {path}=await context.params,key=path[0];
@@ -15,9 +16,9 @@ export async function GET(request:Request,context:Context){try{
  if(key==='summary'){const data=await summary(who.organization);if(who.role!=='owner'){data.orders=[];data.invoices=[];data.creditNotes=[];}return Response.json(data);}
  if(key==='organization')return Response.json(await organizationSummary(who));
  if(key==='orders'&&path[1]){
-  requireBilling(who);let order=await db().prepare('SELECT * FROM billing_orders WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<any>();
+  requireBilling(who);let order=await db().prepare('SELECT * FROM billing_orders WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<OrderRow>();
   if(!order)throw new AppError('Commande introuvable.',404);
-  if(new URL(request.url).searchParams.get('verify')==='true'){await reconcileOrder(order.id);order=await db().prepare('SELECT * FROM billing_orders WHERE id=?').bind(order.id).first();}
+  if(new URL(request.url).searchParams.get('verify')==='true'){await reconcileOrder(order.id);order=await db().prepare('SELECT * FROM billing_orders WHERE id=?').bind(order.id).first<OrderRow>();}
   return Response.json(orderView(order));
  }
  if(key==='usage'){
@@ -29,8 +30,8 @@ export async function GET(request:Request,context:Context){try{
   ]);return Response.json({entries:rows.results,daily:daily.results,restricted:false,asOf:now});
  }
  if(key==='invoices'&&path[1]){
-  requireBilling(who);const row=await db().prepare('SELECT * FROM billing_invoices WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<any>();if(!row)throw new AppError('Facture introuvable.',404);
-  return new Response(invoiceHTML(row.number,JSON.parse(row.document)),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="facture-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
+  requireBilling(who);const row=await db().prepare('SELECT * FROM billing_invoices WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<{number:string;document:string}>();if(!row)throw new AppError('Facture introuvable.',404);
+  return new Response(invoiceHTML(row.number,JSON.parse(row.document) as InvoiceDocument),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="facture-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
  }
  if(key==='credit-notes'&&path[1]){
   requireBilling(who);const row=await db().prepare('SELECT number,document FROM billing_credit_notes WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<{number:string;document:string}>();if(!row)throw new AppError('Avoir introuvable.',404);

@@ -1,5 +1,6 @@
 import {escapeHTML as e} from './core.mjs';
-export function invoiceHTML(number:string,d:any){
+import type {InvoiceDocument} from './billing-types';
+export function invoiceHTML(number:string,d:InvoiceDocument){
  const tax=Math.round(d.total-d.total/(1+(d.taxBps||0)/10000)),net=d.total-tax;
  const price=(n:number)=>new Intl.NumberFormat('fr-FR').format(n)+' FCFA';
  const title=d.product.kind==='topup'?`${d.product.credits} crédits`:d.product.kind==='upgrade'?'Complément Business':`${d.product.plan==='business'?'Business':'Pro'} — ${d.product.cycle==='annual'?'12 mois':'30 jours'}`;

@@ -14,9 +14,9 @@ function statement(query,args=[]){return {bind(...v){return statement(query,v);}
 const DB={prepare:q=>statement(q),async batch(ss){sql.exec('BEGIN');try{const rows=ss.map(s=>s._run());sql.exec('COMMIT');return rows;}catch(e){sql.exec('ROLLBACK');throw e;}}};
 globalThis.__billingTest={env:{DB},headers:new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'})};
 const out=path.join(project,'.local-build','billing-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
-const modules={billing:'lib/billing.ts',server:'lib/server.ts',organizations:'lib/organizations.ts',route:'app/api/billing/[...path]/route.ts',webhook:'app/api/webhooks/saspay/route.ts',tick:'app/api/internal/billing-tick/route.ts',admin:'app/api/admin/billing/route.ts',meter:'lib/metering.ts'};
+const modules={billing:'lib/billing.ts',server:'lib/server.ts',organizations:'lib/organizations.ts',workspace:'app/api/workspace/route.ts',refunds:'lib/refunds.ts',route:'app/api/billing/[...path]/route.ts',webhook:'app/api/webhooks/saspay/route.ts',tick:'app/api/internal/billing-tick/route.ts',admin:'app/api/admin/billing/route.ts',meter:'lib/metering.ts'};
 await build({stdin:{contents:Object.entries(modules).map(([n,f])=>'export * as '+n+' from "'+path.join(project,f).replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__billingTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__billingTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
-const {billing:b,server:s,organizations:o,route,webhook,tick,admin,meter}=await import(pathToFileURL(out).href),env=globalThis.__billingTest.env;
+const {billing:b,server:s,organizations:o,workspace,refunds,route,webhook,tick,admin,meter}=await import(pathToFileURL(out).href),env=globalThis.__billingTest.env;
 let checks=0;const check=(name,fn)=>Promise.resolve().then(fn).then(()=>{checks++;console.log('PASS '+name);});
 const request=(method='GET',body,space='owner')=>new Request('https://aira.test/api/billing/summary',{method,headers:{'Content-Type':'application/json','x-aira-workspace':space},...(body?{body:JSON.stringify(body)}:{})});
 const who=await s.identity(request());
@@ -41,7 +41,7 @@ globalThis.fetch=async(url,init)=>{
 };
 let order;
 await check('Checkout uses immutable server amount; double click creates one session',async()=>{const q=await b.makeQuote(who,{kind:'topup',quantity:150});assert.equal(q.amount,7250);const key=crypto.randomUUID();order=await b.checkout(who,q.id,key,'https://aira.test');await b.checkout(who,q.id,key,'https://aira.test');assert.equal(creates,1);assert.equal((await b.summary('owner')).wallet.available,5);});
-await check('Repeated and concurrent confirmations grant purchased credits once',async()=>{await Promise.all([b.reconcileOrder(order.id),b.reconcileOrder(order.id)]);await b.reconcileOrder(order.id);assert.equal((await b.summary('owner')).wallet.available,155);assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_invoices').get().n,1);});
+await check('Repeated and concurrent confirmations grant purchased credits once and identify the system reconciler',async()=>{await Promise.all([b.reconcileOrder(order.id),b.reconcileOrder(order.id)]);await b.reconcileOrder(order.id);assert.equal((await b.summary('owner')).wallet.available,155);assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_invoices').get().n,1);const actors=sql.prepare("SELECT actor FROM audit WHERE action='billing.fulfilled' AND target=?").all(order.id);assert(actors.length>0);assert(actors.every(row=>row.actor==='system:billing-reconciliation'));});
 await check('Wrong currency cannot grant credits',async()=>{const q=await b.makeQuote(who,{kind:'topup',quantity:50});const pending=await b.checkout(who,q.id,crypto.randomUUID(),'https://aira.test');const row=sql.prepare('SELECT session_id FROM billing_orders WHERE id=?').get(pending.id);sessions.get(row.session_id).currency='USD';await assert.rejects(()=>b.reconcileOrder(pending.id));assert.equal((await b.summary('owner')).wallet.available,155);sessions.get(row.session_id).currency='XAF';await b.reconcileOrder(pending.id);});
 await check('Uncertain checkout creation is recovered without another charge request',async()=>{timeout=true;const q=await b.makeQuote(who,{kind:'topup',quantity:50});await assert.rejects(()=>b.checkout(who,q.id,crypto.randomUUID(),'https://aira.test'));const row=sql.prepare('SELECT id FROM billing_orders WHERE quote_id=?').get(q.id),before=creates;timeout=false;await b.reconcileOrder(row.id);assert.equal(creates,before);assert.equal((await b.summary('owner')).wallet.available,255);});
 let annualId;
@@ -99,6 +99,34 @@ await check('Old unresolved checkouts do not starve a later confirmed payment',a
  }
  sessions.set('fair-session',{id:'fair-session',merchant:env.SASPAY_MERCHANT_ID,metadata:{aira_order_id:'fair-25'},currency:'XAF',amount:'2500.00',transaction:'fair-transaction'});transactions.set('fair-transaction',{id:'fair-transaction',merchant:env.SASPAY_MERCHANT_ID,status:'SUCCESS',transaction_type:'PAIEMENT',flow_direction:'INBOUND',currency:'XAF',requested_amount:'2500.00',debited_amount:'2500.00',fee_charge_mode:'DEDUCTED'});
  await b.tick();assert.notEqual(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');await b.tick();assert.equal(sql.prepare("SELECT status FROM billing_orders WHERE id='fair-25'").get().status,'fulfilled');
+});
+await check('Shared workspace audit records the actual administrator, never the workspace as actor',async()=>{
+ const oldHeaders=globalThis.__billingTest.headers;
+ try{
+  sql.prepare("INSERT INTO organization_members(organization_id,user_id,role,active) VALUES ('owner','audit-admin','admin',1),('owner','audit-target','editor',1)").run();
+  sql.prepare("INSERT INTO members(id,workspace_id,user_id,role) VALUES ('audit-membership','owner','audit-admin','admin')").run();
+  globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'audit-admin','oai-authenticated-user-email':'audit-admin@test.invalid'});
+  const adminIdentity=await s.identity(request('POST',{}),'manage');
+  await o.changeOrganization(adminIdentity,{action:'revoke',userId:'audit-target'});
+  const entry=sql.prepare("SELECT actor,workspace_id FROM audit WHERE action='member.revoked' AND target='audit-target'").get();
+  assert.equal(entry.actor,'audit-admin');assert.equal(entry.workspace_id,'owner');
+  const before=sql.prepare('SELECT COUNT(*) n FROM audit').get().n;
+  await assert.rejects(()=>s.auditLog('owner','','invalid','target'),error=>error.code==='audit_actor_missing');
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM audit').get().n,before);
+ }finally{globalThis.__billingTest.headers=oldHeaders;}
+});
+await check('Workspace response keeps financial documents private from administrators',async()=>{
+ const oldHeaders=globalThis.__billingTest.headers;
+ try{
+  env.BILLING_ADMIN_IDS='fixture-finance';const finance={user:{userId:'fixture-finance'}};
+  const requested=sql.prepare("SELECT id FROM billing_refunds WHERE organization_id='owner' AND status='requested' LIMIT 1").get();assert.ok(requested);
+  const preview=await refunds.previewExternalRefund(finance,requested.id,100);
+  await refunds.confirmExternalRefund(finance,{quoteId:preview.id,amount:preview.amount,currency:preview.currency,environment:preview.environment,externalReference:'fixture-privacy-refund',evidenceNote:'Offline sandbox fixture evidence for financial document privacy.',acknowledgement:'EXTERNAL_REFUND_CONFIRMED'});
+  assert.ok((await b.summary('owner')).creditNotes.length>0);
+  globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'audit-admin','oai-authenticated-user-email':'audit-admin@test.invalid'});
+  const response=await workspace.GET(request());assert.equal(response.status,200);const data=await response.json();
+  assert.deepEqual(data.billing.orders,[]);assert.deepEqual(data.billing.invoices,[]);assert.deepEqual(data.billing.creditNotes,[]);
+ }finally{globalThis.__billingTest.headers=oldHeaders;}
 });
 console.log(`${checks} billing integration checks passed. Provider responses were simulated; no real payment or provider validation.`);sql.close();
 

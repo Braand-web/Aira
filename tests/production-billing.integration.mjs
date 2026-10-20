@@ -142,5 +142,11 @@ await check('Documented SasPay verify schema grants once; failed, abandoned, USD
  const abandoned=await pending();abandoned.session.status='CANCELLED';abandoned.session.transaction=null;await billing.reconcileOrder(abandoned.id);assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(abandoned.id).status,'cancelled');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(abandoned.id).n,0);
  const usd=await pending();usd.tx.currency='USD';usd.tx.requested_amount='4.50';usd.tx.debited_amount='4.50';await assert.rejects(()=>billing.reconcileOrder(usd.id));assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(usd.id).n,0);
  const otherMerchant=await pending();otherMerchant.tx.merchant='wrong-merchant';await assert.rejects(()=>billing.reconcileOrder(otherMerchant.id));assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(otherMerchant.id).n,0);
+ for(const mutate of [payment=>{payment.tx.merchant=17;},payment=>{payment.tx.requested_amount={value:2500};},payment=>{payment.session.transaction={id:17};}]){
+  const malformed=await pending();mutate(malformed);await assert.rejects(()=>billing.reconcileOrder(malformed.id));
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(malformed.id).n,0);
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_invoices WHERE order_id=?').get(malformed.id).n,0);
+  assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(malformed.id).status,'pending');
+ }
 });
 console.log(`${checks} production billing checks passed. No external request, payment or refund was made.`);sql.close();

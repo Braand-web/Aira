@@ -6,6 +6,7 @@ import {AppError} from "@/lib/core.mjs";
 import {startRunBudget,finishRunBudget,type RunBudget} from '@/lib/metering';
 import {FILE_POLICY,safeFileDto} from '@/lib/file-policy.mjs';
 import type {FileRecord} from '@/lib/contracts';
+import {chatAttachmentBlocks} from '@/lib/chat-attachments.mjs';
 export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
@@ -15,8 +16,8 @@ export async function POST(request:Request){
   const conversation=body.conversationId?await getResource(tenant,body.conversationId):await createResource(tenant,"conversation",body.text.slice(0,70),{},"saved");if(conversation.kind!=="conversation")throw new AppError("Discussion invalide.");conversationId=conversation.id;
   const lock=await db().prepare("UPDATE resources SET status='streaming',updated_at=? WHERE id=? AND workspace_id=? AND (status!='streaming' OR updated_at<?)").bind(Date.now(),conversationId,tenant,Date.now()-300000).run();if(!lock.meta.changes)throw new AppError("Une réponse est déjà en cours dans cette discussion.",409);
   locked=true;
-  const content:any[]=[{type:"text",text:body.text}];
-  for(const id of body.attachments){const file=await getResource(tenant,id);if(file.kind!=="file")throw new AppError("Pièce jointe invalide.");const fileRow=await db().prepare("SELECT status FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<{status:string}>();if(!fileRow||fileRow.status!=="ready")throw new AppError("Cette pièce jointe n’est pas encore disponible.",409,"file_not_ready");if(file.data.mime?.startsWith("image/")){const object=await (await import("cloudflare:workers")).env.BUCKET?.get(file.data.key);if(object&&object.size<FILE_POLICY.legacyDirectUploadBytes){const bytes=new Uint8Array(await object.arrayBuffer());let s="";for(let i=0;i<bytes.length;i+=FILE_POLICY.base64EncodingChunkBytes)s+=String.fromCharCode(...bytes.subarray(i,i+FILE_POLICY.base64EncodingChunkBytes));content.push({type:"image",source:{type:"base64",media_type:file.data.mime,data:btoa(s)}});}}else if(file.data.text)content.push({type:"text",text:"Pièce jointe non fiable : "+file.title+"\n"+file.data.text});}
+  const content:Array<Record<string,unknown>>=[{type:"text",text:body.text}];
+  for(const id of body.attachments){const file=await getResource(tenant,id);if(file.kind!=="file")throw new AppError("Pièce jointe invalide.");const fileRow=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();if(!fileRow||fileRow.status!=="ready")throw new AppError("Cette pièce jointe n’est pas encore disponible.",409,"file_not_ready");const bucket=(await import("cloudflare:workers")).env.BUCKET;content.push(...await chatAttachmentBlocks({title:file.title,data:{...file.data,mime:fileRow.detected_mime,key:fileRow.storage_key}},key=>bucket?.get(key)??Promise.resolve(null)));}
   const runId=uid(),now=Date.now();
   budget=await startRunBudget(who,runId,body.maxCredits);
   await db().batch([db().prepare("INSERT INTO messages (id,workspace_id,conversation_id,role,content,attachments,created_at) VALUES (?,?,?,'user',?,?,?)").bind(uid(),tenant,conversationId,JSON.stringify(content),JSON.stringify(body.attachments),now),db().prepare("INSERT INTO runs (id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,'streaming',?,?)").bind(runId,tenant,conversationId,now,now)]);
@@ -34,7 +35,7 @@ export async function POST(request:Request){
 }
 export async function GET(request:Request){try{
  const {tenant}=await identity(request),url=new URL(request.url),runId=url.searchParams.get("runId"),conversationId=url.searchParams.get("conversationId");
- if(runId){const run=await db().prepare("SELECT * FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first();if(!run)throw new AppError("Réponse introuvable.",404);const cursor=Math.max(0,Number(url.searchParams.get("after"))||0);const events=await db().prepare("SELECT seq,type,data FROM events WHERE run_id=? AND seq>? ORDER BY seq LIMIT 2000").bind(runId,cursor).all();return Response.json({run,events:events.results.map((r:any)=>({...r,data:JSON.parse(r.data)}))});}
+ if(runId){const run=await db().prepare("SELECT * FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first();if(!run)throw new AppError("Réponse introuvable.",404);const cursor=Math.max(0,Number(url.searchParams.get("after"))||0);const events=await db().prepare("SELECT seq,type,data FROM events WHERE run_id=? AND seq>? ORDER BY seq LIMIT 2000").bind(runId,cursor).all<{seq:number;type:string;data:string}>();return Response.json({run,events:events.results.map(r=>({...r,data:JSON.parse(r.data)}))});}
  if(!conversationId)throw new AppError("Discussion requise.");await getResource(tenant,conversationId);
  type StoredMessage={id:string;role:string;content:string;attachments:string;created_at:number};
  type MessageBlock={type:string;text?:string};
