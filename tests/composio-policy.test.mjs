@@ -113,3 +113,5 @@ test('approval serialization rejects values JSON would silently omit, coerce or 
     assert.throws(() => canonicalJSON(value));
   }
 });
+
+test('generic browser tools cannot use connector execution even with innocuous names',async()=>{const {isGenericBrowserTool}=await import('../lib/composio-policy.mjs');assert.equal(isGenericBrowserTool('browser_tool','BROWSER_TOOL_CREATE_TASK'),true);assert.equal(isGenericBrowserTool('metaads','BROWSERBASE_TOOL_CREATE_SESSION'),true);assert.equal(isGenericBrowserTool('anchor_browser','READ'),true);assert.equal(isGenericBrowserTool('metaads','METAADS_LIST_ADACCOUNTS'),false);});

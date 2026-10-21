@@ -2,6 +2,19 @@ declare namespace Cloudflare {
   interface Env {
     APP_ENV?: string;
     DB?: D1Database;
+    BROWSER?: Fetcher;
+    BROWSER_SESSIONS?: DurableObjectNamespace;
+    BROWSER_ENABLED?: string;
+    BROWSER_AUTH_VERIFIED?: string;
+    BROWSER_STAGING_VERIFIED?: string;
+    BROWSER_PRICING_VALIDATED?: string;
+    BROWSER_MARGIN_VERIFIED?: string;
+    BROWSER_OWNERSHIP_VERIFIED?: string;
+    BROWSER_PRICING_JSON?: string;
+    BROWSER_PROFILE_KEY?: string;
+    BROWSER_MAX_ACTIONS?: string;
+    BROWSER_MAX_SECONDS?: string;
+    BROWSER_HUMAN_WAIT_SECONDS?: string;
     COMPOSIO_API_KEY?: string;
     COMPOSIO_AUTH_CONFIGS_JSON?: string;
     COMPOSIO_INSTANT_ENABLED?: string;

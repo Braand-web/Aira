@@ -26,13 +26,15 @@ export async function startRunBudget(who:BillingIdentity,runId:string,credits:nu
  const rate=modelRate();const hold=await reserve(who,'chat:'+runId,Math.round(credits*100));return {who,holdId:hold.id,limit:hold.units,runId,rate};
 }
 export async function finishRunBudget(b:RunSettlementBudget){
+ const browser=await (await import('./browser')).browserUsageUnits(b.holdId);
+ if(browser.active)return;
  const run=await db().prepare('SELECT status,conversation_id,created_at FROM runs WHERE id=?').bind(b.runId).first<{status:string;conversation_id:string;created_at:number}>();
  const rows=await db().prepare('SELECT usage,status,provider,cost_xaf FROM provider_usage WHERE run_id=? AND hold_id=?').bind(b.runId,b.holdId).all<ModelCostRow>();
  const delivered=run&&await db().prepare("SELECT 1 delivered FROM messages m,json_each(m.content) block WHERE m.conversation_id=? AND m.role='assistant' AND m.created_at>=? AND json_extract(block.value,'$.type')='text' AND length(trim(COALESCE(json_extract(block.value,'$.text'),'')))>0 UNION ALL SELECT 1 FROM events WHERE run_id=? AND type='tool_result' AND json_extract(data,'$.result.id') IS NOT NULL AND json_extract(data,'$.result.kind') IS NOT NULL UNION ALL SELECT 1 FROM events WHERE run_id=? AND type='text_delta' AND length(trim(COALESCE(json_extract(data,'$.text'),'')))>0 LIMIT 1").bind(run.conversation_id,run.created_at,b.runId,b.runId).first();
- const unresolved=rows.results.some(r=>['pending','unknown','estimated'].includes(r.status));
- if(run?.status==='failed'&&!delivered&&!unresolved){await settleHold(b.holdId,0);return;}
+ const unresolved=browser.unresolved||rows.results.some(r=>['pending','unknown','estimated'].includes(r.status));
+ if(run?.status==='failed'&&!delivered&&!unresolved&&browser.units===0){await settleHold(b.holdId,0);return;}
  if(unresolved){await db().prepare("UPDATE credit_holds SET status='needs_reconciliation' WHERE id=? AND status='reserved'").bind(b.holdId).run();return;}
- let units=0;for(const row of rows.results)if(row.status==='complete'){if(!b.rate)throw new AppError('Le tarif enregistré est nécessaire au rapprochement.',409,'rate_missing');units+=requestCostUnits(row,b.rate,usageUnits);}
+ let units=browser.units;for(const row of rows.results)if(row.status==='complete'){if(!b.rate)throw new AppError('Le tarif enregistré est nécessaire au rapprochement.',409,'rate_missing');units+=requestCostUnits(row,b.rate,usageUnits);}
  await settleHold(b.holdId,units);
 }
 export async function meteredMessage(b:RunBudget,role:string,body:Record<string,unknown>,signal:AbortSignal){const request=modelRequest(body,signal);return meteredModel(b,role,request.url,request.init);}
@@ -58,12 +60,14 @@ export async function meteredModel(b:RunBudget,role:string,url:string,init:Reque
   const count=modelRecordSchema.parse(await counter.json());if(typeof count.input_tokens!=='number'||!Number.isSafeInteger(count.input_tokens)||count.input_tokens<0)throw new AppError('Estimation du contexte indisponible.',503);inputTokens=count.input_tokens;
  }
  const used=await db().prepare('SELECT usage,status,provider,cost_xaf FROM provider_usage WHERE hold_id=?').bind(b.holdId).all<ModelCostRow>();
+ const browser=await (await import('./browser')).browserUsageUnits(b.holdId);
+ if(browser.unresolved)throw new AppError('Un coût navigateur reste à rapprocher.',409,'browser_usage_unknown');
  if(used.results.some(x=>['pending','unknown'].includes(x.status)))throw new AppError('Un coût fournisseur reste à rapprocher.',409);
  const consumed=used.results.reduce((n,r)=>n+(['complete','estimated'].includes(r.status)?requestCostUnits(r,b.rate,usageUnits):0),0);
  const funding=connection.provider==='openrouter'?1+Number(b.rate.fundingFeeBps)/10000:1;
  const requestedOutputTokens=typeof body.max_tokens==='number'&&Number.isSafeInteger(body.max_tokens)&&body.max_tokens>0?body.max_tokens:4096;
  const ceilingFor=(tokens:number)=>Math.ceil(((Math.ceil(inputTokens*1.2)*Math.max(b.rate.input,b.rate.cacheWrite,b.rate.cacheWriteHour||0)+tokens*b.rate.output)/1e6*b.rate.usdXaf*funding+b.rate.overheadXaf)/4*100);
- const available=b.limit-consumed;
+ const available=b.limit-consumed-browser.units-browser.reservedUnits;
  if(ceilingFor(1)>available)throw new AppError('Le plafond accepté ne couvre pas le contexte de cette demande. Réduisez le contexte ou augmentez le plafond avant de continuer.',402,'budget_exhausted');
  let low=1,high=requestedOutputTokens;
  while(low<high){const mid=Math.ceil((low+high)/2);if(ceilingFor(mid)<=available)low=mid;else high=mid-1;}

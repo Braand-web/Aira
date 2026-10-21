@@ -18,6 +18,9 @@ const localBindingConfig = {
   main: "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
   triggers: { crons: ["*/5 * * * *"] },
+  browser: { binding: "BROWSER" },
+  durable_objects: { bindings: [{ name: "BROWSER_SESSIONS", class_name: "BrowserSession" }] },
+  migrations: [{ tag: "browser-sessions-v1", new_sqlite_classes: ["BrowserSession"] }],
   d1_databases: d1
     ? [
         {

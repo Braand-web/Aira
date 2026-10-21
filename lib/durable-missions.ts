@@ -10,6 +10,8 @@ import {modelRateSchema} from './model-protocol';
 type DurableMission={id:string;workspace_id:string;organization_id:string;actor_id:string;approved_version:number;mandate:string;status:string;cursor:number;budget_units:number;spent_units:number;reserved_units:number;expires_at:number;next_at:number;lease_token:string|null;lease_until:number};
 type DurableStep={id:string;mission_id:string;ordinal:number;status:string;run_id:string;conversation_id:string;reserved_units:number;result:string|null;error:string|null};
 export type MissionRunner=(tenant:string,conversationId:string,runId:string,emit:(type:string,data:unknown)=>Promise<void>,signal:AbortSignal,budget:RunBudget)=>Promise<void>;
+async function browserMission(who:BillingIdentity,id:string){const row=await db().prepare('SELECT user_id FROM browser_sessions WHERE id=? AND workspace_id=?').bind(id,who.tenant).first<{user_id:string}>();if(row&&row.user_id!==who.user.userId)throw new AppError('Mission privée introuvable.',404);return row;}
+async function rejectBrowserMission(who:BillingIdentity,id:string){if(await browserMission(who,id))throw new AppError('Gérez cette mission dans le panneau Navigateur privé.',409,'browser_use_private_panel');}
 const q=(sql:string,...args:(string|number|null)[])=>db().prepare(sql).bind(...args);
 const mandateSchema=z.object({version:z.number().int().positive(),approved:z.literal(true),expiresAt:z.number().int(),maxCredits:z.number().int().min(1).max(1000),stepCredits:z.number().int().min(1).max(1000)});
 const planSchema=missionSchema.extend({maxCredits:z.number().int().min(1).max(1000),mode:z.literal('autonomous')});
@@ -48,6 +50,7 @@ function stepReviewPredicate(who:BillingIdentity,mission:DurableMission,step:Dur
  return {sql,args};
 }
 export async function missionState(who:BillingIdentity,id:string){
+ if(await browserMission(who,id)){const browser=await (await import('./browser')).browserService.get(who,id);const hold=await q('SELECT h.status,h.actual,h.units FROM credit_holds h JOIN browser_sessions b ON b.hold_id=h.id WHERE b.id=?',id).first<{status:string;actual:number;units:number}>();return {id,status:browser.status,cursor:browser.actionsUsed,budget_units:Math.round(browser.maxCredits*100),spent_units:hold?.status==='settled'?hold.actual:0,reserved_units:hold&&hold.status!=='settled'?hold.units:0,expires_at:browser.expiresAt,steps:[],execution:'browser',browserSessionId:id};}
  await getResource(who.tenant,id);const mission=await q('SELECT * FROM durable_missions WHERE id=? AND workspace_id=?',id,who.tenant).first<DurableMission>();if(!mission)return null;
  const steps=await q('SELECT * FROM durable_steps WHERE mission_id=? ORDER BY ordinal',id).all<DurableStep>();
  const cost=await q("SELECT COALESCE(SUM(CASE WHEN h.status='settled' THEN h.actual ELSE 0 END),0) spent_units,COALESCE(SUM(CASE WHEN h.status!='settled' THEN h.units ELSE 0 END),0) reserved_units FROM durable_steps s JOIN credit_holds h ON h.reference='chat:'||s.run_id WHERE s.mission_id=?",id).first<{spent_units:number;reserved_units:number}>();
@@ -57,6 +60,7 @@ async function unvalidatedStep(id:string){return q("SELECT id FROM durable_steps
 async function refreshMissionCost(id:string){await q("UPDATE durable_missions SET spent_units=COALESCE((SELECT SUM(h.actual) FROM durable_steps s JOIN credit_holds h ON h.reference='chat:'||s.run_id WHERE s.mission_id=durable_missions.id AND h.status='settled'),0),reserved_units=COALESCE((SELECT SUM(h.units) FROM durable_steps s JOIN credit_holds h ON h.reference='chat:'||s.run_id WHERE s.mission_id=durable_missions.id AND h.status!='settled'),0) WHERE id=?",id).run();}
 
 export async function reviewMissionStep(who:BillingIdentity,id:string,action:'confirm-step'|'reconcile-step',input:unknown){
+ await rejectBrowserMission(who,id);
  await authorize(who.tenant,who.user.userId,'approve');const p=stepDecisionSchema.parse(input),resource=await getResource(who.tenant,id);
  const mission=await q('SELECT * FROM durable_missions WHERE id=? AND workspace_id=? AND organization_id=?',id,who.tenant,who.organization).first<DurableMission>();
  if(!mission)throw new AppError('Mission introuvable.',404);
@@ -97,6 +101,7 @@ export async function reviewMissionStep(who:BillingIdentity,id:string,action:'co
  await audit(who,'mission.step_validated',id);return missionState(who,id);
 }
 export async function activateMission(who:BillingIdentity,id:string,input:unknown){
+ await rejectBrowserMission(who,id);
  await authorize(who.tenant,who.user.userId,'approve');if(!durableReadiness().enabled)throw new AppError('Le planificateur autonome n’est pas encore validé.',503,'autonomy_not_ready');
  const p=mandateSchema.parse(input),resource=await getResource(who.tenant,id),plan=planSchema.parse(resource.data),now=Date.now();
  if(p.maxCredits!==plan.maxCredits||p.stepCredits*plan.steps.length>p.maxCredits)throw new AppError('Le plafond par étape doit respecter le budget total approuvé.',400);
@@ -113,6 +118,7 @@ export async function activateMission(who:BillingIdentity,id:string,input:unknow
  await audit(who,'mission.activated',id);return missionState(who,id);
 }
 export async function controlMission(who:BillingIdentity,id:string,action:'suspend'|'cancel'|'resume'){
+ await rejectBrowserMission(who,id);
  await authorize(who.tenant,who.user.userId,action==='resume'?'approve':'write');const mission=await q('SELECT * FROM durable_missions WHERE id=? AND workspace_id=?',id,who.tenant).first<DurableMission>();if(!mission)throw new AppError('Mission introuvable.',404);
  if(['completed','cancelled'].includes(mission.status))throw new AppError('Cette mission est terminée.',409);
  if(action==='resume'){
@@ -137,7 +143,7 @@ export async function runDurableTick(runner?:MissionRunner){
  // An expired lease after an external call is NOT proof of failure. Never replay that step blindly.
  const stale=await q("SELECT * FROM durable_missions WHERE status='running' AND lease_until<=?",now).all<DurableMission>();
  for(const m of stale.results){await q("UPDATE durable_steps SET status='uncertain',error='worker_interrupted' WHERE mission_id=? AND status='running'",m.id).run();await q("UPDATE runs SET status='failed',error='worker_interrupted',updated_at=? WHERE id IN (SELECT run_id FROM durable_steps WHERE mission_id=? AND status='uncertain') AND status='streaming'",now,m.id).run();await stopMission(m,'waiting_user','uncertain');waiting++;}
- const rows=await q("SELECT * FROM durable_missions WHERE status='queued' AND next_at<=? AND lease_until<=? ORDER BY next_at,id LIMIT 3",now,now).all<DurableMission>();
+ const rows=await q("SELECT * FROM durable_missions WHERE id NOT IN (SELECT id FROM browser_sessions) AND status='queued' AND next_at<=? AND lease_until<=? ORDER BY next_at,id LIMIT 3",now,now).all<DurableMission>();
  for(const m of rows.results){
   const token=uid(),lock=await q("UPDATE durable_missions SET status='running',lease_token=?,lease_until=?,updated_at=? WHERE id=? AND status='queued' AND lease_until<=?",token,now+240000,now,m.id,now).run();if(!lock.meta.changes)continue;
   try{

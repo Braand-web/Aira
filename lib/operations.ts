@@ -2,6 +2,8 @@ import {config, db, uid, identity} from './server';
 import {AppError} from './core.mjs';
 import {enqueueOperationalNotification, dispatchOperationalNotifications, emailReadiness} from './notifications';
 import {createEncryptedBackup, backupReadiness} from './backups';
+import {browserCleanup} from './browser';
+import {browserRPCCleanup} from './browser-runtime';
 
 const encoder = new TextEncoder();
 const reference = (value: string) => /^[a-zA-Z0-9:_-]{1,180}$/.test(value);
@@ -77,10 +79,11 @@ export async function scanOperationalIncidents(now = Date.now()) {
 export async function runOperationsTick(now = Date.now()) {
   const slot = Math.floor(now / 300000);
   const monitor = await runTrackedJob('monitor','monitor:' + slot,() => scanOperationalIncidents(now),now);
+  const browser = await runTrackedJob('browser_cleanup','browser_cleanup:' + slot,async() => {await browserCleanup(now);await browserRPCCleanup(now);},now);
   let backup: {id?:string;status:string;replayed?:boolean} = {status:'disabled'};
   if (config().BACKUP_ENABLED === 'true') backup = await runTrackedJob('backup','backup:' + new Date(now).toISOString().slice(0,10).replaceAll('-',''),() => createEncryptedBackup(now),now);
   const notifications = await dispatchOperationalNotifications(10,now);
-  return {monitor,backup,notifications};
+  return {monitor,backup,notifications,browser};
 }
 export async function operationsSummary() {
   const [jobs,alerts,notifications,backups] = await Promise.all([

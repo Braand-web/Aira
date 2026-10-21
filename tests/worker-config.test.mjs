@@ -7,6 +7,12 @@ test("production Worker manifest retains the scheduled handler trigger and data 
   assert.deepEqual(manifest.triggers?.crons, ["*/5 * * * *"]);
   assert.ok(manifest.d1_databases?.some(binding => binding.binding === "DB"));
   assert.ok(manifest.r2_buckets?.some(binding => binding.binding === "BUCKET"));
+  assert.equal(manifest.browser?.binding, "BROWSER");
+  assert.ok(manifest.durable_objects?.bindings?.some(binding => binding.name === "BROWSER_SESSIONS" && binding.class_name === "BrowserSession"));
+  assert.ok(manifest.migrations?.some(migration => migration.new_sqlite_classes?.includes("BrowserSession")));
   const worker = await readFile("build/sites-worker.ts", "utf8");
   assert.match(worker, /scheduled\s*\(/u);
+  assert.match(worker, /export\s*\{BrowserSession\}/u);
+  const builtWorker = await readFile("dist/server/" + manifest.main, "utf8");
+  assert.match(builtWorker, /\bas BrowserSession\b/u);
 });

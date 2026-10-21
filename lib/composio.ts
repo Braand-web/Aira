@@ -6,7 +6,7 @@ import {AppError} from './core.mjs';
 import {currentSubscription, reserve, settleHold, type BillingIdentity} from './billing';
 import {modelRate} from './metering';
 import {instantExplicitlyEnabled} from './execution-policy.mjs';
-import {safeComposioUserId,isReadOnlyTool,parseInstantCatalog,instantPlanLimits,parseActualInstantCharge,canonicalJSON} from './composio-policy.mjs';
+import {safeComposioUserId,isReadOnlyTool,parseInstantCatalog,instantPlanLimits,parseActualInstantCharge,canonicalJSON,isGenericBrowserTool} from './composio-policy.mjs';
 
 const toolkitSchema=z.string().regex(/^[a-z][a-z0-9_]{0,99}$/);
 const slugSchema=z.string().regex(/^[A-Z][A-Z0-9_]{0,199}$/).refine(s=>!s.startsWith('COMPOSIO_'));
@@ -120,6 +120,7 @@ export async function connectorAgentTools(who:BillingIdentity,conversationId:str
  return [...tools.filter(t=>SAFE_META.has(t.name)),...connectorActionTools];
 }
 async function metadata(sdk:Client,call:ConnectorCall){
+ if(isGenericBrowserTool(call.toolkit,call.toolSlug))throw new AppError('Utilisez le navigateur privé Aïra pour cette action.',403,'browser_adapter_required');
  const tools=await sdk.tools.getRawComposioTools({tools:[call.toolSlug]});
  const tool=tools.find(t=>t.slug===call.toolSlug&&t.toolkit?.slug===call.toolkit);
  if(!tool)throw new AppError('Outil introuvable. Recherchez son schéma avant de continuer.',404,'connector_tool_unknown');
