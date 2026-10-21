@@ -8,7 +8,7 @@ Navigation déployée 240 px, rail réduit 72 px ; conversation centrée sur 768
 
 Bulles agent #1f1f20 et utilisateur #0074e8, texte 16/22. Compositeur capsule de 58 px au minimum : hauteur automatique jusqu’à 192 px pour le texte puis défilement interne ; sa largeur reste fixe. Les actions passent sur une seconde ligne sur mobile.
 
-Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px, contenu indépendant défilant. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
+Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Neuf rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations et aide. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
 
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 

@@ -22,15 +22,23 @@ const media={id:'media-fixture',workspace_id:'fixture',kind:'media',title:propos
 const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conversation',title:'Discussion de test locale',status:'saved',version:1,created_at:now,updated_at:now,data:{}};
 const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
 const history=[];const votes=new Map();
+const workspaceResources=[proposal,conversation],workspaceMutations=[];
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
+let checkoutCalls=0,billingEnabled=false;
+const quoteRequests=[],orderVerificationRequests=[];
+const organizationMutations=[];
 const catalogRequests=[],authorizationRequests=[],revocationRequests=[];
 const connectedAccounts=new Set(['gmail','slack']);
 const connectorFixtures=[{slug:'metaads',name:'Meta Ads',description:'Catalogue de test local',connected:false,status:'disconnected'},{slug:'gmail',name:'Gmail',description:'Compte de test isolé',connected:true,status:'active',accountId:'fixture-gmail'},{slug:'slack',name:'Slack',description:'Deuxième page de connexions de test',connected:true,status:'active',accountId:'fixture-slack'}];
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
-  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:[proposal,conversation],catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/workspace'&&req.method==='POST'){
+    const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
+    const created={id:'fixture-imported-skill',workspace_id:'fixture',kind:body.kind,title:body.title,status:'candidate',version:1,created_at:now,updated_at:now,data:body.data};workspaceResources.push(created);json(res,created);return;
+  }
+  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
   if(url.pathname==='/api/connectors/toolkits'){
     catalogRequests.push({connected:url.searchParams.get('connected'),search:url.searchParams.get('search'),cursor:url.searchParams.get('cursor')});
     const query=(url.searchParams.get('search')||'').toLowerCase(),connected=url.searchParams.get('connected')==='true',cursor=url.searchParams.get('cursor');
@@ -47,10 +55,24 @@ const server=createServer(async(req,res)=>{
     const accountId=decodeURIComponent(url.pathname.split('/').at(-1));revocationRequests.push(accountId);const item=connectorFixtures.find(item=>item.accountId===accountId);if(item)connectedAccounts.delete(item.slug);
     json(res,{disconnected:true});return;
   }
-  if(url.pathname==='/api/billing/catalog'){json(res,{plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:{enabled:false},free:{credits:0,days:7,enabled:false}});return;}
+  if(url.pathname==='/api/billing/catalog'){json(res,{plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:{enabled:billingEnabled},free:{credits:0,days:7,enabled:false}});return;}
   if(url.pathname==='/api/billing/summary'){summaryReads++;json(res,{wallet:{available:walletAvailable,reserved:12},creditAllowance:300,subscription:null,meters:{storage:10*1024*1024,transfer:20*1024*1024},lots:[],orders:[],invoices:[]});return;}
-  if(url.pathname==='/api/billing/organization'){json(res,{current:'fixture',organization:'fixture',role:'owner',rights:{plan:'pro',limits:PLANS.pro},spaces:[{id:'fixture',name:'Espace de test'}],members:[],limits:[],pendingInvites:0,activeMemberCount:1,viewer:{userId:'fixture-user',email:'fixture@example.test',displayName:'Compte de test'}});return;}
+  if(url.pathname==='/api/billing/organization'){
+    if(req.method==='POST'){const chunks=[];for await(const chunk of req)chunks.push(chunk);organizationMutations.push(JSON.parse(Buffer.concat(chunks).toString()));json(res,{error:'Le test interdit les mutations d’équipe'},403);return;}
+    json(res,{current:'fixture',organization:'fixture-org',role:'owner',rights:{plan:'business',limits:PLANS.business},spaces:[{id:'fixture',name:'Espace de test',organization_id:'fixture-org',organization_name:'Organisation de test'}],members:[{user_id:'fixture-user',role:'owner',active:1},{user_id:'fixture-reader',role:'reader',active:1,name:'Lecteur de test'}],limits:[],pendingInvites:0,activeMemberCount:2,viewer:{userId:'fixture-user',email:'fixture@example.test',displayName:'Compte de test'}});return;
+  }
   if(url.pathname==='/api/billing/usage'){json(res,{entries:[],daily:[],asOf:now});return;}
+  if(url.pathname==='/api/billing/price'){json(res,{amount:topupPrice(Number(url.searchParams.get('quantity')))});return;}
+  if(url.pathname==='/api/billing/quotes'&&req.method==='POST'){
+    const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());quoteRequests.push(body);
+    const credits=body.kind==='topup'?body.quantity:PLANS[body.plan||'pro'].credits;
+    json(res,{id:'fixture-quote',...body,amount:body.kind==='topup'?topupPrice(credits):PLANS[body.plan||'pro'][body.cycle==='annual'?'annualPrice':'periodPrice'],credits,units:credits*100,expiresAt:Date.now()+300000,eligible:false});return;
+  }
+  if(url.pathname==='/api/billing/checkout'){checkoutCalls++;json(res,{error:'Le test interdit toute tentative de paiement'},403);return;}
+  if(url.pathname.startsWith('/api/billing/orders/')&&req.method==='GET'){
+    orderVerificationRequests.push({id:decodeURIComponent(url.pathname.split('/').at(-1)),verify:url.searchParams.get('verify')});
+    json(res,{id:'fixture-return-order',amount:2500,product:JSON.stringify({kind:'topup',quantity:250}),created_at:now,status:'pending'});return;
+  }
   if(url.pathname==='/api/chat'&&req.method==='GET'){json(res,{messages:history.map(message=>({...message,feedback:votes.get(message.id)??null}))});return;}
   if(url.pathname==='/api/chat'&&req.method==='PATCH'){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());feedbackCalls++;if(failFeedback){failFeedback=false;json(res,{error:'Échec local de test'},503);return;}votes.set(body.messageId,body.feedback);json(res,body);return;}
   if(url.pathname==='/api/chat'&&req.method==='DELETE'){stops++;json(res,{stopped:true});return;}
@@ -91,12 +113,20 @@ try{
   const context=await browser.newContext({viewport:{width:1280,height:800}});
   await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
   const page=await context.newPage();lastPage=page;const pageErrors=[];page.on('pageerror',error=>{pageErrors.push(error.message);console.error('Browser error:',error.message);});
+  const capture=async options=>{
+    await page.locator('dialog[open]').evaluateAll(async dialogs=>{
+      await Promise.all(dialogs.flatMap(dialog=>dialog.getAnimations().map(animation=>animation.finished.catch(()=>{}))));
+    });
+    await page.screenshot(options);
+  };
   await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).waitFor();
   const composer=page.getByRole('textbox',{name:'Votre demande à Aïra'});
   const initial=await page.locator('.composer').boundingBox();
   assert.equal(await page.locator('body').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(24, 24, 25)');
   assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),240);
+  assert.equal(await page.locator('.sidebar').getByRole('button',{name:'Intégrations',exact:true}).count(),0);
+  assert.equal(await page.locator('.sidebar').getByRole('button',{name:'Compétences',exact:true}).count(),0);
   await composer.fill('Une ligne\nUne deuxième ligne\nUne troisième ligne');
   await page.waitForFunction(()=>document.querySelector('.composer textarea').clientHeight>=72);
   const grown=await page.locator('.composer').boundingBox();assert.ok(grown.height>initial.height);assert.equal(Math.round(grown.width),Math.round(initial.width));
@@ -104,38 +134,46 @@ try{
   await page.waitForFunction(()=>{const field=document.querySelector('.composer textarea');return field.clientHeight===192&&field.scrollHeight>field.clientHeight&&getComputedStyle(field).overflowY==='auto';});
   assert.equal(Math.round((await page.locator('.composer').boundingBox()).width),Math.round(initial.width));
   await composer.fill('');await page.getByRole('heading',{name:'Faites grandir vos idées.'}).click();
-  await page.screenshot({path:path.join(output,'design-home-desktop.png'),fullPage:true});
+  await capture({path:path.join(output,'design-home-desktop.png'),fullPage:true});
   const assertAccountMenuVisible=async()=>{const menu=page.getByRole('menu',{name:'Menu du compte',exact:true});await menu.waitFor();await page.waitForFunction(()=>{const menu=document.querySelector('[role=menu][aria-label="Menu du compte"]');return menu&&getComputedStyle(menu).opacity==='1';});const bounds=await menu.boundingBox(),viewport=page.viewportSize();assert.ok(bounds.x>=8,'Account menu must stay inside the left viewport edge');assert.ok(bounds.y>=8,'Account menu must stay inside the top viewport edge');assert.ok(bounds.x+bounds.width<=viewport.width-8,'Account menu must stay inside the right viewport edge');assert.ok(bounds.y+bounds.height<=viewport.height-8,'Account menu must stay inside the bottom viewport edge');return menu;};
   await page.getByRole('button',{name:'Replier la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===72);assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),72);
   await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.locator('.account-trigger').click();
   await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();
   await composer.fill('Brouillon conservé pendant les paramètres');
-  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-desktop.png'),fullPage:true});await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
+  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await capture({path:path.join(output,'design-account-menu-desktop.png'),fullPage:true});await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();
   const settings=page.getByRole('dialog',{name:'Paramètres',exact:true});await settings.waitFor();
   assert.equal(await settings.locator('.settings-shell').evaluate(element=>getComputedStyle(element).gridTemplateColumns),'224px 656px');
+  for(const label of ['Général','Connecteurs','Compétences','Portefeuille','Facturation','Équipe et budgets','Stockage','Autorisations','Aide et raccourcis'])assert.equal(await settings.locator('.settings-navigation').getByRole('button',{name:label,exact:true}).count(),1);
   await settings.getByRole('heading',{name:'Général',exact:true}).waitFor();
   await settings.getByText('fixture@example.test',{exact:true}).waitFor();
   await settings.getByText('Compte de test',{exact:true}).waitFor();
   await settings.getByText('Espace de test',{exact:true}).waitFor();
   await settings.getByText('200 crédits',{exact:true}).waitFor();
   await settings.getByText('12 réservés',{exact:true}).waitFor();
-  assert.match(await settings.locator('.settings-storage').innerText(),/^10 Mo sur /);
-  await page.screenshot({path:path.join(output,'design-settings-general-desktop.png'),fullPage:true});
+  await capture({path:path.join(output,'design-settings-general-desktop.png'),fullPage:true});
   await settings.locator('.settings-navigation').getByRole('button',{name:'Aide et raccourcis',exact:true}).click();
   await settings.getByRole('heading',{name:'Raccourcis clavier',exact:true}).waitFor();
   await settings.locator('.settings-navigation').getByRole('button',{name:'Portefeuille',exact:true}).click();
   await settings.getByText('300 crédits',{exact:true}).waitFor();
   await settings.getByText('12 crédits',{exact:true}).waitFor();
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Stockage',exact:true}).click();await settings.getByRole('heading',{name:'Utilisation',exact:true}).waitFor();
+  assert.match(await settings.locator('.settings-storage').innerText(),/^10 Mo sur /);
+  assert.equal(await settings.getByRole('progressbar',{name:'Stockage utilisé',exact:true}).getAttribute('aria-valuenow'),String(10*1024*1024));
+  assert.equal(await settings.getByRole('progressbar',{name:'Stockage utilisé',exact:true}).getAttribute('aria-valuemax'),String(PLANS.business.storage));
+  assert.match(await settings.locator('.settings-content').innerText(),/20 Mo sur /);
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Autorisations',exact:true}).click();await settings.getByText('Propriétaire',{exact:true}).waitFor();await settings.getByText('Business',{exact:true}).waitFor();
+  assert.equal(await settings.locator('.settings-content').getByRole('switch').count(),0,'Authorization policies must not expose fake permission switches');
+  checks.push('Compact sidebar moves all nine management sections into settings with real storage and role values');
   await settings.locator('.settings-navigation').getByRole('button',{name:'Connecteurs',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
   assert.equal(await settings.getByRole('searchbox',{name:'Rechercher une application',exact:true}).evaluate(element=>getComputedStyle(element).backgroundColor),'rgba(0, 0, 0, 0)');
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
-  await page.screenshot({path:path.join(output,'design-settings-desktop.png'),fullPage:true});
+  await capture({path:path.join(output,'design-settings-desktop.png'),fullPage:true});
   assert.equal(await settings.getByRole('button',{name:'Disponible',exact:true}).getAttribute('aria-pressed'),'true');
   const metaTrigger=settings.getByRole('button',{name:'Découvrir Meta Ads',exact:true});
   await metaTrigger.click();const metaDetail=page.getByRole('dialog',{name:'Meta Ads',exact:true});await metaDetail.waitFor();
   assert.equal(authorizationRequests.length,0,'Opening a connector must not request authorization');
   assert.equal(revocationRequests.length,0);
-  await page.screenshot({path:path.join(output,'design-connector-detail-desktop.png'),fullPage:true});
+  await capture({path:path.join(output,'design-connector-detail-desktop.png'),fullPage:true});
   await page.keyboard.press('Escape');await metaDetail.waitFor({state:'hidden'});assert.equal(await settings.isVisible(),true);
   assert.equal(await metaTrigger.evaluate(element=>element===document.activeElement),true,'Closing a connector returns focus to its trigger');
   await metaTrigger.click();await metaDetail.waitFor();
@@ -197,36 +235,88 @@ try{
   await reloadedWorkspace;assert.ok(workspaceReads>workspaceReadsBeforeSwitch);assert.equal(new URL(page.url()).searchParams.get('view'),'analytics');
   assert.deepEqual({chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length},mutationsBeforeSwitch);
   checks.push('A workspace change in another tab reloads its snapshot without running model, generation or connector mutations');
-  await page.goto(origin+'/?view=knowledge');await page.getByRole('heading',{name:'Marketplace des compétences',exact:true}).waitFor();
-  assert.equal(await page.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
-  await page.screenshot({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
-  await page.goto(origin+'/?view=billing');await page.locator('.billing-loading').waitFor({state:'hidden'});await page.getByRole('button',{name:'Actualiser la facturation'}).waitFor();
-  await page.locator('.billing-page svg').first().waitFor();
-  await page.screenshot({path:path.join(output,'design-billing-desktop.png'),fullPage:true});
+  await page.goto(origin+'/?view=knowledge');await settings.waitFor();await settings.getByRole('heading',{name:'Compétences',exact:true}).waitFor();
+  assert.equal(await settings.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
+  await capture({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
+  const skillChooserPromise=page.waitForEvent('filechooser');await settings.getByRole('button',{name:'Importer une compétence',exact:true}).click();const skillChooser=await skillChooserPromise;
+  await skillChooser.setFiles({name:'methode-test-locale.md',mimeType:'text/markdown',buffer:Buffer.from('# Méthode de test locale\nUne méthode strictement fictive.\n## Étapes\n- Lire le contexte\n## Vérifications\n- Demander les preuves')});
+  const importedSkill=settings.locator('.skill-card').filter({has:page.getByRole('heading',{name:'Méthode de test locale',exact:true})});await importedSkill.waitFor();
+  assert.equal(workspaceMutations.length,1);assert.equal(workspaceMutations[0].kind,'skill');
+  await importedSkill.getByRole('button',{name:'Utiliser',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
+  assert.match(await composer.inputValue(),/Méthode de test locale/);assert.match(await composer.inputValue(),/Lire le contexte/);assert.equal(chatCalls,0,'Using a skill prepares a draft without executing the agent');await composer.fill('');
+  checks.push('Skills stay available in settings: import stores a private method and Use prepares the chat without execution');
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:/Crédits et facturation/}).click();await settings.waitFor();
+  await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();await settings.locator('.billing-loading').waitFor({state:'hidden'});await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).waitFor();
+  const billingNavigation=settings.getByRole('navigation',{name:'Rubriques de facturation',exact:true});
+  const embeddedBilling=settings.getByRole('region',{name:'Forfaits et crédits',exact:true});await embeddedBilling.waitFor();
+  assert.deepEqual(await billingNavigation.getByRole('button').allTextContents(),['Forfait','Recharger','Paiements']);
+  assert.equal(await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).getAttribute('aria-current'),'page');
+  assert.equal(await settings.locator('.billing-heading h1').count(),0,'Embedded billing must not render the central-page hero');
+  await billingNavigation.getByRole('button',{name:'Forfait',exact:true}).click();await settings.getByRole('button',{name:'Choisir Pro',exact:true}).waitFor();
+  assert.equal(await embeddedBilling.locator('svg circle[cx="200"][cy="200"][r="150"]').count(),0,'Embedded plan comparison omits the large credits dial');
+  assert.equal(quoteRequests.length,0);assert.equal(checkoutCalls,0);
+  assert.equal(await settings.getByRole('button',{name:'Choisir Pro',exact:true}).isDisabled(),true,'Unconfigured payment providers must keep plan selection disabled');
+  // Enable only the loopback fixture to exercise quote creation. Checkout remains forbidden.
+  billingEnabled=true;await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();
+  await settings.getByRole('button',{name:'Choisir Pro',exact:true}).click();await settings.getByRole('heading',{name:'Votre récapitulatif',exact:true}).waitFor();
+  assert.deepEqual(quoteRequests,[{kind:'subscription',plan:'pro',cycle:'period'}]);assert.equal(checkoutCalls,0,'A quote must never open checkout before an explicit payment confirmation');
+  assert.equal(await settings.getByRole('button',{name:'Continuer vers SasPay',exact:true}).isDisabled(),true,'The launch gate stays enforced in embedded billing');
+  billingEnabled=false;await settings.getByRole('button',{name:'Revenir',exact:true}).click();await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).click();await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();await settings.getByText('Encaissements fermés',{exact:true}).waitFor();
+  await capture({path:path.join(output,'design-billing-desktop.png'),fullPage:true});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Changer d’espace',exact:true}).click();await settings.waitFor();await settings.getByRole('heading',{name:'Équipe et budgets',exact:true}).waitFor();
+  await settings.getByRole('heading',{name:'Membres de l’organisation',exact:true}).waitFor();await settings.getByText('Lecteur de test',{exact:true}).waitFor();await settings.getByText('Propriétaire',{exact:true}).waitFor();
+  assert.equal(await settings.getByRole('button',{name:'Créer l’invitation',exact:true}).isDisabled(),true);assert.equal(organizationMutations.length,0);
+  await capture({path:path.join(output,'design-settings-team-desktop.png'),fullPage:true});
+  await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
+  checks.push('The account workspace action opens team settings with actual members and roles without inviting or changing budgets');
+  for(const legacy of ['/?view=billing','/pricing']){
+    await page.goto(origin+legacy);await settings.waitFor();await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();
+    assert.equal(await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).getAttribute('aria-current'),'page');
+    assert.equal(await page.locator('.view-content .billing-page').count(),0);assert.equal(checkoutCalls,0);
+    await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
+  }
+  const beforeReturn={quotes:quoteRequests.length,checkout:checkoutCalls,authorizations:authorizationRequests.length,revocations:revocationRequests.length};
+  await page.goto(origin+'/?billingOrder=fixture-return-order');await settings.waitFor();await settings.getByText('Paiement enregistré : Paiement attendu.',{exact:true}).waitFor();
+  assert.ok(orderVerificationRequests.some(request=>request.id==='fixture-return-order'&&request.verify==='true'));
+  assert.deepEqual({quotes:quoteRequests.length,checkout:checkoutCalls,authorizations:authorizationRequests.length,revocations:revocationRequests.length},beforeReturn);
+  checks.push('Billing lives inside settings; legacy URLs and payment returns open the dialog and only verify the existing order');
+  checks.push('Embedded billing preserves quote and launch guards; no checkout or payment is triggered by navigation');
   await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+  for(const legacy of ['/?view=billing','/pricing']){
+    await page.goto(origin+legacy);await settings.waitFor();await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();
+    const activeBillingTab=settings.locator('.settings-navigation').getByRole('button',{name:'Facturation',exact:true});
+    await page.waitForFunction(()=>document.activeElement?.matches('.settings-navigation button[aria-pressed="true"]')&&document.activeElement.textContent.trim()==='Facturation');
+    assert.equal(await activeBillingTab.evaluate(element=>element===document.activeElement),true);
+    const tabBounds=await activeBillingTab.boundingBox(),navBounds=await settings.locator('.settings-navigation').boundingBox();
+    assert.ok(tabBounds.x>=navBounds.x&&tabBounds.x+tabBounds.width<=navBounds.x+navBounds.width,'The active billing tab must remain fully visible in the mobile navigation scrollport');
+    assert.ok(tabBounds.y>=navBounds.y&&tabBounds.y+tabBounds.height<=navBounds.y+navBounds.height);
+  }
+  checks.push('Mobile billing deep links focus the active section and reveal it within the navigation scrollport');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
-  assert.equal(await page.getByRole('button',{name:'Actualiser la facturation'}).evaluate(element=>getComputedStyle(element).fontSize),'0px');
-  const mobileRefresh=await page.getByRole('button',{name:'Actualiser la facturation'}).boundingBox();assert.ok(mobileRefresh.x+mobileRefresh.width<=390);
-  await page.screenshot({path:path.join(output,'design-billing-mobile.png'),fullPage:true});
+  const mobileRefresh=await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).boundingBox();assert.ok(mobileRefresh.x+mobileRefresh.width<=390);
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await capture({path:path.join(output,'design-billing-mobile.png'),fullPage:true});
   await page.goto(origin);await composer.waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
-  await page.screenshot({path:path.join(output,'design-home-mobile.png'),fullPage:true});
+  await capture({path:path.join(output,'design-home-mobile.png'),fullPage:true});
   await page.getByRole('button',{name:'Ouvrir la navigation',exact:true}).click();await page.locator('.sidebar.mobile-open').waitFor();
-  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await page.screenshot({path:path.join(output,'design-account-menu-mobile.png'),fullPage:true});await page.locator('.account-trigger').click();
+  await page.locator('.account-trigger').click();await assertAccountMenuVisible();await capture({path:path.join(output,'design-account-menu-mobile.png'),fullPage:true});await page.locator('.account-trigger').click();
   checks.push('Account menu remains fully visible with expanded, collapsed and mobile navigation');
-  await page.getByRole('button',{name:'Intégrations',exact:true}).click();await settings.waitFor();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();await settings.waitFor();
+  await settings.locator('.settings-navigation').getByRole('button',{name:'Connecteurs',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
   assert.equal(await settings.locator('.settings-navigation').evaluate(element=>getComputedStyle(element).flexDirection),'row');
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
-  await page.screenshot({path:path.join(output,'design-settings-mobile.png'),fullPage:true});
+  await capture({path:path.join(output,'design-settings-mobile.png'),fullPage:true});
   await settings.locator('.settings-navigation').getByRole('button',{name:'Général',exact:true}).click();await settings.getByText('fixture@example.test',{exact:true}).waitFor();
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
-  await page.screenshot({path:path.join(output,'design-settings-general-mobile.png'),fullPage:true});
+  await capture({path:path.join(output,'design-settings-general-mobile.png'),fullPage:true});
   await settings.locator('.settings-navigation').getByRole('button',{name:'Connecteurs',exact:true}).click();await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).waitFor();
   await settings.getByRole('button',{name:'Activer Meta Ads',exact:true}).click();await metaDetail.waitFor();
   assert.ok(await metaDetail.evaluate(element=>element.scrollWidth<=element.clientWidth));
   const detailBounds=await metaDetail.boundingBox();assert.ok(detailBounds.x>=0&&detailBounds.x+detailBounds.width<=390);
-  await page.screenshot({path:path.join(output,'design-connector-detail-mobile.png'),fullPage:true});
+  await capture({path:path.join(output,'design-connector-detail-mobile.png'),fullPage:true});
   await page.keyboard.press('Escape');await metaDetail.waitFor({state:'hidden'});assert.equal(await settings.isVisible(),true);
   await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
   await page.setViewportSize({width:1280,height:800});await page.emulateMedia({reducedMotion:'no-preference'});
@@ -236,13 +326,15 @@ try{
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
-  await page.screenshot({path:path.join(output,'desktop-writing.png'),fullPage:true});
+  await capture({path:path.join(output,'desktop-writing.png'),fullPage:true});
   assert.equal(await page.locator('[data-slot=ai-status][data-state=done]').count(),0);
   assert.equal(await page.locator('[data-slot=streaming-response][data-state=streaming]').getByRole('button').count(),0);
   const summaryReadsBeforeRun=summaryReads;
+  const settledWalletSummary=page.waitForResponse(async response=>new URL(response.url()).pathname==='/api/billing/summary'&&response.request().method()==='GET'&&(await response.json()).wallet.available===195);
   await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:'Paramètres',exact:true}).click();await settings.waitFor();
   await settings.getByText('200 crédits',{exact:true}).waitFor();
   await settings.getByText('195 crédits',{exact:true}).waitFor();
+  await settledWalletSummary;
   assert.ok(summaryReads>=summaryReadsBeforeRun+2,'An open wallet must re-read its summary after the chat run settles');
   assert.equal(await settings.getByText('200 crédits',{exact:true}).count(),0,'The old wallet amount must not survive settlement');
   await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});
@@ -289,6 +381,14 @@ try{
   assert.equal(await response.getByRole('button',{name:'Réponse utile',exact:true}).getAttribute('aria-pressed'),'true');
   assert.equal(await response.getByRole('button',{name:'2 sources',exact:true}).count(),1);
   checks.push('History reload restores real completion status, persisted feedback and citations');
+  await page.getByRole('button',{name:'Rechercher',exact:true}).click();await page.getByRole('textbox',{name:'Rechercher dans votre espace'}).fill(proposal.title);await page.locator('.search-results button').filter({hasText:proposal.title}).click();
+  const sidePanel=page.getByRole('complementary',{name:'Espace de travail',exact:true});await sidePanel.getByRole('heading',{name:proposal.title,exact:true}).waitFor();
+  await composer.fill('Brouillon avec ressource ouverte');const messageCountBeforeSettings=await page.locator('.messages article').count(),scrollBeforeSettings=await page.locator('.messages').evaluate(element=>element.scrollTop);
+  await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:/Crédits et facturation/}).click();await settings.waitFor();await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();
+  await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});
+  assert.equal(await composer.inputValue(),'Brouillon avec ressource ouverte');assert.equal(await page.locator('.messages article').count(),messageCountBeforeSettings);assert.equal(await page.locator('.messages').evaluate(element=>element.scrollTop),scrollBeforeSettings);
+  await sidePanel.getByRole('heading',{name:proposal.title,exact:true}).waitFor();assert.equal(approvals,0);assert.equal(checkoutCalls,0);
+  checks.push('Billing settings preserve the current messages, composer draft, conversation scroll and open resource panel');
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Coupure réseau');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=error]').waitFor();
   assert.ok((await page.locator('.messages').innerText()).includes('Résultat de test conservé.'));checks.push('Interrupted stream keeps received text and never claims success');
@@ -301,7 +401,7 @@ try{
   await page.locator('.search-results button').filter({hasText:proposal.title}).click();
   await page.getByRole('button',{name:'Approuver et générer'}).evaluate(button=>{button.click();button.click();});
   await page.locator('[data-slot=grid-reveal][data-state=pending]').waitFor();
-  await page.screenshot({path:path.join(output,'desktop-grid-pending.png'),fullPage:true});
+  await capture({path:path.join(output,'desktop-grid-pending.png'),fullPage:true});
   await page.locator('[data-slot=grid-reveal][data-state=error]').waitFor({timeout:12000});assert.equal(approvals,1);
   await page.getByRole('button',{name:'Réessayer',exact:true}).click();
   await page.locator('[data-slot=grid-reveal][data-state=ready]').waitFor({timeout:12000}).catch(async()=>{
@@ -311,7 +411,7 @@ try{
   await page.locator('.media-output img').waitFor({state:'visible'});assert.equal(approvals,1);assert.ok(polls>=2);
   checks.push('One approved generation: pending grid, read-only follow-up, actual image reveal');
   assert.ok(imageRequests>=2);assert.equal(approvals,1);checks.push('Failed image load retries only the image, never the paid generation');
-  await page.screenshot({path:path.join(output,'desktop.png'),fullPage:true});
+  await capture({path:path.join(output,'desktop.png'),fullPage:true});
   await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:390,height:844});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await page.getByRole('complementary',{name:'Espace de travail'}).getByRole('button',{name:'Fermer l’espace de travail',exact:true}).click();
@@ -321,9 +421,10 @@ try{
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
   assert.equal(await page.locator('.response-footer').last().evaluate(element=>getComputedStyle(element).animationName),'none');
   assert.ok(await page.locator('.response-action').last().evaluate(element=>element.getBoundingClientRect().height>=44));
-  await page.screenshot({path:path.join(output,'mobile-reduced-motion.png'),fullPage:true});checks.push('Mobile: no horizontal overflow; reduced-motion animation disabled');
+  await capture({path:path.join(output,'mobile-reduced-motion.png'),fullPage:true});checks.push('Mobile: no horizontal overflow; reduced-motion animation disabled');
+  assert.equal(checkoutCalls,0);assert.equal(organizationMutations.length,0);
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
-  await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,externalProviderCalls:0},null,2));
+  await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);
 }catch(error){if(lastPage){await lastPage.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});console.error((await lastPage.locator('body').innerText()).slice(0,1200));}throw error;}
 finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
