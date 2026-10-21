@@ -11,3 +11,5 @@ for(const marker of ['COMPOSIO_API_KEY','@composio/core','fixture_project_key_no
 console.log('PASS Built browser JavaScript contains neither Composio server configuration, SDK nor test credential.');
 assert.ok(sources.includes('/api/connectors/'),'Built UI must use the authenticated Aïra API.');
 console.log('PASS Connector UI calls Aïra routes instead of the Composio API directly.');
+
+for(const marker of ['BROWSER_PROFILE_KEY','BROWSER_PRICING_JSON','@cloudflare/playwright','_browser_rpc/','browser_retained_session_required'])assert.equal(sources.includes(marker),false,'Browser provider and secret configuration stay server-only.');assert.ok(sources.includes('/api/browser'),'Browser UI must use private application routes.');console.log('PASS Browser cloud SDK, runtime handles and encryption configuration remain outside the client bundle.');

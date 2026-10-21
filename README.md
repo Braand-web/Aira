@@ -2,6 +2,8 @@
 
 Pour l’intégration des applications, comptes utilisateurs, skills et outils Instant d’Aïra, consulter [COMPOSIO.md](./COMPOSIO.md).
 
+Le navigateur cloud privé, ses garde-fous, les tests et les prérequis d’activation sont décrits dans [BROWSER_RUN.md](./docs/BROWSER_RUN.md). Il reste désactivé par défaut.
+
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
 
 ## Prerequisites
