@@ -47,7 +47,8 @@ export function redactBrowserText(value: string): string {
   return value.replace(/\b(?:Bearer\s+)?eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?\b/gi, '[privé]')
     .replace(/\b(?:sk|pk|api|token|secret|password|authorization|cookie)[-_:= ]+[A-Za-z0-9_+/.=-]{4,}/gi, '[privé]')
     .replace(/\b[A-Za-z0-9_+/=-]{28,}\b/g, '[privé]')
-    .replace(/\b\d(?:[ -]?\d){3,}\b/g, '[privé]')
+    .replace(/\b(?:otp|pin|one[- ]time(?:\s+code)?|verification\s+code|code(?:\s+(?:de\s+)?(?:vérification|connexion|sécurité))?)[\s:=#-]*\d{4,8}\b/gi, '[privé]')
+    .replace(/\b\d(?:[ -]?\d){12,18}\b/g, '[privé]')
     .replace(/https?:\/\/[^\s<>]+/g, match => { try { const url = new URL(match); return `${url.origin}${url.pathname.replace(/[A-Za-z0-9_-]{24,}/g, '[privé]')}`; } catch { return '[lien]'; } })
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').slice(0, 20_000);
 }

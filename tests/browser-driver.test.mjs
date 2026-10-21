@@ -286,3 +286,9 @@ test('credential redaction handles JWTs, long tokens, OTPs, cards and URL query 
   const result = redactBrowserText('OTP 123456 card 4242 4242 4242 4242 token=secret123 https://example.com/a?password=hunter#fragment');
   for (const text of ['123456', '4242', 'secret123', 'hunter', 'fragment']) assert.ok(!result.includes(text));
 });
+
+test('ordinary prices, years and campaign metrics survive credential redaction', () => {
+  const text='En 2026 : 15000 impressions, 9900 FCFA et 1234 visites.';
+  assert.equal(redactBrowserText(text),text);
+  assert.ok(!redactBrowserText('code de connexion : 123456').includes('123456'));
+});
