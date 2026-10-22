@@ -140,7 +140,13 @@ export default function Studio(){
  const [attachments,setAttachments]=useState<PreviewFile[]>([]),[uploading,setUploading]=useState(false),[storedPendingUploads,setPendingUploads]=useState<UploadSessionState[]>([]),[uploadProgress,setUploadProgress]=useState<UploadProgressState[]>([]),[accounts,setAccounts]=useState<MetaAccount[]>([]),[analytics,setAnalytics]=useState<MetaAnalytics|null>(null),[analyticsBusy,setAnalyticsBusy]=useState(false),[accountsLoaded,setAccountsLoaded]=useState(false);
  const filePreviewEnabled=Boolean(snapshot?.capabilities.filePreview),pendingUploads=filePreviewEnabled&&!authRequired?storedPendingUploads:[];
  const composer=useRef<HTMLTextAreaElement>(null),bottom=useRef<HTMLDivElement>(null),messagesViewport=useRef<HTMLDivElement>(null),fileInput=useRef<HTMLInputElement>(null),skillFileInput=useRef<HTMLInputElement>(null),uploadInFlight=useRef(false),resumeSelection=useRef(false),resumeTarget=useRef<string|null>(null),uploadControllers=useRef(new Map<string,AbortController>()),manuallyClosed=useRef(false),controller=useRef<AbortController|null>(null),dialog=useRef<HTMLDialogElement>(null),dialogReturnFocus=useRef<HTMLElement|null>(null),accountMenuRef=useRef<HTMLDivElement>(null),accountTriggerRef=useRef<HTMLButtonElement>(null),modePickerRef=useRef<HTMLDivElement>(null);
- const resizeComposer=useCallback(()=>{const field=composer.current;if(!field)return;const style=getComputedStyle(field),maxHeight=Number.parseFloat(style.maxHeight)||170,minHeight=Number.parseFloat(style.minHeight)||46;field.style.height="auto";const contentHeight=field.scrollHeight;field.style.height=Math.max(minHeight,Math.min(contentHeight,maxHeight))+"px";field.style.overflowY=contentHeight>maxHeight?"auto":"hidden";},[]);
+ const resizeComposer=useCallback(()=>{const field=composer.current;if(!field)return;const entry=field.closest(".composer-entry");
+  // Measure the folded width first so wrapping has a stable threshold in either layout.
+  entry?.removeAttribute("data-expanded");field.style.height="auto";field.style.overflowY="hidden";
+  const style=getComputedStyle(field),maxHeight=Number.parseFloat(style.maxHeight)||170,minHeight=Number.parseFloat(style.minHeight)||46;
+  entry?.toggleAttribute("data-expanded",field.scrollHeight>minHeight);
+  const contentHeight=field.scrollHeight;field.style.height=Math.max(minHeight,Math.min(contentHeight,maxHeight))+"px";field.style.overflowY=contentHeight>maxHeight?"auto":"hidden";
+ },[]);
  useEffect(()=>{resizeComposer();},[draft,resizeComposer]);
  useEffect(()=>{window.addEventListener("resize",resizeComposer);return()=>window.removeEventListener("resize",resizeComposer);},[resizeComposer]);
   const shouldFollowMessages=useRef(true),streamText=useRef(""),streamMessageId=useRef(""),streamFlushTimer=useRef<number|null>(null);
