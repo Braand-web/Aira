@@ -41,7 +41,7 @@ export function MediaGenerationPreview({proposal,kind,onReady}:{proposal:Resourc
           return;
         }
         if(['needs_reconciliation','submitting','uncertain'].includes(data.status)) {
-          stopped = true; setState('uncertain'); setReason('Le résultat fournisseur doit être rapproché. Aucun nouvel envoi n’est effectué.'); return;
+          stopped = true; setState('uncertain'); setReason('Le résultat du service de création doit être vérifié. Aucune nouvelle demande n’est envoyée.'); return;
         }
         if(['failed','rejected','cancelled'].includes(data.status)) {
           stopped = true; setState('error'); setReason(data.status === 'cancelled' ? 'La génération a été annulée.' : 'La génération n’a pas abouti. Consultez son état avant toute nouvelle demande.'); return;
@@ -69,7 +69,7 @@ export function MediaGenerationPreview({proposal,kind,onReady}:{proposal:Resourc
     return () => {disposed = true;clearTimeout(timeout);controller.abort();document.removeEventListener('visibilitychange',resume);window.removeEventListener('online',resume);window.removeEventListener('offline',offline);};
   },[proposal.id,attempt]);
   const pending = state === 'waiting' || state === 'generating' || state === 'checking';
-  const caption = state === 'waiting' ? 'En attente du fournisseur' : state === 'checking' ? 'Vérification de la génération' : 'Création de votre visuel';
+  const caption = state === 'waiting' ? 'En attente du service de création' : state === 'checking' ? 'Vérification de la génération' : 'Création de votre visuel';
   return <div className="media-generation-preview">
     {kind === 'image' && <Suspense fallback={<div className="media-generation-placeholder" aria-hidden="true"/>}>
       <GridReveal caption={caption} status={pending ? 'pending' : 'error'} errorMessage={reason} onRetry={() => {setState('checking');setReason('');setAttempt(value=>value+1);}}/>

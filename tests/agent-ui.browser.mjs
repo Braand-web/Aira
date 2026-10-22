@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
-import {PLANS,PACKS,topupPrice} from '../lib/billing-core.mjs';
+import {CATALOG_VERSION,PLANS,PACKS,topupPrice,quoteTax} from '../lib/billing-core.mjs';
 
 const require=createRequire(import.meta.url);
 const playwright=process.env.AIRA_PLAYWRIGHT_MODULE;
@@ -17,6 +17,9 @@ await mkdir(output,{recursive:true});
 await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Studio from "./app/studio";import {FilePreviewProvider} from "./components/file-preview/file-preview-provider";import "./app/globals.css";import "./app/file-upload.css";import "./components/file-preview/file-preview.css";createRoot(document.getElementById("root")).render(<FilePreviewProvider><Studio/></FilePreviewProvider>);',resolveDir:root,loader:'tsx'},outdir:output,entryNames:'app',chunkNames:'chunks/[name]-[hash]',alias:{'next/image':'vinext/shims/image'},bundle:true,splitting:true,format:'esm',jsx:'automatic',define:{'process.env.NODE_ENV':'"development"','process.env':'{}'},plugins:[{name:'fixture-worker-url',setup(builder){builder.onResolve({filter:/^pdfjs-dist\/build\/pdf\.worker\.min\.mjs\?url$/},()=>({path:'worker',namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export default "/unused-pdf-worker.mjs";',loader:'js'}));}}]});
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z1ZsAAAAASUVORK5CYII=','base64');
 const now=Date.now();
+// Explicit test fixture only: this is not a production tax determination.
+const taxRule={mode:'exclusive',rateBps:1925,jurisdiction:'fixture:CM-only',version:'fixture-tax-v1',validatedAt:'2026-10-22'};
+const money=value=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(value)+' FCFA';
 const proposal={id:'proposal-fixture',workspace_id:'fixture',kind:'proposal',title:'Visuel de test local',status:'awaiting_approval',version:1,created_at:now,updated_at:now,data:{kind:'media',rationale:'Fixture locale sans génération facturable',maxCredits:5,payload:{model:'fixture-image',input:{prompt:'Fixture'}}}};
 const media={id:'media-fixture',workspace_id:'fixture',kind:'media',title:proposal.title,status:'ready',version:1,created_at:now,updated_at:now,data:{model:'fixture-image',output:{images:[]}}};
 const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conversation',title:'Discussion de test locale',status:'saved',version:1,created_at:now,updated_at:now,data:{}};
@@ -55,8 +58,8 @@ const server=createServer(async(req,res)=>{
     const accountId=decodeURIComponent(url.pathname.split('/').at(-1));revocationRequests.push(accountId);const item=connectorFixtures.find(item=>item.accountId===accountId);if(item)connectedAccounts.delete(item.slug);
     json(res,{disconnected:true});return;
   }
-  if(url.pathname==='/api/billing/catalog'){json(res,{plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:{enabled:billingEnabled},free:{credits:0,days:7,enabled:false}});return;}
-  if(url.pathname==='/api/billing/summary'){summaryReads++;json(res,{wallet:{available:walletAvailable,reserved:12},creditAllowance:300,subscription:null,meters:{storage:10*1024*1024,transfer:20*1024*1024},lots:[],orders:[],invoices:[]});return;}
+  if(url.pathname==='/api/billing/catalog'){json(res,{version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,tax:{configured:true,...taxRule},readiness:{enabled:billingEnabled},free:{credits:10,days:7,enabled:false}});return;}
+  if(url.pathname==='/api/billing/summary'){summaryReads++;json(res,{wallet:{available:walletAvailable,reserved:12},creditAllowance:PLANS.pro.credits,subscription:null,meters:{storage:10*1024*1024,transfer:20*1024*1024},lots:[],orders:[],invoices:[]});return;}
   if(url.pathname==='/api/billing/organization'){
     if(req.method==='POST'){const chunks=[];for await(const chunk of req)chunks.push(chunk);organizationMutations.push(JSON.parse(Buffer.concat(chunks).toString()));json(res,{error:'Le test interdit les mutations d’équipe'},403);return;}
     json(res,{current:'fixture',organization:'fixture-org',role:'owner',rights:{plan:'business',limits:PLANS.business},spaces:[{id:'fixture',name:'Espace de test',organization_id:'fixture-org',organization_name:'Organisation de test'}],members:[{user_id:'fixture-user',role:'owner',active:1},{user_id:'fixture-reader',role:'reader',active:1,name:'Lecteur de test'}],limits:[],pendingInvites:0,activeMemberCount:2,viewer:{userId:'fixture-user',email:'fixture@example.test',displayName:'Compte de test'}});return;
@@ -66,12 +69,14 @@ const server=createServer(async(req,res)=>{
   if(url.pathname==='/api/billing/quotes'&&req.method==='POST'){
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());quoteRequests.push(body);
     const credits=body.kind==='topup'?body.quantity:PLANS[body.plan||'pro'].credits;
-    json(res,{id:'fixture-quote',...body,amount:body.kind==='topup'?topupPrice(credits):PLANS[body.plan||'pro'][body.cycle==='annual'?'annualPrice':'periodPrice'],credits,units:credits*100,expiresAt:Date.now()+300000,eligible:false});return;
+    if(body.kind==='subscription'&&body.cycle!=='period'){json(res,{error:'La fixture interdit les nouvelles ventes annuelles'},409);return;}
+    const amount=body.kind==='topup'?topupPrice(credits):PLANS[body.plan||'pro'].periodPrice;
+    json(res,{id:'fixture-quote',...body,...quoteTax(amount,taxRule),credits,units:credits*100,expiresAt:Date.now()+300000,eligible:false});return;
   }
   if(url.pathname==='/api/billing/checkout'){checkoutCalls++;json(res,{error:'Le test interdit toute tentative de paiement'},403);return;}
   if(url.pathname.startsWith('/api/billing/orders/')&&req.method==='GET'){
     orderVerificationRequests.push({id:decodeURIComponent(url.pathname.split('/').at(-1)),verify:url.searchParams.get('verify')});
-    json(res,{id:'fixture-return-order',amount:2500,product:JSON.stringify({kind:'topup',quantity:250}),created_at:now,status:'pending'});return;
+    json(res,{id:'fixture-return-order',amount:5963,product:JSON.stringify({kind:'topup',quantity:125}),created_at:now,status:'pending'});return;
   }
   if(url.pathname==='/api/chat'&&req.method==='GET'){json(res,{messages:history.map(message=>({...message,feedback:votes.get(message.id)??null}))});return;}
   if(url.pathname==='/api/chat'&&req.method==='PATCH'){const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());feedbackCalls++;if(failFeedback){failFeedback=false;json(res,{error:'Échec local de test'},503);return;}votes.set(body.messageId,body.feedback);json(res,body);return;}
@@ -154,7 +159,7 @@ try{
   await settings.locator('.settings-navigation').getByRole('button',{name:'Aide et raccourcis',exact:true}).click();
   await settings.getByRole('heading',{name:'Raccourcis clavier',exact:true}).waitFor();
   await settings.locator('.settings-navigation').getByRole('button',{name:'Portefeuille',exact:true}).click();
-  await settings.getByText('300 crédits',{exact:true}).waitFor();
+  await settings.getByText('250 crédits',{exact:true}).waitFor();
   await settings.getByText('12 crédits',{exact:true}).waitFor();
   await settings.locator('.settings-navigation').getByRole('button',{name:'Stockage',exact:true}).click();await settings.getByRole('heading',{name:'Utilisation',exact:true}).waitFor();
   assert.match(await settings.locator('.settings-storage').innerText(),/^10 Mo sur /);
@@ -249,10 +254,25 @@ try{
   await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();await settings.locator('.billing-loading').waitFor({state:'hidden'});await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).waitFor();
   const billingNavigation=settings.getByRole('navigation',{name:'Rubriques de facturation',exact:true});
   const embeddedBilling=settings.getByRole('region',{name:'Forfaits et crédits',exact:true});await embeddedBilling.waitFor();
+  const assertQuoteTax=async(baseAmount)=>{
+    const expected=quoteTax(baseAmount,taxRule);
+    for(const [label,value] of [['Sous-total hors taxes',expected.subtotal],['Taxes · fixture:CM-only · 19,25 %',expected.tax],['Total à payer',expected.total]]){
+      const term=embeddedBilling.getByText(label,{exact:true});await term.waitFor();
+      assert.equal(await term.locator('..').locator('dd').innerText(),money(value),`The server ${label} must be displayed before payment confirmation`);
+    }
+    assert.equal(await settings.getByRole('button',{name:'Accepter le total et continuer vers le paiement',exact:true}).isDisabled(),true,'An ineligible quote must never permit checkout');
+    assert.equal(checkoutCalls,0);
+  };
   assert.deepEqual(await billingNavigation.getByRole('button').allTextContents(),['Forfait','Recharger','Paiements']);
   assert.equal(await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).getAttribute('aria-current'),'page');
   assert.equal(await settings.locator('.billing-heading h1').count(),0,'Embedded billing must not render the central-page hero');
   await billingNavigation.getByRole('button',{name:'Forfait',exact:true}).click();await settings.getByRole('button',{name:'Choisir Pro',exact:true}).waitFor();
+  for(const name of ['Essentiel','Pro','Business'])assert.equal(await embeddedBilling.getByRole('heading',{name,exact:true}).count(),1);
+  assert.equal(await embeddedBilling.getByRole('button',{name:/^Choisir (Essentiel|Pro|Business)$/}).count(),3);
+  assert.equal(await embeddedBilling.getByRole('button',{name:/^(Annuel|12 mois)$/}).count(),0,'Annual sales must remain unavailable');
+  await embeddedBilling.getByText('Pour 30 jours · hors taxes',{exact:true}).waitFor();
+  for(const amount of [4900,9900,24900])assert.equal(await embeddedBilling.getByText(money(amount),{exact:true}).count(),1);
+  await capture({path:path.join(output,'billing-offers-desktop.png'),fullPage:true});
   assert.equal(await embeddedBilling.locator('svg circle[cx="200"][cy="200"][r="150"]').count(),0,'Embedded plan comparison omits the large credits dial');
   assert.equal(quoteRequests.length,0);assert.equal(checkoutCalls,0);
   assert.equal(await settings.getByRole('button',{name:'Choisir Pro',exact:true}).isDisabled(),true,'Unconfigured payment providers must keep plan selection disabled');
@@ -260,8 +280,17 @@ try{
   billingEnabled=true;await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();
   await settings.getByRole('button',{name:'Choisir Pro',exact:true}).click();await settings.getByRole('heading',{name:'Votre récapitulatif',exact:true}).waitFor();
   assert.deepEqual(quoteRequests,[{kind:'subscription',plan:'pro',cycle:'period'}]);assert.equal(checkoutCalls,0,'A quote must never open checkout before an explicit payment confirmation');
-  assert.equal(await settings.getByRole('button',{name:'Continuer vers SasPay',exact:true}).isDisabled(),true,'The launch gate stays enforced in embedded billing');
-  billingEnabled=false;await settings.getByRole('button',{name:'Revenir',exact:true}).click();await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).click();await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();await settings.getByText('Encaissements fermés',{exact:true}).waitFor();
+  assert.equal(await settings.getByRole('button',{name:'Accepter le total et continuer vers le paiement',exact:true}).isDisabled(),true,'The launch gate stays enforced in embedded billing');
+  await assertQuoteTax(9900);await capture({path:path.join(output,'billing-tax-review-desktop.png'),fullPage:true});
+  await settings.getByRole('button',{name:'Revenir',exact:true}).click();await billingNavigation.getByRole('button',{name:'Recharger',exact:true}).click();
+  assert.equal(await embeddedBilling.getByRole('button',{name:/crédits/}).count(),3,'Only the three catalogue recharge packs are available');
+  assert.equal(await embeddedBilling.getByRole('spinbutton').count(),0,'Custom recharge quantities must not be offered');
+  assert.equal(await embeddedBilling.getByText('Autre quantité',{exact:true}).count(),0);
+  const pack125=embeddedBilling.getByRole('button',{name:/125 crédits/});assert.equal(await pack125.getAttribute('aria-pressed'),'true');assert.ok((await pack125.innerText()).includes(money(5000)));
+  await embeddedBilling.getByRole('button',{name:'Vérifier le récapitulatif',exact:true}).click();await assertQuoteTax(5000);
+  assert.deepEqual(quoteRequests.at(-1),{kind:'topup',quantity:125});
+  checks.push('Three 30-day offers and three packs expose no annual or custom sales; exact server subtotal, tax and total precede approval');
+  billingEnabled=false;await settings.getByRole('button',{name:'Revenir',exact:true}).click();await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).click();await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();await settings.getByText('Paiements indisponibles',{exact:true}).waitFor();
   await capture({path:path.join(output,'design-billing-desktop.png'),fullPage:true});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
@@ -297,7 +326,15 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   const mobileRefresh=await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).boundingBox();assert.ok(mobileRefresh.x+mobileRefresh.width<=390);
   assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await billingNavigation.getByRole('button',{name:'Forfait',exact:true}).click();
+  for(const name of ['Essentiel','Pro','Business'])assert.equal(await embeddedBilling.getByRole('heading',{name,exact:true}).count(),1);
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
   await capture({path:path.join(output,'design-billing-mobile.png'),fullPage:true});
+  billingEnabled=true;await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();await billingNavigation.getByRole('button',{name:'Recharger',exact:true}).click();
+  await embeddedBilling.getByRole('button',{name:/125 crédits/}).click();await embeddedBilling.getByRole('button',{name:'Vérifier le récapitulatif',exact:true}).click();await assertQuoteTax(5000);
+  assert.ok(await settings.evaluate(element=>element.scrollWidth<=element.clientWidth));
+  await capture({path:path.join(output,'billing-tax-review-mobile.png'),fullPage:true});billingEnabled=false;
+  checks.push('Mobile pricing and tax review remain contained, with server totals and checkout disabled for ineligible quotes');
   await page.goto(origin);await composer.waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await capture({path:path.join(output,'design-home-mobile.png'),fullPage:true});
