@@ -9,7 +9,7 @@ export const modelRateSchema=z.object({
 export type ModelRate=z.infer<typeof modelRateSchema>;
 export type ModelMessage={role:string;content:unknown};
 export type ModelUsage=Record<string,unknown>;
-export type ModelCostRow={provider:string;status:string;usage:string|null;cost_xaf:number|null};
+export type ModelCostRow={provider:string;status:string;usage:string|null;cost_xaf:number|null;rate?:string};
 
 export const modelRecordSchema=z.record(z.unknown());
 export const modelEventSchema=z.object({type:z.string()}).passthrough();

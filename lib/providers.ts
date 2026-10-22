@@ -1,8 +1,10 @@
 import {z} from "zod";
-import {AppError,safeWebURL,validateModelInput} from "./core.mjs";
+import {AppError,validateMediaInput} from "./core.mjs";
 import {config,db,unseal} from "./server";
-const catalogItem=z.object({id:z.string().regex(/^[a-zA-Z0-9/_-]+$/),name:z.string(),kind:z.enum(["image","video","audio"]),credits:z.number().int().positive(),costCeilingXaf:z.number().positive().optional(),verifiedAt:z.string().datetime().optional(),inputSchema:z.record(z.unknown()),description:z.string()});
+import {MEDIA_TASKS,chooseMediaRoute} from './media-routing.mjs';
+const catalogItem=z.object({id:z.string().regex(/^[a-zA-Z0-9/._-]+$/),name:z.string(),kind:z.enum(["image","video","audio"]),credits:z.number().int().positive(),costCeilingXaf:z.number().positive().optional(),verifiedAt:z.string().datetime().optional(),inputSchema:z.record(z.unknown()),description:z.string(),tasks:z.array(z.string().refine(value=>Object.hasOwn(MEDIA_TASKS,value))).max(7).optional(),priority:z.number().int().min(0).max(1000).optional()});
 export function falCatalog(){try{return z.array(catalogItem).max(50).parse(JSON.parse(config().FAL_CATALOG_JSON||"[]"));}catch{throw new AppError("Catalogue média invalide. Contactez l’administrateur.",503);}}
+export function mediaRoute(task:string,input:Record<string,unknown>,maxCredits?:number){if(!config().FAL_KEY)throw new AppError('Génération média non configurée.',503);return chooseMediaRoute(falCatalog(),task,input,maxCredits) as z.infer<typeof catalogItem>;}
 export async function metaToken(tenant:string){
  const row=await db().prepare("SELECT encrypted_token,expires_at FROM connections WHERE workspace_id=? AND provider='meta'").bind(tenant).first<{encrypted_token:string;expires_at:number}>();
  if(!row)throw new AppError("Connectez Meta for Business pour continuer.",412,"meta_not_connected");
@@ -17,10 +19,9 @@ export async function metaGet(tenant:string,path:string,params:Record<string,str
 }
 export async function submitFal(model:string,input:Record<string,unknown>){
  const item=falCatalog().find(m=>m.id===model);if(!item)throw new AppError("Modèle non validé dans le catalogue.",403);
- validateModelInput(input,item.inputSchema);
+ validateMediaInput(input,item.inputSchema);
  const key=config().FAL_KEY;if(!key)throw new AppError("Génération média non configurée.",503);
  // URLs can only be passed to fal. No arbitrary server-side URL fetch.
- for(const [k,v] of Object.entries(input)){if(k.endsWith("_url")&&typeof v==="string")safeWebURL(v);}
  const response=await fetch("https://queue.fal.run/"+model,{method:"POST",headers:{Authorization:"Key "+key,"Content-Type":"application/json"},body:JSON.stringify(input),signal:AbortSignal.timeout(25000)});
  const data:unknown=await response.json();if(!response.ok)throw new AppError("fal.ai n’a pas accepté la génération.",502,response.status>=500?'uncertain_result':'fal_rejected');const submitted=z.object({request_id:z.string().min(1)}).safeParse(data);if(!submitted.success)throw new AppError("Réponse média incertaine.",502,"uncertain_result");return submitted.data.request_id;
 }

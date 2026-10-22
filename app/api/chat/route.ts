@@ -1,6 +1,7 @@
 import {requireModel} from "@/lib/llm";
+import {routingEnabled,routedModel} from '@/lib/model-router';
 import {z} from "zod";
-import {identity,db,uid,getResource,createResource,failure} from "@/lib/server";
+import {identity,db,uid,getResource,createResource,failure,config} from "@/lib/server";
 import {runAgent} from "@/lib/agent";
 import {AppError} from "@/lib/core.mjs";
 import {startRunBudget,finishRunBudget,type RunBudget} from '@/lib/metering';
@@ -12,7 +13,7 @@ export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
   const who=await identity(request);tenant=who.tenant;
-  requireModel();
+  if(routingEnabled(config()))routedModel(config(),{task:'conversation'});else requireModel();
   const body=z.object({text:z.string().trim().min(1).max(16000),conversationId:z.string().optional(),attachments:z.array(z.string()).max(FILE_POLICY.maxFilesPerMessage).default([]),maxCredits:z.number().int().min(1).max(1000),workMode:z.enum(["accompanied","autonomous"]).default("accompanied")}).parse(await request.json());
   const conversation=body.conversationId?await getResource(tenant,body.conversationId):await createResource(tenant,"conversation",body.text.slice(0,70),{},"saved");if(conversation.kind!=="conversation")throw new AppError("Discussion invalide.");conversationId=conversation.id;
   const lock=await db().prepare("UPDATE resources SET status='streaming',updated_at=? WHERE id=? AND workspace_id=? AND (status!='streaming' OR updated_at<?)").bind(Date.now(),conversationId,tenant,Date.now()-300000).run();if(!lock.meta.changes)throw new AppError("Une réponse est déjà en cours dans cette discussion.",409);

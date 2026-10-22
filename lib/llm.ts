@@ -1,7 +1,7 @@
 import {config} from './server';
 import {AppError} from './core.mjs';
 import {z} from 'zod';
-import type {ModelRate,ModelCostRow} from './model-protocol';
+import {modelRateSchema,type ModelRate,type ModelCostRow} from './model-protocol';
 export function modelConnection(){
  const c=config(),provider=c.LLM_PROVIDER||(c.OPENROUTER_API_KEY?'openrouter':'anthropic');
  if(provider!=='anthropic'&&provider!=='openrouter')throw new AppError('Fournisseur IA invalide.',503,'model_not_configured');
@@ -26,6 +26,10 @@ export function estimateInputTokens(body:Record<string,unknown>){
  return Math.ceil(new TextEncoder().encode(JSON.stringify(visit(copy))).length/2)+512+images*16384;
 }
 export function requestCostUnits(row:ModelCostRow,rate:ModelRate,usageUnits:(usage:unknown,rate:ModelRate)=>{units:number}){
+ // A shared hold may contain several models. Never value a prior call using the
+ // model selected for the next call, browser session or reconciliation worker.
+ if(row.rate)rate=modelRateSchema.parse(JSON.parse(row.rate));
+ if(rate.provider&&rate.provider!==row.provider)throw new AppError('Le tarif enregistré ne correspond pas au fournisseur.',409,'usage_unknown');
  if(row.provider==='openrouter'){
   if(row.status==='estimated')return Math.ceil(usageUnits(JSON.parse(row.usage||'null'),rate).units*(1+Number(rate.fundingFeeBps)/10000));
   if(typeof row.cost_xaf!=='number'||!Number.isFinite(row.cost_xaf)||row.cost_xaf<0)throw new AppError('Coût OpenRouter à rapprocher.',409,'usage_unknown');

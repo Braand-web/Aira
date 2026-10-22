@@ -25,6 +25,9 @@ declare namespace Cloudflare {
     ANTHROPIC_API_KEY?: string;
     ANTHROPIC_MODEL?: string;
     ANTHROPIC_RATE_JSON?: string;
+    OPENAI_API_KEY?: string;
+    MODEL_ROUTING_ENABLED?: string;
+    MODEL_ROUTING_CATALOG_JSON?: string;
     LLM_PROVIDER?: string;
     OPENROUTER_API_KEY?: string;
     OPENROUTER_MODEL?: string;
@@ -42,6 +45,7 @@ declare namespace Cloudflare {
     BILLING_ENABLED?: string;
     BILLING_XAF_CHECKOUT_VALIDATED?: string;
     BILLING_TAX_VALIDATED?: string;
+    BILLING_TAX_JSON?: string;
     BILLING_BENCHMARKS_VALIDATED?: string;
     BILLING_SCHEDULER_VERIFIED?: string;
     BILLING_PROVIDER_TESTS_PASSED?: string;

@@ -1,10 +1,11 @@
 import {z} from 'zod';
 import {identity,getResource,db,updateResource,failure,auditLog,config,authorize} from '@/lib/server';
-import {AppError,assertVersion,validateModelInput} from '@/lib/core.mjs';
+import {AppError,assertVersion,validateMediaInput} from '@/lib/core.mjs';
 import {falCatalog,submitFal,falResult} from '@/lib/providers';
 import {reserve,settleHold} from '@/lib/billing';
 import {hasCurrentMediaPrice} from '@/lib/execution-policy.mjs';
 import {proposalSchema} from '@/lib/contracts';
+import {mediaQuoteFingerprint} from '@/lib/media-routing.mjs';
 export async function POST(request:Request,context:{params:Promise<{id:string}>}){try{
  const who=await identity(request,'approve'),{tenant}=who,{id}=await context.params;
  const {version}=z.object({version:z.number().int()}).parse(await request.json());
@@ -14,11 +15,12 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
  assertVersion(resource.version,version);
  if(resource.kind!=='proposal'||resource.data.kind!=='media'||resource.status!=='awaiting_approval')throw new AppError('Proposition média à valider requise.',409);
  if(!config().FAL_KEY)throw new AppError('fal.ai non configuré.',503);
- const proposal=proposalSchema.parse(resource.data),payload=z.object({model:z.string(),input:z.record(z.unknown())}).parse(proposal.payload);
+ const proposal=proposalSchema.parse(resource.data),payload=z.object({model:z.string(),input:z.record(z.unknown()),quoteFingerprint:z.string().regex(/^[a-f0-9]{64}$/).optional()}).parse(proposal.payload);
  const model=falCatalog().find(m=>m.id===payload.model),amount=proposal.maxCredits;
  if(!model||model.credits!==amount)throw new AppError('Le tarif a changé. Une nouvelle proposition est nécessaire.',409);
  if(!hasCurrentMediaPrice(model,amount))throw new AppError('Le coût de ce modèle doit être vérifié avant génération.',503);
- validateModelInput(payload.input,model.inputSchema);
+ if(payload.quoteFingerprint&&payload.quoteFingerprint!==await mediaQuoteFingerprint(model,payload.input))throw new AppError('Le modèle, ses paramètres ou son tarif ont changé. Une nouvelle proposition est nécessaire.',409,'media_stale_quote');
+ validateMediaInput(payload.input,model.inputSchema);
  const hold=await reserve(who,'media:'+opId,amount*100);
  const claim=await db().prepare("INSERT OR IGNORE INTO operations (id,workspace_id,resource_id,status,amount,detail,created_at,updated_at) VALUES (?,?,?,'submitting',?,?,?,?)").bind(opId,tenant,id,amount,JSON.stringify({model:model.id,holdId:hold.id,costCeilingXaf:model.costCeilingXaf}),Date.now(),Date.now()).run();
  if(!claim.meta.changes)return Response.json({operationId:opId,replayed:true});
