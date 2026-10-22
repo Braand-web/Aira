@@ -85,6 +85,20 @@
       "when": 1792454400000,
       "tag": "0011_response_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792540800000,
+      "tag": "0012_browser",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792627200000,
+      "tag": "0013_billing_catalog",
+      "breakpoints": true
     }
   ]
 }

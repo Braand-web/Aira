@@ -3,6 +3,7 @@
 import {useState} from 'react';
 import {ArrowRight, ArrowUpRight, CreditCard, Download, LockKeyhole, LoaderCircle, Plus, RefreshCw, ShieldCheck, Smartphone, Users, Wallet, X} from 'lucide-react';
 import styles from './billing-sections.module.css';
+import {planName} from '../components/billing-offers';
 
 type Pack={quantity:number;amount:number};
 type Entry={id:string;kind:string;created_at:number;units:number;reference?:string};
@@ -23,30 +24,24 @@ const sourceNames:Record<string,string>={subscription:'Crédits du forfait',free
 const roleNames:Record<string,string>={owner:'Propriétaire',admin:'Administrateur',editor:'Éditeur',approver:'Approbateur',reader:'Lecteur'};
 const statusNames:Record<string,string>={initializing:'Initialisation',pending:'En attente',verified:'Confirmation en cours',fulfilled:'Payé',needs_reconciliation:'À vérifier',refund_requested:'Remboursement demandé',refunded:'Remboursé',failed:'Échoué',expired:'Expiré',cancelled:'Annulé',partially_refunded:'Partiellement remboursé'};
 
-export function RechargeView({packs,quantity,setQuantity,amount,available,min,max,busy,canManage,onContinue}:{packs:Pack[];quantity:string;setQuantity:(value:string)=>void;amount?:number;available:number;min:number;max:number;busy:boolean;canManage:boolean;onContinue:()=>void}){
- const selected=Number(quantity),valid=Number.isInteger(selected)&&selected>=min&&selected<=max;
- const due=amount??packs.find(pack=>pack.quantity===selected)?.amount;
+export function RechargeView({packs,priceLabel,quantity,setQuantity,available,busy,canManage,onContinue}:{packs:Pack[];priceLabel:string;quantity:string;setQuantity:(value:string)=>void;available:number;busy:boolean;canManage:boolean;onContinue:()=>void}){
+ const selected=Number(quantity),pack=packs.find(item=>item.quantity===selected),valid=!!pack,due=pack?.amount;
  return <div className={styles.recharge}>
   <div className={styles.rechargeMain}>
-   <div className={styles.sectionIntro}><span className={styles.step}><span>1</span> Recharge</span><h2>Ajoutez des crédits à votre solde.</h2><p>Choisissez un pack ou indiquez précisément la quantité souhaitée.</p></div>
+   <div className={styles.sectionIntro}><span className={styles.step}><span>1</span> Recharge</span><h2>Ajoutez des crédits à votre solde.</h2><p>Trois packs, le même solde pour tous vos usages · {priceLabel}.</p></div>
    <div className={styles.packGrid} aria-label="Packs de crédits">
     {packs.map(pack=><button type="button" key={pack.quantity} className={styles.pack+(selected===pack.quantity?' '+styles.packSelected:'')} aria-pressed={selected===pack.quantity} onClick={()=>setQuantity(String(pack.quantity))}>
      <span className={styles.radio} aria-hidden="true">{selected===pack.quantity&&<span/>}</span><strong>{formatNumber(pack.quantity)}</strong><span>crédits</span><b>{money(pack.amount)}</b><small>{formatNumber(pack.amount/pack.quantity)} FCFA / crédit</small>
     </button>)}
    </div>
-   <label className={styles.quantityField}>Autre quantité
-    <span><input type="number" inputMode="numeric" min={min} max={max} step="1" value={quantity} onChange={event=>setQuantity(event.target.value)}/><small>crédits</small></span>
-    <small>De {formatNumber(min)} à {formatNumber(max)} crédits. Le montant est calculé à partir du barème actuel.</small>
-   </label>
-   <div className={styles.paymentInfo}><div className={styles.paymentIcons}><Smartphone size={18}/><CreditCard size={18}/></div><div><strong>Moyen de paiement</strong><span>Les options proposées seront affichées par SasPay au règlement.</span></div><LockKeyhole size={16} className={styles.mutedIcon}/></div>
+   <div className={styles.paymentInfo}><div className={styles.paymentIcons}><Smartphone size={18}/><CreditCard size={18}/></div><div><strong>Moyen de paiement</strong><span>Les moyens de paiement disponibles seront affichés au règlement.</span></div><LockKeyhole size={16} className={styles.mutedIcon}/></div>
   </div>
   <aside className={styles.rechargeAside}>
    <div className={styles.balancePreview}><span>Solde disponible</span><strong>{formatNumber(available)} <small>crédits</small></strong><div className={styles.balanceTrack} aria-hidden="true"><i style={{width:(Math.min(100,available/(available+selected||1)*100))+'%'}}/><i/></div><div><span>Actuel</span><span>Après recharge</span></div><p>{formatNumber(available)} <ArrowRight size={14}/> {formatNumber(available+(valid?selected:0))} crédits</p></div>
-   <div className={styles.orderSummary}><span>Votre sélection</span><strong>{valid?formatNumber(selected):'—'} <small>crédits</small></strong><dl><div><dt>Pack</dt><dd>{packs.some(pack=>pack.quantity===selected)?'Pack catalogue':'Quantité personnalisée'}</dd></div><div><dt>Tarif</dt><dd>{valid&&selected>0&&due!==undefined?formatNumber(due/selected)+' FCFA / crédit':'—'}</dd></div></dl></div>
-   {!amount&&due===undefined&&<p className={styles.inlineNotice}>Le tarif personnalisé se calcule dès que le montant est disponible.</p>}
+   <div className={styles.orderSummary}><span>Votre sélection</span><strong>{valid?formatNumber(selected):'—'} <small>crédits</small></strong><dl><div><dt>Tarif</dt><dd>{valid&&selected>0&&due!==undefined?formatNumber(due/selected)+' FCFA / crédit':'—'}</dd></div><div><dt>Montant</dt><dd>{due!==undefined?money(due):'Choisissez un pack'}</dd></div></dl><p>{priceLabel}. Les taxes et le total final sont présentés avant votre accord.</p></div>
    <button type="button" className="button primary" disabled={!valid||busy||!canManage} onClick={onContinue}>{busy?<LoaderCircle size={16} className="spin"/>:<ArrowUpRight size={16}/>}Vérifier le récapitulatif</button>
    {!canManage&&<p className={styles.inlineNotice}>Seul le propriétaire peut créer une commande de paiement.</p>}
-   <p className={styles.safeNote}><ShieldCheck size={14}/>Aucun paiement ne sera lancé sans validation du récapitulatif.</p>
+   <p className={styles.safeNote}><ShieldCheck size={14}/>Les recharges n’expirent pas pendant la vie du service et ne prolongent pas l’abonnement.</p>
   </aside>
  </div>;
 }
@@ -62,7 +57,7 @@ export function CreditsView({summary,entries,daily,asOf,restricted,onTopup}:{sum
  return <div className={styles.credits}>
   <div className={styles.creditHero}>
    <div className={styles.creditGauge} style={{'--credit-progress':(progress*3.6)+'deg'} as React.CSSProperties} role="img" aria-label={formatNumber(summary?.wallet.available||0)+' crédits disponibles sur '+formatNumber(totalGranted)+' attribués'}><div><span>Solde disponible</span><strong>{formatNumber(summary?.wallet.available||0)}</strong><small>crédits</small></div></div>
-   <div className={styles.creditDetails}><span className={styles.eyebrow}>Portefeuille de crédits</span><h2>{formatNumber(summary?.wallet.available||0)} crédits disponibles</h2><p>Les crédits réservés restent protégés pendant les opérations en cours.</p>
+   <div className={styles.creditDetails}><span className={styles.eyebrow}>Portefeuille de crédits</span><h2>{formatNumber(summary?.wallet.available||0)} crédits disponibles</h2><p>Conversation, créations, outils et missions utilisent ce solde commun. Les crédits réservés restent protégés pendant les opérations en cours.</p>
     <div className={styles.creditStats}><article><span>Attribués actifs</span><strong>{formatNumber(totalGranted)}</strong><small>crédits</small></article><article><span>Réservés</span><strong>{formatNumber(summary?.wallet.reserved||0)}</strong><small>crédits</small></article><article><span>Consommés · 30 jours</span><strong>{formatNumber(consumed)}</strong><small>crédits</small></article></div>
     <div className={styles.actions}><button className="button primary" onClick={onTopup}><Plus size={16}/>Recharger</button><span>Les crédits expirant le plus tôt sont utilisés en premier.</span></div>
    </div>
@@ -84,10 +79,10 @@ export function PaymentsView({summary,readiness,busy,onVerify,onStartRefund,onSu
  return <div className={styles.payments}>
   <div className={styles.paymentHero}>
    <section className={styles.subscriptionCard}><div className={styles.sectionHeader}><span className={styles.statusPill+(sub?' '+styles.statusGood:'')}>{sub?'Forfait en cours':'Aucun forfait actif'}</span>{sub&&<span className={styles.muted}>Fin de période</span>}</div>
-    <div className={styles.planLine}><h2>{sub?sub.plan==='business'?'Business':'Pro':'Aïra'}</h2><span>{sub?(sub.cycle==='annual'?'12 mois':'30 jours')+' · renouvellement volontaire':'Les factures et paiements s’afficheront ici.'}</span></div>
+    <div className={styles.planLine}><h2>{sub?planName(sub.plan):'Aïra'}</h2><span>{sub?(sub.cycle==='annual'?'12 mois':'30 jours')+' · renouvellement volontaire':'Les factures et paiements s’afficheront ici.'}</span></div>
     {sub?<><p className={styles.subDate}>Jusqu’au <strong>{fullDate(sub.end_at)}</strong></p><div className={styles.subscriptionTrack} role="img" aria-label={Math.round(cycleProgress)+' % de la période écoulée'}><i style={{width:cycleProgress+'%'}}/></div><div className={styles.trackLabels}><span>{compactDate(sub.start_at)}</span><span>{compactDate(sub.end_at)}</span></div></>:<p className={styles.empty}>Choisissez un forfait lorsque vous êtes prêt. Le renouvellement est manuel.</p>}
    </section>
-   <aside className={styles.methodsCard}><div className={styles.sectionHeader}><h3>Moyen de paiement</h3>{readiness?<span className={styles.statusPill}>SasPay</span>:<span className={styles.statusMuted}>Fermé</span>}</div><div className={styles.methodRow}><div className={styles.rowIcon}><CreditCard size={17}/></div><div><strong>SasPay</strong><span>{readiness?'Le moyen proposé sera affiché au règlement.':'L’activation des encaissements est en attente.'}</span></div></div><p className={styles.safeNote}><ShieldCheck size={14}/>{readiness?'Les règlements passent par la page sécurisée SasPay.':'Aucun débit ne peut être lancé pour le moment.'}</p></aside>
+   <aside className={styles.methodsCard}><div className={styles.sectionHeader}><h3>Moyen de paiement</h3>{readiness?<span className={styles.statusPill}>Disponible</span>:<span className={styles.statusMuted}>Fermé</span>}</div><div className={styles.methodRow}><div className={styles.rowIcon}><CreditCard size={17}/></div><div><strong>Paiement sécurisé</strong><span>{readiness?'Le moyen proposé sera affiché au règlement.':'Le paiement est indisponible pour le moment.'}</span></div></div><p className={styles.safeNote}><ShieldCheck size={14}/>{readiness?'Les règlements passent par une page de paiement sécurisée.':'Aucun débit ne peut être lancé pour le moment.'}</p></aside>
   </div>
   <section className={styles.listSection}><div className={styles.historyHeader}><div><h3>Historique des paiements</h3><p>{orders.length?orders.length+' commande'+(orders.length>1?'s':'')+' récente'+(orders.length>1?'s':''):'Les commandes confirmées apparaîtront ici.'}</p></div><div className={styles.filters} role="group" aria-label="Filtrer les paiements">{[['all','Tous'],['paid','Payés'],['pending','En attente'],['failed','Échoués']].map(([key,label])=><button key={key} type="button" className={filter===key?styles.filterActive:''} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div></div>
    {!visible.length?<p className={styles.empty}>{orders.length?'Aucun paiement dans cette catégorie.':'Aucun paiement enregistré. Une redirection vers un prestataire n’est jamais considérée comme une preuve de paiement.'}</p>:<div className={styles.tableWrap}><table className={styles.paymentTable}><thead><tr><th>Date</th><th>Commande</th><th>Montant</th><th>Statut</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{visible.map(order=>{const product=readProduct(order.product);return <tr key={order.id}><td>{compactDate(order.created_at)}</td><td><strong>{productTitle(product)}</strong><span>{product.kind==='topup'?'Recharge de crédits':product.kind==='subscription'?(product.cycle==='annual'?'Annuel':'30 jours'):'Commande Aïra'}</span></td><td><strong>{money(order.amount,order.currency||'XAF')}</strong></td><td><span className={styles.orderStatus+(order.status==='fulfilled'?' '+styles.orderPaid:'')+(['failed','expired'].includes(order.status)?' '+styles.orderFailed:'')}>{statusNames[order.status]||order.status}</span></td><td className={styles.orderActions}>{['pending','verified','needs_reconciliation'].includes(order.status)&&<button className="button secondary" disabled={busy} onClick={()=>onVerify(order.id)}>Vérifier</button>}{order.status==='fulfilled'&&<button className="button secondary" onClick={()=>onStartRefund(order.id)}>Demander un remboursement</button>}</td></tr>;})}</tbody></table></div>}
@@ -119,4 +114,4 @@ export function TeamView({org,available,reserved,spaceName,setSpaceName,email,se
 }
 
 function readProduct(value:Order['product']):Record<string,unknown>{if(typeof value==='string'){try{const parsed=JSON.parse(value);return parsed&&typeof parsed==='object'?parsed:{kind:'unknown'};}catch{return {kind:'unknown'};}}return value||{kind:'unknown'};}
-function productTitle(product:Record<string,unknown>){if(product.kind==='topup')return 'Recharge · '+formatNumber(Number(product.quantity)||0)+' crédits';if(product.kind==='subscription')return 'Forfait '+(product.plan==='business'?'Business':'Pro');if(product.kind==='upgrade')return 'Passage à Business';return 'Commande Aïra';}
+function productTitle(product:Record<string,unknown>){if(product.kind==='topup')return 'Recharge · '+formatNumber(Number(product.quantity)||0)+' crédits';if(product.kind==='subscription')return 'Forfait '+planName(product.plan);if(product.kind==='upgrade')return 'Passage à '+planName(product.plan||'business');return 'Commande Aïra';}

@@ -22,6 +22,12 @@
 .page :global(.billing-review) h2{font-size:34px;line-height:40px;font-weight:600;letter-spacing:-.02em;color:var(--ds-text)}
 .page :global(.billing-review)>p,.page :global(.billing-review) ul{color:var(--ds-muted);font-size:14px;line-height:20px}
 .page :global(.billing-total){font-size:40px;line-height:48px;font-weight:600;color:var(--ds-text)}
+.quoteBreakdown{display:grid;gap:12px;max-width:560px;margin:24px 0}
+.quoteBreakdown>div{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
+.quoteBreakdown dt{color:var(--ds-muted)}
+.quoteBreakdown dd{margin:0;text-align:right;color:var(--ds-text);font-variant-numeric:tabular-nums}
+.quoteBreakdown>div:last-child{padding-top:16px;border-top:1px solid var(--ds-line);font-weight:600;font-size:20px;line-height:28px}
+.quoteBreakdown>div:last-child dt{color:var(--ds-text)}
 .page :global(.button){border-radius:9999px;font:500 14px/20px var(--ds-font);transition:background var(--ds-fast,150ms) var(--ds-ease),filter var(--ds-fast,150ms) var(--ds-ease)}
 .page :global(.button.primary){border:0;background:var(--ds-action);color:var(--ds-action-text);box-shadow:none}
 .page :global(.button.secondary){border:0;background:var(--ds-fill);color:var(--ds-text);box-shadow:none}
@@ -53,7 +59,7 @@
 .cycleSwitch>button,.paymentFilters>button{min-height:32px;padding:4px 12px;border:0;border-radius:var(--ds-radius-pill);background:transparent;color:var(--ds-muted);font:500 12px/20px var(--ds-font);cursor:pointer;transition:background-color var(--ds-fast) var(--ds-ease),color var(--ds-fast) var(--ds-ease)}
 .cycleSwitch>button[aria-pressed=true],.paymentFilters>button[aria-pressed=true]{color:var(--ds-text);background:var(--ds-fill)}
 .cycleSwitch>button:hover,.paymentFilters>button:hover{background:var(--ds-hover);color:var(--ds-text)}
-.compactPlans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.compactPlans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .compactPlan{display:grid;min-width:0;gap:16px;padding:16px;border-radius:var(--ds-radius-md);background:var(--ds-fill)}
 .compactPlan>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .compactPlan h3{font-size:18px;line-height:26px}

@@ -28,21 +28,22 @@ test('measured margin counts all categories and rejects an offer below 75 percen
   assert.equal(assessMeasuredMargin(data).status, 'BLOCKED');
 });
 
-test('annual commitments consume twelve allocations, with no fake measured margin', () => {
-  const pro = salesCommitments().find(row => row.id === 'pro:annual');
-  assert.equal(pro.credits, 2400);
-  assert.equal(pro.serviceMonths, 12);
+test('new sales commitments contain period plans only, with no fake measured margin', () => {
+  const pro = salesCommitments().find(row => row.id === 'pro:period');
+  assert.equal(salesCommitments().some(row=>row.id.endsWith(':annual')),false);
+  assert.equal(pro.credits, 250);
+  assert.equal(pro.serviceMonths, 1);
   assert.equal(designHeadroom(pro).status, 'BLOCKED');
   const scenario = designHeadroom(pro, {paymentFeeBps: 500, taxBps: 0});
   assert.equal(scenario.status, 'SCENARIO_ONLY');
-  assert.equal(scenario.remainingVariableCostBudgetXaf, 10200);
+  assert.equal(scenario.remainingVariableCostBudgetXaf, 980);
   assert.equal(scenario.margin, undefined);
 });
 
 test('a negative scenario headroom is preserved and all sales packs are included', () => {
   const commitments = salesCommitments();
-  assert.equal(commitments.length, 12);
-  assert.equal(commitments.find(row => row.id === 'topup:10000').grossXaf, 432000);
+  assert.equal(commitments.length, 6);
+  assert.deepEqual(commitments.filter(row=>row.id.startsWith('topup:')).map(row=>[row.credits,row.grossXaf]),[[50,2500],[125,5000],[300,10000]]);
   assert(designHeadroom({id:'test',grossXaf:100,credits:100}, {paymentFeeBps:0,taxBps:0}).remainingVariableCostBudgetXaf < 0);
   for (const invalid of [NaN, Infinity, -1, 10001]) {
     assert.equal(designHeadroom(commitments[0], {paymentFeeBps:invalid,taxBps:0}).status, 'BLOCKED');

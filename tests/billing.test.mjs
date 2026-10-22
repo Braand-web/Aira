@@ -3,12 +3,27 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import {createHmac} from 'node:crypto';
-import {topupPrice,PACKS,periods,anniversary,marginCheck,product,upgradeQuote,usageUnits,verifyWebhook,roleAllows,decimalXaf} from '../lib/billing-core.mjs';
-test('Fixed packs and custom tiers use identical, monotonic integer XAF pricing',()=>{
- assert.deepEqual(PACKS.map(topupPrice),[2500,5000,11750,23000,45000,109500,217000]);
- assert.equal(topupPrice(150),7250);assert.equal(topupPrice(10000),432000);
- let previous=0;for(let n=50;n<=10000;n++){const p=topupPrice(n);assert(Number.isInteger(p)&&p>previous);previous=p;}
- for(const value of [-1,0,49,50.5,10001,NaN,Infinity,'100'])assert.throws(()=>topupPrice(value));
+import {topupPrice,PLANS,LEGACY_PLANS,PACKS,periods,anniversary,marginCheck,product,upgradeQuote,usageUnits,verifyWebhook,roleAllows,decimalXaf,taxRule,quoteTax,validateQuoteTax} from '../lib/billing-core.mjs';
+test('Only the three approved packs can be sold at exact integer XAF prices',()=>{
+ assert.deepEqual(PACKS,[50,125,300]);assert.deepEqual(PACKS.map(topupPrice),[2500,5000,10000]);
+ for(const value of [-1,0,49,50.5,100,150,250,1000,10000,10001,NaN,Infinity,'125'])assert.throws(()=>topupPrice(value));
+ for(const [plan,amount,credits] of [['essential',4900,100],['pro',9900,250],['business',24900,600]]){
+  assert.deepEqual([product({kind:'subscription',plan,cycle:'period'}).amount,PLANS[plan].credits],[amount,credits]);
+  assert.throws(()=>product({kind:'subscription',plan,cycle:'annual'}),error=>error.code==='annual_unavailable');
+ }
+});
+const taxConfig={mode:'exclusive',rateBps:1925,jurisdiction:'fixture:CM-applicable-rule',version:'fixture-tax-v1',validatedAt:'2026-10-22'};
+test('Taxes require an explicit validated rule, round once in XAF, and bind the complete quote',()=>{
+ for(const invalid of [null,{}, {...taxConfig,mode:'automatic'},{...taxConfig,rateBps:NaN},{...taxConfig,rateBps:19.25},{...taxConfig,jurisdiction:''},{...taxConfig,validatedAt:'unknown'}])assert.throws(()=>taxRule(invalid,true));
+ assert.throws(()=>taxRule(taxConfig,false),error=>error.code==='tax_not_ready');
+ const exclusive=quoteTax(4900,taxConfig);assert.deepEqual([exclusive.subtotal,exclusive.tax,exclusive.total],[4900,943,5843]);
+ const inclusive=quoteTax(4900,{...taxConfig,mode:'inclusive'});assert.deepEqual([inclusive.subtotal,inclusive.tax,inclusive.total],[4109,791,4900]);
+ assert.equal(quoteTax(1,{...taxConfig,rateBps:5000}).tax,1);
+ assert.equal(quoteTax(4900,{...taxConfig,rateBps:0}).tax,0);
+ assert.doesNotThrow(()=>validateQuoteTax(exclusive,taxConfig));
+ for(const changed of [{...exclusive,amount:1},{...exclusive,total:1},{...exclusive,subtotal:1},{...exclusive,tax:0},{...exclusive,taxJurisdiction:'other'},{...exclusive,taxConfigVersion:'other'}])assert.throws(()=>validateQuoteTax(changed,taxConfig),error=>error.code==='quote_tax_changed');
+ assert.throws(()=>validateQuoteTax(exclusive,{...taxConfig,rateBps:0}));
+ assert.equal(marginCheck({...product({kind:'subscription',plan:'essential',cycle:'period'}),...exclusive},{taxBps:0,feeBps:0,feeFixed:0,unitCost:4,monthlyServiceCost:0,riskBps:0}).eligible,false);
 });
 test('Annual calendar anchors survive February, leap years and month-end',()=>{
  const start=Date.parse('2024-01-31T14:05:00Z'),p=periods(start,'annual',200);
@@ -20,7 +35,7 @@ test('Annual calendar anchors survive February, leap years and month-end',()=>{
  assert.equal(periods(start,'period',200)[0].end-start,30*86400000);
 });
 test('Margin gate includes all annual credits, tax and payment fees',()=>{
- const p=product({kind:'subscription',plan:'pro',cycle:'annual'});
+ const p={kind:'subscription',plan:'pro',cycle:'annual',amount:LEGACY_PLANS.pro.annualPrice,credits:LEGACY_PLANS.pro.credits};
  assert.equal(marginCheck(p,{}).eligible,false);
  const e={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
  const r=marginCheck(p,e);assert.equal(r.fullConsumptionCredits,2400);assert(r.margin>=.75);
@@ -29,10 +44,12 @@ test('Margin gate includes all annual credits, tax and payment fees',()=>{
 });
 test('Upgrade prorates price and credit difference, never grants a second full quota',()=>{
  const start=Date.parse('2026-01-01Z'),sub={plan:'pro',cycle:'period',start_at:start,end_at:start+30*86400000};
- const q=upgradeQuote(sub,start+15*86400000);assert.equal(q.amount,10000);assert.equal(q.units,20000);assert.equal(q.periodEnd,sub.end_at);
+ const q=upgradeQuote(sub,start+15*86400000);assert.equal(q.amount,7500);assert.equal(q.units,20000);assert.equal(q.periodEnd,sub.end_at);
+ const current=upgradeQuote(sub,start+15*86400000,PLANS.pro);assert.equal(current.units,17500);
+ const essential=upgradeQuote({...sub,plan:'essential'},start+15*86400000,PLANS.essential,'pro');assert.equal(essential.amount,2500);assert.equal(essential.units,7500);
  assert.throws(()=>upgradeQuote({...sub,plan:'business'},start));
  const tiny={kind:'upgrade',...upgradeQuote(sub,sub.end_at-3600000)},e={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
- assert.equal(tiny.amount,28);assert.equal(marginCheck(tiny,e).eligible,false);
+ assert.equal(tiny.amount,21);assert.equal(marginCheck(tiny,e).eligible,false);
 });
 test('Usage includes cache; malformed or partial provider amounts are rejected',()=>{
  const r=usageUnits({input_tokens:1000,output_tokens:200,cache_creation_input_tokens:300,cache_read_input_tokens:400},{input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1});

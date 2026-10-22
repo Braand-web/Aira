@@ -1,22 +1,37 @@
 import {z} from 'zod';
 import {db,config,uid,auditLog} from './server';
 import {AppError} from './core.mjs';
-import {PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,DAY,roleAllows} from './billing-core.mjs';
-import {checkoutResponseSchema,sessionResponseSchema,sessionListSchema,transactionResponseSchema,type BillingProduct,type CreditAllocationRow,type CreditHoldRow,type CreditLotSummary,type Economics,type InvoiceDocument,type InvoiceSeller,type OrderRow,type PaymentSession,type QuoteInput,type QuoteRow,type SubscriptionRow} from './billing-types';
+import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
+import {checkoutResponseSchema,sessionResponseSchema,sessionListSchema,transactionResponseSchema,type BillingProduct,type CreditAllocationRow,type CreditHoldRow,type CreditLotSummary,type Economics,type InvoiceDocument,type InvoiceSeller,type OrderRow,type PaymentSession,type QuoteInput,type QuoteRow,type SubscriptionRow,type TaxRule} from './billing-types';
 import type {ModelRate} from './model-protocol';
 
 export type BillingIdentity={tenant:string;organization:string;user:{userId:string;email:string;displayName:string};role:string};
 const s=(q:string,...values:(string|number|null)[])=>db().prepare(q).bind(...values);
-export async function currentSubscription(org:string,now=Date.now()) {return s("SELECT * FROM billing_subscriptions WHERE organization_id=? AND status='active' AND start_at<=? AND end_at>? ORDER BY start_at DESC LIMIT 1",org,now,now).first<SubscriptionRow>();}
+function commercialSubscription(row:SubscriptionRow|null){return row?{...row,plan:row.catalog_plan||row.plan}:null;}
+export async function currentSubscription(org:string,now=Date.now()) {return commercialSubscription(await s("SELECT * FROM billing_subscriptions WHERE organization_id=? AND status='active' AND start_at<=? AND end_at>? ORDER BY start_at DESC LIMIT 1",org,now,now).first<SubscriptionRow>());}
+export async function subscriptionTerms(sub:SubscriptionRow){
+ const order=await s('SELECT product FROM billing_orders WHERE id=? AND organization_id=?',sub.order_id,sub.organization_id).first<{product:string}>();
+ const historical=LEGACY_PLANS[sub.plan as keyof typeof LEGACY_PLANS]||PLANS[sub.plan];
+ let purchased:BillingProduct|undefined;try{purchased=order?JSON.parse(order.product) as BillingProduct:undefined;}catch{throw new AppError('Contrat de crédits illisible. Rapprochement requis.',409,'subscription_terms_unknown');}
+ const credits=sub.credit_allowance??(purchased?.kind==='subscription'?purchased.credits:historical.credits);
+ if(!Number.isSafeInteger(credits)||credits<0)throw new AppError('Contrat de crédits invalide.',409,'subscription_terms_unknown');
+ const amount=sub.contract_price??(purchased?.kind==='subscription'?(purchased.baseAmount??purchased.amount):undefined);
+ return {credits,periodPrice:sub.cycle==='period'&&amount!==undefined?amount:historical.periodPrice,annualPrice:sub.cycle==='annual'&&amount!==undefined?amount:historical.annualPrice};
+}
 export async function subscriptionVersion(org:string){const rows=await s("SELECT id,version,start_at,end_at,status FROM billing_subscriptions WHERE organization_id=? ORDER BY id",org).all<Pick<SubscriptionRow,'id'|'version'|'start_at'|'end_at'|'status'>>();return JSON.stringify(rows.results);}
 export function economics(plan:string='pro'):Economics{
- try{const all=JSON.parse(config().BILLING_ECONOMICS_JSON||'{}') as Record<string,Economics>;return all[plan]||all.pro||{};}catch{return {};}
+ try{const all=JSON.parse(config().BILLING_ECONOMICS_JSON||'{}') as Record<string,Economics>;return all[plan]||{};}catch{return {};}
 }
+export function billingTaxRule():TaxRule{let raw:unknown;try{raw=JSON.parse(config().BILLING_TAX_JSON||'null');}catch{throw new AppError('Configuration fiscale invalide.',503,'tax_not_ready');}return taxRule(raw,config().BILLING_TAX_VALIDATED==='true') as TaxRule;}
+function taxStatus(){try{return {configured:true,...billingTaxRule()};}catch{return {configured:false};}}
+const invoiceSellerSchema=z.object({name:z.string().trim().min(2).max(200),address:z.string().trim().min(5).max(500),taxId:z.string().trim().min(3).max(100),email:z.string().email().max(254)});
+export function billingLegalSeller(){try{return invoiceSellerSchema.parse(JSON.parse(config().BILLING_LEGAL_JSON||'null'));}catch{throw new AppError('Complétez et validez l’identité légale de facturation avant tout paiement.',503,'billing_legal_not_ready');}}
+function legalReady(){try{billingLegalSeller();return true;}catch{return false;}}
 export function releaseReadiness(){
  const c=config();const checks=[
   ['payment',!!c.SASPAY_SECRET_KEY&&!!c.SASPAY_MERCHANT_ID&&!!c.SASPAY_WEBHOOK_SECRET],
   ['xafCheckout',c.BILLING_XAF_CHECKOUT_VALIDATED==='true'],
-  ['fiscal',!!c.BILLING_LEGAL_JSON&&c.BILLING_TAX_VALIDATED==='true'],
+  ['fiscal',legalReady()&&taxStatus().configured],
   ['benchmarks',c.BILLING_BENCHMARKS_VALIDATED==='true'],
   ['scheduler',c.BILLING_SCHEDULER_VERIFIED==='true'&&!!c.SCHEDULER_SECRET],
   ['providerTests',c.BILLING_PROVIDER_TESTS_PASSED==='true'],
@@ -29,14 +44,14 @@ export function releaseReadiness(){
  ] as const;
  return {enabled:checks.every(([,ok])=>ok),checks:Object.fromEntries(checks),environment:c.SASPAY_ENV==='live'?'live':'sandbox'};
 }
-export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:{min:50,max:10000},readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
+export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,tax:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
 export function requireBilling(who:BillingIdentity){if(!roleAllows(who.role,'billing'))throw new AppError('Seul le propriétaire peut gérer les paiements.',403);}
 export async function activeRights(org:string){const sub=await currentSubscription(org);return {subscription:sub,plan:sub?.plan||'free',limits:sub?PLANS[sub.plan as keyof typeof PLANS]:{members:1,spaces:1,projects:2,storage:256*1024**2,transfer:1024**3,concurrency:1}};}
 
 // Stable IDs and INSERT OR IGNORE make allocation catch-up safe after crashes.
 export async function allocateDue(org:string,now=Date.now()){
  const subs=await s("SELECT * FROM billing_subscriptions WHERE organization_id=? AND status='active' AND start_at<=?",org,now).all<SubscriptionRow>();
- for(const sub of subs.results){if(await s("SELECT id FROM billing_refunds WHERE order_id=? AND status IN ('requested','processing','confirmed')",sub.order_id).first())continue;for(const p of periods(sub.start_at,sub.cycle,PLANS[sub.plan as keyof typeof PLANS].credits)){
+ for(const row of subs.results){const sub=commercialSubscription(row)!;if(await s("SELECT id FROM billing_refunds WHERE order_id=? AND status IN ('requested','processing','confirmed')",sub.order_id).first())continue;const terms=await subscriptionTerms(sub);for(const p of periods(sub.start_at,sub.cycle,terms.credits)){
   if(p.start>now)continue;
   const id=`allocation:${sub.id}:${p.index}`;
   await s('INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) VALUES (?,?,?,?,?,?,?,?,?)',id,org,'subscription',sub.order_id,p.units,p.units,p.start,p.end,now).run();
@@ -68,9 +83,10 @@ export async function summary(org:string){
  s('SELECT id,number,created_at FROM billing_invoices WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all(),
  s('SELECT id,number,created_at FROM billing_credit_notes WHERE organization_id=? ORDER BY created_at DESC LIMIT 50',org).all()
  ]);
- const allocation=subscription?periods(subscription.start_at,subscription.cycle,PLANS[subscription.plan as keyof typeof PLANS].credits).find(p=>p.start<=now&&p.end>now):undefined;
+ const terms=subscription?await subscriptionTerms(subscription):null;
+ const allocation=subscription?periods(subscription.start_at,subscription.cycle,terms!.credits).find(p=>p.start<=now&&p.end>now):undefined;
  const meters=await s("SELECT COALESCE(SUM(CASE WHEN kind='storage' THEN quantity ELSE 0 END),0) storage,COALESCE(SUM(CASE WHEN kind='transfer' AND created_at>=? THEN quantity ELSE 0 END),0) transfer FROM billing_meter WHERE organization_id=?",now-30*DAY,org).first<{storage:number;transfer:number}>();
- return {wallet:{available:wallet!.available/100,reserved:wallet!.reserved/100,granted:wallet!.granted/100},creditAllowance:subscription?PLANS[subscription.plan as keyof typeof PLANS]?.credits||0:0,lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness(),asOf:now};
+ return {wallet:{available:wallet!.available/100,reserved:wallet!.reserved/100,granted:wallet!.granted/100},creditAllowance:terms?.credits||0,lots:lots.results,subscription,nextAllocation:allocation&&allocation.end<subscription!.end_at?allocation.end:null,meters,orders:orders.results,notifications:notifications.results,invoices:invoices.results,creditNotes:creditNotes.results,readiness:releaseReadiness(),asOf:now};
 }
 export async function reserve(who:BillingIdentity,reference:string,units:number){
  if(!Number.isSafeInteger(units)||units<=0)throw new AppError('Plafond de crédits invalide.');
@@ -95,8 +111,11 @@ export async function makeQuote(who:BillingIdentity,input:QuoteInput){
  if(input.kind==='upgrade'){
   await allocateDue(who.organization);
   const sub=await currentSubscription(who.organization);if(!sub)throw new AppError('Abonnement actif requis.',409);
-  p={kind:'upgrade',plan:'business',cycle:sub.cycle,...upgradeQuote(sub,now),subscriptionId:sub.id,subscriptionRevision:sub.version,currency:'XAF',version:CATALOG_VERSION,credits:0};
+  const target=input.plan||'business';
+  const adjustment=upgradeQuote(sub,now,await subscriptionTerms(sub),target),next=sub.cycle==='annual'?LEGACY_PLANS[target as keyof typeof LEGACY_PLANS]:PLANS[target];
+  p={kind:'upgrade',plan:target,cycle:sub.cycle,...adjustment,targetCredits:next.credits,targetContractPrice:(sub.cycle==='annual'?next.annualPrice:next.periodPrice)!,subscriptionId:sub.id,subscriptionRevision:sub.version,currency:'XAF',version:CATALOG_VERSION,credits:0};
  }else p=product(input) as BillingProduct;
+ p={...p,...quoteTax(p.amount,billingTaxRule()),invoiceSeller:billingLegalSeller()} as BillingProduct;
  const economicsResult=marginCheck(p,economics(p.plan));
  const id=uid(),body={...p,economics:economicsResult};
  await s('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)',id,who.organization,who.user.userId,JSON.stringify(body),p.amount,CATALOG_VERSION,version,now,now+900000).run();
@@ -117,7 +136,11 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
  const q=await s('SELECT * FROM billing_quotes WHERE id=? AND organization_id=? AND actor=?',quoteId,who.organization,who.user.userId).first<QuoteRow>();
  if(!q||q.expires_at<=Date.now())throw new AppError('Ce devis a expiré. Demandez un nouveau récapitulatif.',409);
  if(q.subscription_version!==await subscriptionVersion(who.organization))throw new AppError('Votre abonnement a changé. Actualisez le devis.',409);
- const p=JSON.parse(q.product) as BillingProduct;if(!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez Business pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
+ const p=JSON.parse(q.product) as BillingProduct;
+ if(p.version!==CATALOG_VERSION||q.version!==CATALOG_VERSION)throw new AppError('Le catalogue a changé. Actualisez le devis.',409,'quote_catalog_changed');
+ validateQuoteTax(p,billingTaxRule());if(q.amount!==p.total||q.amount!==p.amount)throw new AppError('Montant du devis incohérent.',409,'quote_invalid');
+ if(JSON.stringify(p.invoiceSeller)!==JSON.stringify(billingLegalSeller()))throw new AppError('L’identité de facturation a changé. Actualisez le devis.',409,'quote_legal_changed');
+ if(!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez le forfait pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
  if(p.kind==='upgrade'&&(p.periodEnd<=Date.now()||p.subscriptionEnd<=Date.now()))throw new AppError('Ce devis de changement a expiré. Actualisez votre demande.',409);
  const id=uid(),now=Date.now();
  try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'initializing',?,?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now,config().SASPAY_ENV==='live'?'live':'sandbox').run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<OrderRow>();if(same)return orderView(same);throw error;}
@@ -174,14 +197,16 @@ export async function reconcileOrder(id:string){
  }else if(p.kind==='subscription'){
   const last=await s("SELECT MAX(end_at) end_at FROM billing_subscriptions WHERE organization_id=? AND status='active'",order.organization_id).first<{end_at:number|null}>();
   const start=Math.max(now,last?.end_at||0),schedule=periods(start,p.cycle,p.credits);
-  statements.push(s("INSERT OR IGNORE INTO billing_subscriptions(id,organization_id,plan,cycle,start_at,end_at,order_id) SELECT ?,organization_id,?,?,?,?,id FROM billing_orders WHERE id=? AND status='verified'",'sub:'+id,p.plan,p.cycle,start,schedule.at(-1)!.end,id));
+  statements.push(s("INSERT OR IGNORE INTO billing_subscriptions(id,organization_id,plan,catalog_plan,credit_allowance,catalog_version,contract_price,cycle,start_at,end_at,order_id) SELECT ?,organization_id,?,?,?,?,?,?,?,?,id FROM billing_orders WHERE id=? AND status='verified'",'sub:'+id,p.plan==='essential'?'pro':p.plan,p.plan,p.credits,p.version,p.baseAmount??p.amount,p.cycle,start,schedule.at(-1)!.end,id));
  }else if(p.kind==='upgrade'){
   await allocateDue(order.organization_id,now);
-  statements.push(s("UPDATE billing_subscriptions SET plan='business',version=version+1 WHERE id=? AND version=? AND EXISTS(SELECT 1 FROM billing_orders WHERE id=? AND status='verified')",p.subscriptionId,p.subscriptionRevision,id));
+  const next=p.cycle==='annual'||p.version==='2026-10-16.1'?LEGACY_PLANS[p.plan as keyof typeof LEGACY_PLANS]:PLANS[p.plan],allowance=p.targetCredits??next.credits,contractPrice=p.targetContractPrice??(p.cycle==='annual'?next.annualPrice:next.periodPrice);
+  if(!Number.isSafeInteger(allowance)||allowance<0||!contractPrice||!Number.isSafeInteger(contractPrice))throw new AppError('Contrat de changement incomplet.',409,'subscription_terms_unknown');
+  statements.push(s("UPDATE billing_subscriptions SET plan=?,catalog_plan=?,credit_allowance=?,catalog_version=?,contract_price=?,version=version+1 WHERE id=? AND version=? AND EXISTS(SELECT 1 FROM billing_orders WHERE id=? AND status='verified')",p.plan,p.plan,allowance,p.version,contractPrice,p.subscriptionId,p.subscriptionRevision,id));
   statements.push(s("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT ?,organization_id,'upgrade',id,?,?,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'upgrade:'+id,p.units,p.units,now,p.periodEnd,now,id));
  }
- let legal:InvoiceSeller;try{legal=JSON.parse(config().BILLING_LEGAL_JSON||'{}') as InvoiceSeller;}catch{throw new AppError('Identité de facturation invalide.',503);}
- const invoice:InvoiceDocument={seller:legal,buyer:{email:session.customer_email,name:session.customer_name},product:p,total:order.amount,currency:'XAF',transaction:txid,taxBps:economics(p.plan).taxBps,issuedAt:now};
+ const legal:InvoiceSeller=p.invoiceSeller?invoiceSellerSchema.parse(p.invoiceSeller):billingLegalSeller();
+ const invoice:InvoiceDocument={seller:legal,buyer:{email:session.customer_email,name:session.customer_name},product:p,total:order.amount,subtotal:p.subtotal,tax:p.tax,taxJurisdiction:p.taxJurisdiction,currency:'XAF',transaction:txid,taxBps:p.taxRateBps??economics(p.plan).taxBps,issuedAt:now};
  statements.push(s("INSERT OR IGNORE INTO billing_invoices SELECT ?,organization_id,id,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'invoice:'+id,'AIR-'+new Date(now).getUTCFullYear()+'-'+id,JSON.stringify(invoice),now,id));
  statements.push(s("INSERT OR IGNORE INTO billing_audit SELECT ?,actor,organization_id,'payment.fulfilled',id,?,? FROM billing_orders WHERE id=? AND status='verified'",'fulfilled:'+id,JSON.stringify({transactionId:txid,amount:order.amount}),now,id));
  statements.push(s("UPDATE billing_orders SET status='fulfilled',updated_at=? WHERE id=? AND status='verified'",now,id));

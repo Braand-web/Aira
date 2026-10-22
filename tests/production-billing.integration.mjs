@@ -26,7 +26,7 @@ function seed(kind='topup',environment='sandbox'){
  const product=kind==='subscription'?{kind,plan:'pro',cycle:'annual',credits:200,amount,currency:'XAF'}:{kind,credits:100,amount,currency:'XAF'};
  sql.prepare('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)').run(id,owner.organization,'owner',JSON.stringify(product),amount,'fixture','[]',now,now+900000);
  sql.prepare("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'fulfilled',?,?,?,?,?)").run(id,owner.organization,id,'owner',id,amount,JSON.stringify(product),now,now,environment);
- sql.prepare('INSERT INTO billing_invoices VALUES (?,?,?,?,?,?)').run('invoice:'+id,owner.organization,id,'AIR-'+id,JSON.stringify({total:amount,currency:'XAF'}),now);
+ sql.prepare('INSERT INTO billing_invoices VALUES (?,?,?,?,?,?)').run('invoice:'+id,owner.organization,id,'AIR-'+id,JSON.stringify({total:amount,tax:0,taxBps:0,currency:'XAF'}),now);
  sql.prepare("INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES (?,?,?, ?,10000,10000,?,?)").run('lot:'+id,owner.organization,kind,id,now,now);
  if(kind==='subscription')sql.prepare("INSERT INTO billing_subscriptions(id,organization_id,plan,cycle,start_at,end_at,order_id) VALUES (?,?,'pro','annual',?,?,?)").run('sub:'+id,owner.organization,now,now+366*86400000,id);
  return {id,amount};
@@ -119,7 +119,7 @@ await check('Customer credit note downloads are scoped to the paying organizatio
  assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;/);assert.match(html,/DOCUMENT DE TEST/);
 });
 await check('Documented SasPay verify schema grants once; failed, abandoned, USD/card and wrong merchant never grant',async()=>{
- Object.assign(globalThis.__productionBilling.env,{SASPAY_SECRET_KEY:'sk_test_fixture_only',SASPAY_MERCHANT_ID:'merchant-fixture',SASPAY_ENV:'sandbox'});
+ Object.assign(globalThis.__productionBilling.env,{SASPAY_SECRET_KEY:'sk_test_fixture_only',SASPAY_MERCHANT_ID:'merchant-fixture',SASPAY_ENV:'sandbox',BILLING_LEGAL_JSON:JSON.stringify({name:'Test fixture',address:'Adresse fictive Douala',taxId:'TEST-NIU-000',email:'seller@example.test'}),BILLING_TAX_VALIDATED:'true',BILLING_TAX_JSON:JSON.stringify({mode:'exclusive',rateBps:0,jurisdiction:'fixture:CM-test-rule',version:'fixture-tax-v1',validatedAt:'2026-10-22'})});
  const sessions=new Map(),transactions=new Map(),paths=[];
  globalThis.fetch=async(url,init)=>{
   assert.notEqual(init?.method,'POST');const u=new URL(url);assert.equal(u.origin,'https://api.saspay.me');paths.push(u.pathname);
@@ -148,5 +148,19 @@ await check('Documented SasPay verify schema grants once; failed, abandoned, USD
   assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_invoices WHERE order_id=?').get(malformed.id).n,0);
   assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(malformed.id).status,'pending');
  }
+});
+await check('Two partial refunds conserve the exact original invoice tax and replay never duplicates the correction',async()=>{
+ // The immutable real invoice is inserted once for this dedicated test order.
+ const id=crypto.randomUUID(),now=Date.now(),amount=5843,product={kind:'topup',quantity:100,credits:100,amount,currency:'XAF',version:'fixture-tax'};
+ sql.prepare('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)').run(id,owner.organization,'owner',JSON.stringify(product),amount,'fixture','[]',now,now+900000);
+ sql.prepare("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'fulfilled',?,?,?,?,'sandbox')").run(id,owner.organization,id,'owner',id,amount,JSON.stringify(product),now,now);
+ sql.prepare('INSERT INTO billing_invoices VALUES (?,?,?,?,?,?)').run('tax-invoice:'+id,owner.organization,id,'AIR-TAX-'+id,JSON.stringify({total:5843,subtotal:4900,tax:943,taxBps:1925,currency:'XAF'}),now);
+ sql.prepare("INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES (?,?, 'topup',?,10000,10000,?,?)").run('tax-lot:'+id,owner.organization,id,now,now);
+ const refund=await billing.requestRefund(owner,id,'Test cumulative taxes for two partial refunds.'),first=await refunds.previewExternalRefund(finance,refund.id,2921),firstBody=body(first);
+ assert.equal(first.plan.tax,471);await refunds.confirmExternalRefund(finance,firstBody);await refunds.confirmExternalRefund(finance,firstBody);
+ const final=await refunds.previewExternalRefund(finance,refund.id,2922);assert.equal(final.plan.tax,472);await refunds.confirmExternalRefund(finance,body(final));
+ const result=sql.prepare('SELECT SUM(t.tax) tax,SUM(t.subtotal) subtotal,COUNT(*) count FROM billing_credit_note_taxes t JOIN billing_credit_notes n ON n.id=t.credit_note_id WHERE n.invoice_id=?').get('tax-invoice:'+id);assert.deepEqual({...result},{tax:943,subtotal:4900,count:2});
+ const note=sql.prepare('SELECT n.id,n.document,t.tax,t.subtotal FROM billing_credit_notes n JOIN billing_credit_note_taxes t ON t.credit_note_id=n.id WHERE n.invoice_id=? ORDER BY t.tax').get('tax-invoice:'+id);assert.match(notes.creditNoteHTML('TEST',{...JSON.parse(note.document),tax:note.tax,subtotal:note.subtotal}),/471 FCFA/);assert.throws(()=>sql.prepare('UPDATE billing_credit_note_taxes SET tax=0 WHERE credit_note_id=?').run(note.id),/immutable_credit_note_tax/);
+ const previousHeaders=globalThis.__productionBilling.headers;try{globalThis.__productionBilling.headers=new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'});const response=await route.GET(new Request('https://aira.test/api/billing/credit-notes/'+note.id),{params:Promise.resolve({path:['credit-notes',note.id]})});assert.equal(response.status,200);assert.match(await response.text(),/471 FCFA/);}finally{globalThis.__productionBilling.headers=previousHeaders;}
 });
 console.log(`${checks} production billing checks passed. No external request, payment or refund was made.`);sql.close();

@@ -1,15 +1,17 @@
 import {z} from 'zod';
 
-export type PlanName='pro'|'business';
+export type PlanName='essential'|'pro'|'business';
 export type BillingCycle='period'|'annual';
-export type QuoteInput={kind:'topup';quantity:number}|{kind:'subscription';plan:PlanName;cycle:BillingCycle}|{kind:'upgrade'};
-type ProductBase={amount:number;currency:string;version:string};
+export type QuoteInput={kind:'topup';quantity:number}|{kind:'subscription';plan:PlanName;cycle:BillingCycle}|{kind:'upgrade';plan?:PlanName};
+export type TaxRule={mode:'exclusive'|'inclusive';rateBps:number;jurisdiction:string;version:string;validatedAt:string};
+export type TaxQuote={baseAmount:number;subtotal:number;tax:number;total:number;taxMode:'exclusive'|'inclusive';taxRateBps:number;taxJurisdiction:string;taxConfigVersion:string;taxValidatedAt:string};
+type ProductBase={amount:number;currency:string;version:string;invoiceSeller?:InvoiceSeller}&Partial<TaxQuote>;
 export type BillingProduct=ProductBase & (
   {kind:'topup';quantity:number;credits:number;plan?:never;cycle?:never}|
   {kind:'subscription';plan:PlanName;cycle:BillingCycle;credits:number}|
-  {kind:'upgrade';plan:'business';cycle:BillingCycle;credits:0;units:number;periodEnd:number;subscriptionEnd:number;remainingCredits:number;serviceMonths:number;subscriptionId:string;subscriptionRevision:number}
+  {kind:'upgrade';plan:PlanName;cycle:BillingCycle;credits:0;units:number;periodEnd:number;subscriptionEnd:number;remainingCredits:number;serviceMonths:number;subscriptionId:string;subscriptionRevision:number;targetCredits?:number;targetContractPrice?:number}
 );
-export type SubscriptionRow={id:string;organization_id:string;plan:PlanName;cycle:BillingCycle;start_at:number;end_at:number;version:number;status:string;order_id:string};
+export type SubscriptionRow={id:string;organization_id:string;plan:PlanName;catalog_plan?:PlanName|null;credit_allowance?:number|null;catalog_version?:string|null;contract_price?:number|null;cycle:BillingCycle;start_at:number;end_at:number;version:number;status:string;order_id:string};
 export type QuoteRow={id:string;organization_id:string;actor:string;product:string;amount:number;version:string;subscription_version:string;created_at:number;expires_at:number};
 export type OrderRow={id:string;organization_id:string;quote_id:string;actor:string;idempotency_key:string;status:string;amount:number;currency:string;product:string;session_id:string|null;checkout_url:string|null;transaction_id:string|null;verified:string|null;created_at:number;updated_at:number;payment_environment:'sandbox'|'live'|null;reconcile_attempts:number;next_reconcile_at:number;reconcile_lease_until:number};
 export type CreditHoldRow={id:string;organization_id:string;workspace_id:string;actor:string;reference:string;units:number;actual:number|null;status:string;created_at:number};
@@ -17,7 +19,7 @@ export type CreditAllocationRow={id:string;hold_id:string;lot_id:string;units:nu
 export type CreditLotSummary={id:string;source:string;granted:number;balance:number;reserved:number;starts_at:number;expires_at:number|null;frozen:number};
 export type Economics=Partial<{taxBps:number;feeBps:number;feeFixed:number;unitCost:number;monthlyServiceCost:number;riskBps:number}>;
 export type InvoiceSeller={name?:string;address?:string;taxId?:string;email?:string};
-export type InvoiceDocument={seller:InvoiceSeller;buyer:{name?:string;email?:string};product:BillingProduct;total:number;currency:string;transaction:string;taxBps?:number;issuedAt:number};
+export type InvoiceDocument={seller:InvoiceSeller;buyer:{name?:string;email?:string};product:BillingProduct;total:number;subtotal?:number;tax?:number;taxJurisdiction?:string;currency:string;transaction:string;taxBps?:number;issuedAt:number};
 
 // Only fields consumed by billing are interpreted; extra provider fields survive parsing.
 const amount=z.union([z.string(),z.number()]);

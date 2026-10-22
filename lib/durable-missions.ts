@@ -3,7 +3,7 @@ import {db,config,uid,getResource,createResource,authorize} from './server';
 import {missionSchema} from './contracts';
 import {AppError} from './core.mjs';
 import {startRunBudget,finishRunBudget,type RunBudget} from './metering';
-import type {BillingIdentity} from './billing';
+import {activeRights,type BillingIdentity} from './billing';
 import {missionUsageIsKnown,missionCostIsSettled} from './mission-policy.mjs';
 import {modelRateSchema} from './model-protocol';
 
@@ -17,6 +17,7 @@ const mandateSchema=z.object({version:z.number().int().positive(),approved:z.lit
 const planSchema=missionSchema.extend({maxCredits:z.number().int().min(1).max(1000),mode:z.literal('autonomous')});
 async function audit(who:BillingIdentity,action:string,target:string){await q('INSERT INTO audit(id,workspace_id,actor,action,target,detail,created_at) VALUES (?,?,?,?,?,?,?)',uid(),who.tenant,who.user.userId,action,target,'{}',Date.now()).run();}
 export function durableReadiness(){return {enabled:config().AUTONOMY_ENABLED==='true'&&config().AUTONOMY_SCHEDULER_VERIFIED==='true'&&!!config().SCHEDULER_SECRET,scope:'analysis_drafts_and_approved_connected_reads',externalWrites:'separate_approval_required'};}
+async function requireMissionPlan(organization:string){if(!['pro','business'].includes((await activeRights(organization)).plan))throw new AppError('Un forfait Pro ou Business actif est nécessaire pour une mission autonome.',403,'mission_plan_required');}
 type StepResult=Record<string,unknown>&{validation?:{status?:string;digest?:string}};
 function stepResult(step:DurableStep):StepResult{try{const value:unknown=JSON.parse(step.result||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value as StepResult:{};}catch{return {};}}
 const stepDecisionSchema=z.object({version:z.number().int().positive(),ordinal:z.number().int().nonnegative(),runId:z.string().min(1),digest:z.string().regex(/^[a-f0-9]{64}$/),approved:z.literal(true)}).strict();
@@ -102,7 +103,7 @@ export async function reviewMissionStep(who:BillingIdentity,id:string,action:'co
 }
 export async function activateMission(who:BillingIdentity,id:string,input:unknown){
  await rejectBrowserMission(who,id);
- await authorize(who.tenant,who.user.userId,'approve');if(!durableReadiness().enabled)throw new AppError('Le planificateur autonome n’est pas encore validé.',503,'autonomy_not_ready');
+ await authorize(who.tenant,who.user.userId,'approve');await requireMissionPlan(who.organization);if(!durableReadiness().enabled)throw new AppError('Le planificateur autonome n’est pas encore validé.',503,'autonomy_not_ready');
  const p=mandateSchema.parse(input),resource=await getResource(who.tenant,id),plan=planSchema.parse(resource.data),now=Date.now();
  if(p.maxCredits!==plan.maxCredits||p.stepCredits*plan.steps.length>p.maxCredits)throw new AppError('Le plafond par étape doit respecter le budget total approuvé.',400);
  if(p.expiresAt<=now||p.expiresAt>now+7*86400000)throw new AppError('Le mandat doit expirer dans les sept jours.',400);
@@ -122,6 +123,7 @@ export async function controlMission(who:BillingIdentity,id:string,action:'suspe
  await authorize(who.tenant,who.user.userId,action==='resume'?'approve':'write');const mission=await q('SELECT * FROM durable_missions WHERE id=? AND workspace_id=?',id,who.tenant).first<DurableMission>();if(!mission)throw new AppError('Mission introuvable.',404);
  if(['completed','cancelled'].includes(mission.status))throw new AppError('Cette mission est terminée.',409);
  if(action==='resume'){
+  await requireMissionPlan(who.organization);
   if(!durableReadiness().enabled||mission.expires_at<=Date.now())throw new AppError('Le mandat est expiré ou le planificateur indisponible.',409);
   const uncertain=await q("SELECT id FROM durable_steps WHERE mission_id=? AND status IN ('running','uncertain')",id).first();if(uncertain)throw new AppError('Une étape doit être rapprochée avant reprise. Aucun appel ne sera répété.',409,'mission_needs_reconciliation');
    if(await unvalidatedStep(id))throw new AppError('Vérifiez et validez le résultat de chaque étape avant de reprendre.',409,'mission_validation_required');
@@ -147,7 +149,7 @@ export async function runDurableTick(runner?:MissionRunner){
  for(const m of rows.results){
   const token=uid(),lock=await q("UPDATE durable_missions SET status='running',lease_token=?,lease_until=?,updated_at=? WHERE id=? AND status='queued' AND lease_until<=?",token,now+240000,now,m.id,now).run();if(!lock.meta.changes)continue;
   try{
-   await authorize(m.workspace_id,m.actor_id,'write');const resource=await getResource(m.workspace_id,m.id),mandate=planSchema.extend({expiresAt:z.number(),stepCredits:z.number().int().positive()}).parse(JSON.parse(m.mandate));
+   await authorize(m.workspace_id,m.actor_id,'write');await requireMissionPlan(m.organization_id);const resource=await getResource(m.workspace_id,m.id),mandate=planSchema.extend({expiresAt:z.number(),stepCredits:z.number().int().positive()}).parse(JSON.parse(m.mandate));
    if(['suspended','cancelled'].includes(resource.status)){await stopMission(m,resource.status,'intervention');continue;}
    if(resource.version!==m.approved_version||m.expires_at<=Date.now()){await stopMission(m,'waiting_user','mandate_expired');waiting++;continue;}
     if(await unvalidatedStep(m.id)){await stopMission(m,'waiting_user','validation');waiting++;continue;}
@@ -167,7 +169,7 @@ export async function runDurableTick(runner?:MissionRunner){
      const current=await q('SELECT status,expires_at FROM durable_missions WHERE id=? AND lease_token=?',m.id,token).first<{status:string;expires_at:number}>(),latest=await getResource(m.workspace_id,m.id);
      if(current?.status!=='running'||['cancelled','suspended'].includes(latest.status)){abort.abort();throw new AppError('Mission suspendue.',499,'cancelled');}
      if(!current||current.expires_at<=Date.now()||latest.version!==m.approved_version){abort.abort();throw new AppError('Le mandat a expiré ou le plan a changé. Aucune nouvelle étape ne sera exécutée.',409,'mandate_expired');}
-     await authorize(m.workspace_id,m.actor_id,'write');
+     await authorize(m.workspace_id,m.actor_id,'write');await requireMissionPlan(m.organization_id);
     };
     budget.beforeTool=assertMandate;
     const emit=async(type:string,data:unknown)=>{

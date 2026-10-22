@@ -34,15 +34,15 @@ export async function GET(request:Request,context:Context){try{
   return new Response(invoiceHTML(row.number,JSON.parse(row.document) as InvoiceDocument),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="facture-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
  }
  if(key==='credit-notes'&&path[1]){
-  requireBilling(who);const row=await db().prepare('SELECT number,document FROM billing_credit_notes WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<{number:string;document:string}>();if(!row)throw new AppError('Avoir introuvable.',404);
-  return new Response(creditNoteHTML(row.number,JSON.parse(row.document)),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="avoir-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
+  requireBilling(who);const row=await db().prepare('SELECT n.number,n.document,t.tax,t.subtotal FROM billing_credit_notes n LEFT JOIN billing_credit_note_taxes t ON t.credit_note_id=n.id WHERE n.id=? AND n.organization_id=?').bind(path[1],who.organization).first<{number:string;document:string;tax:number|null;subtotal:number|null}>();if(!row)throw new AppError('Avoir introuvable.',404);
+  return new Response(creditNoteHTML(row.number,{...JSON.parse(row.document),...(row.tax!==null?{tax:row.tax,subtotal:row.subtotal}:{})}),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="avoir-aira.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
  }
  throw new AppError('Route introuvable.',404);
  }catch(error){return failure(error);}}
 export async function POST(request:Request,context:Context){try{
  const who=await identity(request),{path}=await context.params,body=await request.json();
  if(path[0]==='quotes'){
-  const p=z.discriminatedUnion('kind',[z.object({kind:z.literal('topup'),quantity:z.number().int().min(50).max(10000)}),z.object({kind:z.literal('subscription'),plan:z.enum(['pro','business']),cycle:z.enum(['period','annual'])}),z.object({kind:z.literal('upgrade')})]).parse(body);
+  const p=z.discriminatedUnion('kind',[z.object({kind:z.literal('topup'),quantity:z.number().int().refine(value=>[50,125,300].includes(value))}),z.object({kind:z.literal('subscription'),plan:z.enum(['essential','pro','business']),cycle:z.enum(['period','annual'])}),z.object({kind:z.literal('upgrade'),plan:z.enum(['essential','pro','business']).optional()})]).parse(body);
   return Response.json(await makeQuote(who,p),{status:201});
  }
  if(path[0]==='checkout'){
@@ -53,8 +53,8 @@ export async function POST(request:Request,context:Context){try{
   const p=z.object({orderId:z.string().uuid(),reason:z.string().trim().min(10).max(2000)}).parse(body);return Response.json(await requestRefund(who,p.orderId,p.reason),{status:201});
  }
  if(path[0]==='plan-changes'){
-  const p=z.object({plan:z.enum(['pro','business']),cycle:z.enum(['period','annual']),immediate:z.boolean().default(false)}).parse(body);
-  return Response.json(await makeQuote(who,p.immediate?{kind:'upgrade'}:{kind:'subscription',plan:p.plan,cycle:p.cycle}));
+  const p=z.object({plan:z.enum(['essential','pro','business']),cycle:z.enum(['period','annual']),immediate:z.boolean().default(false)}).parse(body);
+  return Response.json(await makeQuote(who,p.immediate?{kind:'upgrade',plan:p.plan}:{kind:'subscription',plan:p.plan,cycle:p.cycle}));
  }
  if(path[0]==='organization'){
   const p=z.discriminatedUnion('action',[
