@@ -260,7 +260,7 @@ try{
   billingEnabled=true;await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();
   await settings.getByRole('button',{name:'Choisir Pro',exact:true}).click();await settings.getByRole('heading',{name:'Votre récapitulatif',exact:true}).waitFor();
   assert.deepEqual(quoteRequests,[{kind:'subscription',plan:'pro',cycle:'period'}]);assert.equal(checkoutCalls,0,'A quote must never open checkout before an explicit payment confirmation');
-  assert.equal(await settings.getByRole('button',{name:'Continuer vers SasPay',exact:true}).isDisabled(),true,'The launch gate stays enforced in embedded billing');
+  assert.equal(await settings.getByRole('button',{name:'Continuer vers le paiement',exact:true}).isDisabled(),true,'The launch gate stays enforced in embedded billing');
   billingEnabled=false;await settings.getByRole('button',{name:'Revenir',exact:true}).click();await billingNavigation.getByRole('button',{name:'Paiements',exact:true}).click();await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).click();await settings.getByText('Encaissements fermés',{exact:true}).waitFor();
   await capture({path:path.join(output,'design-billing-desktop.png'),fullPage:true});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
