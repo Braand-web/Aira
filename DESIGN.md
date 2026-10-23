@@ -12,3 +12,5 @@ Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px dé
 
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 
+Le cadrage dans le chat utilise une carte de 440 px maximum : une question active, contrôles natifs, compteur discret et actions en pied. Le dernier bouton prépare le brouillon ; les validations d’exécution restent explicites et distinctes. Les réponses libres, le focus clavier et la réduction du mouvement sont pris en charge.
+
