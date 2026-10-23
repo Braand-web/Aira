@@ -1,3 +1,14 @@
-import '../design-system.css';
-import BillingPanel from '../billing-panel';
-export default function Pricing(){return <main style={{height:'100dvh',display:'flex',flexDirection:'column'}}><BillingPanel/></main>;}
+import {redirect} from 'next/navigation';
+
+type PricingPageProps = {
+  searchParams: Promise<{billingOrder?: string | string[]}>;
+};
+
+export default async function Pricing({searchParams}: PricingPageProps) {
+  const {billingOrder} = await searchParams;
+  const query = new URLSearchParams({settings: 'billing'});
+  if (typeof billingOrder === 'string' && billingOrder) {
+    query.set('billingOrder', billingOrder);
+  }
+  redirect('/?' + query.toString());
+}
