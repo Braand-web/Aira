@@ -113,7 +113,27 @@ test("real chat handlers persist run metadata and user feedback in isolated SQLi
     assert.ok(messages.every(message => message.status === "complete" && message.feedback === null && message.sources.length === 1));
   });
 
-  const messageId = sql.prepare("SELECT id FROM messages WHERE workspace_id='owner' AND role='assistant' LIMIT 1").get().id;
+  await t.test("brief-only assistant messages hydrate paired questions without exposing tool blocks or foreign history", async () => {
+    const briefConversation = await server.createResource(who.tenant, "conversation", "Précisions de création", {}, "saved");
+    const questionnaire = {title:"Précisons votre demande",questions:[{id:"format",q:"Quel format souhaitez-vous ?",type:"radio",options:["Image","Vidéo"]}]};
+    const insert = (id, role, blocks) => sql.prepare("INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,?,?,?)").run(id, who.tenant, briefConversation.id, role, JSON.stringify(blocks), Date.now());
+    insert("brief-history-assistant", "assistant", [{type:"tool_use",id:"brief-question-call",name:"ask_brief_questions",input:questionnaire}]);
+    insert("brief-history-result", "user", [{type:"tool_result",tool_use_id:"brief-question-call",content:JSON.stringify({kind:"brief_questions",...questionnaire})}]);
+    insert("brief-failed-assistant", "assistant", [{type:"tool_use",id:"brief-failed-call",name:"ask_brief_questions",input:questionnaire}]);
+    insert("brief-failed-result", "user", [{type:"tool_result",tool_use_id:"brief-failed-call",content:JSON.stringify({kind:"brief_questions",...questionnaire}),is_error:true}]);
+    const result = await route.GET(request("GET", undefined, {}, `?conversationId=${briefConversation.id}`));
+    assert.equal(result.status,200);
+    const reloaded = (await result.json()).messages;
+    assert.equal(reloaded.length,1);
+    assert.equal(reloaded[0].id,"brief-history-assistant");
+    assert.deepEqual(reloaded[0].content,[]);
+    assert.deepEqual(reloaded[0].briefs,[{id:"brief-question-call",...questionnaire}]);
+    const foreign = await route.GET(request("GET",undefined,{},"?conversationId=legacy-conversation"));
+    assert.equal(foreign.status,404);
+    assert.doesNotMatch(JSON.stringify(reloaded),/tool_use|tool_result/);
+  });
+
+  const messageId = sql.prepare("SELECT id FROM messages WHERE workspace_id='owner' AND role='assistant' AND conversation_id=? LIMIT 1").get(conversation.id).id;
   await t.test("messages saved within the same millisecond retain insertion order", async () => {
     const tied = await server.createResource(who.tenant, "conversation", "Ordre des messages", {}, "saved");
     for (const [id, role] of [["z-first", "user"], ["a-second", "assistant"]]) sql.prepare("INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,?,?,?)").run(id, who.tenant, tied.id, role, JSON.stringify([{ type: "text", text: id }]), 123);

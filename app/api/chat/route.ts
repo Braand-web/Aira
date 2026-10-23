@@ -9,6 +9,7 @@ import {FILE_POLICY,safeFileDto} from '@/lib/file-policy.mjs';
 import type {FileRecord} from '@/lib/contracts';
 import {chatAttachmentBlocks} from '@/lib/chat-attachments.mjs';
 import {responseSources,responseStatus} from '@/lib/response-metadata.mjs';
+import {briefCardsFromHistory} from '@/lib/brief-questions';
 export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
@@ -42,8 +43,10 @@ export async function GET(request:Request){try{
  type StoredMessage={id:string;role:string;content:string;attachments:string;created_at:number;run_id:string|null;run_status:string|null;feedback:'up'|'down'|null};
  type MessageBlock={type:string;text?:string};
  const rows=await db().prepare("SELECT m.id,m.role,m.content,m.attachments,m.created_at,m.run_id,r.status run_status,f.feedback FROM messages m LEFT JOIN runs r ON r.id=m.run_id AND r.workspace_id=m.workspace_id LEFT JOIN response_feedback f ON f.message_id=m.id AND f.workspace_id=m.workspace_id AND f.user_id=? WHERE m.workspace_id=? AND m.conversation_id=? ORDER BY m.created_at,m.rowid").bind(user.userId,tenant,conversationId).all<StoredMessage>();
- const messages=await Promise.all(rows.results.map(async m=>{let ids:string[]=[];try{const value=JSON.parse(m.attachments||"[]") as unknown;if(Array.isArray(value))ids=value.filter((id):id is string=>typeof id==="string");}catch{}const attachments=await Promise.all(ids.map(async id=>{const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();return file?safeFileDto(file):{id,workspaceId:tenant,name:"Fichier indisponible",size:0,mime:"application/octet-stream",status:"unavailable",createdAt:0,updatedAt:0,deletedAt:null};}));const storedContent=JSON.parse(m.content) as MessageBlock[];return {id:m.id,role:m.role,created_at:m.created_at,runId:m.run_id,attachments,...(m.role==='assistant'?{status:responseStatus(m.run_id,m.run_status),sources:responseSources(storedContent),feedback:m.feedback}:{}),content:storedContent.filter(block=>block.type==="text"||block.type==="image").map(block=>block.type==="image"?{type:"text",text:"[Image jointe]"}:block)};}));
- return Response.json({messages:messages.filter(m=>m.content.length||m.attachments.length)});
+ const storedMessages=rows.results.map(message=>({role:message.role,content:JSON.parse(message.content) as unknown}));
+ const briefCards=briefCardsFromHistory(storedMessages);
+ const messages=await Promise.all(rows.results.map(async (m,index)=>{let ids:string[]=[];try{const value=JSON.parse(m.attachments||"[]") as unknown;if(Array.isArray(value))ids=value.filter((id):id is string=>typeof id==="string");}catch{}const attachments=await Promise.all(ids.map(async id=>{const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=?").bind(id,tenant).first<FileRecord>();return file?safeFileDto(file):{id,workspaceId:tenant,name:"Fichier indisponible",size:0,mime:"application/octet-stream",status:"unavailable",createdAt:0,updatedAt:0,deletedAt:null};}));const storedContent=storedMessages[index].content as MessageBlock[];return {id:m.id,role:m.role,created_at:m.created_at,runId:m.run_id,attachments,...(m.role==='assistant'?{status:responseStatus(m.run_id,m.run_status),sources:responseSources(storedContent),feedback:m.feedback,briefs:briefCards[index]}:{}),content:storedContent.filter(block=>block.type==="text"||block.type==="image").map(block=>block.type==="image"?{type:"text",text:"[Image jointe]"}:block)};}));
+ return Response.json({messages:messages.filter(m=>m.content.length||m.attachments.length||m.briefs?.length)});
  }catch(error){return failure(error);}}
 export async function PATCH(request:Request){try{
  const {tenant,user}=await identity(request);
