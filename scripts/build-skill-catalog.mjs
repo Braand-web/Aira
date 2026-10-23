@@ -8,12 +8,13 @@ import {fileURLToPath} from 'node:url';
 const project=path.resolve(fileURLToPath(new URL('../',import.meta.url)));
 const skills=path.join(project,'skills'),output=path.join(project,'lib','skills');
 // Do not compile locally edited prose under a pinned upstream attribution.
-// Both checks are offline and run only our source-verification code.
-for(const script of ['import-marketing-skills.mjs','import-design-skill.mjs']){
+// These checks are offline and run only our source-verification code.
+for(const script of ['import-marketing-skills.mjs','import-social-skills.mjs','import-design-skill.mjs']){
  execFileSync(process.execPath,[path.join(project,'scripts',script),'--verify'],{cwd:project,stdio:'pipe'});
 }
 const definitions=JSON.parse(await readFile(path.join(skills,'catalog.json'),'utf8'));
 const marketingManifest=JSON.parse(await readFile(path.join(skills,'vendor','marketing','manifest.json'),'utf8'));
+const socialManifest=JSON.parse(await readFile(path.join(skills,'vendor','social','manifest.json'),'utf8'));
 const designManifest=JSON.parse(await readFile(path.join(skills,'vendor','anthropic','frontend-design','manifest.json'),'utf8'));
 const generated=new Map();const index=[];const ids=new Set();
 for(const definition of definitions){
@@ -26,11 +27,12 @@ for(const definition of definitions){
  }
  const original=definition.license==='Aira-original';
  const marketing=definition.directory.startsWith('vendor/marketing/');
+ const social=definition.directory.startsWith('vendor/social/');
  const design=definition.directory==='vendor/anthropic/frontend-design';
- if(!original&&!marketing&&!design)throw Error('Unknown vendored skill source');
- if(marketing&&definition.license!=='MIT'||design&&definition.license!=='Apache-2.0')throw Error('Skill license disagrees with pinned source');
- const manifest=marketing?marketingManifest:designManifest;
- const sourcePrefix=marketing?path.relative(path.join(skills,'vendor','marketing'),directory).split(path.sep).join('/')+'/':'';
+ if(!original&&!marketing&&!social&&!design)throw Error('Unknown vendored skill source');
+ if((marketing||social)&&definition.license!=='MIT'||design&&definition.license!=='Apache-2.0')throw Error('Skill license disagrees with pinned source');
+ const manifest=marketing?marketingManifest:social?socialManifest:designManifest;
+ const sourcePrefix=marketing||social?path.relative(path.join(skills,'vendor',marketing?'marketing':'social'),directory).split(path.sep).join('/')+'/':'';
  const expectedFiles=original?null:new Map(manifest.files.map(file=>[file.path,file]));
  const entries={};
  async function collect(folder,inReferences=false){for(const item of await readdir(folder,{withFileTypes:true})){
@@ -53,7 +55,8 @@ for(const definition of definitions){
  await collect(directory);if(!entries['SKILL.md'])throw Error('Missing SKILL.md: '+definition.id);
  if(original&&(!definition.directory.startsWith('aira/')||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Original skill directory and name must match');
  const ordered=Object.fromEntries(Object.entries(entries).sort(([a],[b])=>a.localeCompare(b,'en')));
- const source=original?{origin:'Aïra',revision:'1.0.0'}:definition.directory.startsWith('vendor/marketing')?{origin:marketingManifest.source.repository,revision:marketingManifest.source.commit}:{origin:designManifest.repository,revision:designManifest.commit};
+ const provenance=manifest.source??manifest;
+ const source=original?{origin:'Aïra',revision:'1.0.0'}:{origin:provenance.repository,revision:provenance.commit};
  const version=original?'1.0.0':source.revision.slice(0,12);
  const references=Object.keys(ordered).filter(file=>file!=='SKILL.md');
  const metadata={id:definition.id,title:definition.title,description:definition.description,category:definition.category,license:definition.license,capability:definition.capability,version,source,references,digest:createHash('sha256').update(JSON.stringify(ordered)).digest('hex')};

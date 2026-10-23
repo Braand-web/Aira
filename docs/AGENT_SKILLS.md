@@ -1,6 +1,6 @@
 # Compétences internes des agents Aïra
 
-Aïra embarque 17 méthodes de travail consultables par ses agents : huit compétences marketing importées sous MIT, une compétence de conception frontend importée sous Apache-2.0, quatre compétences média originales et quatre compétences documentaires originales. Elles aident le modèle à choisir une méthode et à préparer un résultat. Elles n'ajoutent ni outils, ni permissions, ni accès à un compte ou à un fournisseur.
+Aïra embarque 25 méthodes de travail consultables par ses agents : treize compétences marketing et deux compétences sociales importées sous MIT, une compétence de conception frontend importée sous Apache-2.0, quatre compétences média originales, quatre compétences documentaires originales et une stratégie de croissance originale. Elles aident le modèle à choisir une méthode et à préparer un résultat. Elles n'ajoutent ni outils, ni permissions, ni accès à un compte ou à un fournisseur.
 
 Cette intégration appartient au SaaS Aïra. Elle n'installe rien dans Codex, ne dépend pas de son répertoire personnel de skills et ne constitue pas une équivalence parfaite avec les environnements d'origine.
 
@@ -8,7 +8,7 @@ Cette intégration appartient au SaaS Aïra. Elle n'installe rien dans Codex, ne
 
 La liste utilisée par le générateur est [skills/catalog.json](../skills/catalog.json). Chaque entrée définit un identifiant, un titre et une description Aïra, une catégorie, un répertoire, une provenance de licence et une indication de capacité. Cette indication décrit le périmètre attendu ; elle n'accorde pas le droit d'exécuter une action.
 
-Les huit méthodes marketing sont conservées sous `skills/vendor/marketing/` :
+Les treize méthodes marketing sont conservées sous `skills/vendor/marketing/` :
 
 - `product-marketing` : offre, cible, preuves, positionnement et contexte de marque.
 - `copywriting` : textes de vente et appels à l'action à partir des faits du client.
@@ -18,6 +18,20 @@ Les huit méthodes marketing sont conservées sous `skills/vendor/marketing/` :
 - `social` : planification et rédaction de contenus sociaux.
 - `seo-audit` : examen des éléments SEO fournis, avec distinction des vérifications encore nécessaires.
 - `analytics` : plan de mesure et analyse des indicateurs réellement accessibles.
+- `customer-research` : analyse de preuves client et préparation d'entretiens ou de questionnaires.
+- `offers` : proposition de valeur, contenu d'une offre et conditions appuyées par les faits de l'entreprise.
+- `ab-testing` : hypothèse, métrique, répartition et critères de décision d'une expérimentation.
+- `emails` : brouillons et spécifications de séquences de bienvenue, vente ou réactivation.
+- `onboarding` : parcours d'activation et premier résultat utile d'un nouveau client.
+
+Les deux méthodes sociales sont conservées sous `skills/vendor/social/` et appartiennent à la catégorie de recherche `marketing` :
+
+- `crisis-and-moderation` : qualification des critiques, réclamations et abus, réponses proposées et escalade humaine.
+- `cross-platform-repurposing` : déclinaison d'un contenu source selon les plateformes, en préservant ses faits et son sens.
+
+Ces méthodes préparent des analyses et des brouillons. Elles ne collectent pas automatiquement des contacts, n'envoient pas d'emails, ne publient pas de contenu et ne modèrent pas de compte. Les chemins de profils de marque et les outils externes cités dans les textes amont décrivent leurs environnements d'origine ; le contexte client d'Aïra vient de `search_workspace` et des données réellement disponibles.
+
+La méthode originale `aira-growth-strategy`, sous `skills/aira/marketing/`, identifie le goulot d'acquisition, de conversion, d'activation ou de rétention, choisit un canal prioritaire et prépare un test mesurable. Sa référence `references/marches-locaux.md` adapte la décision à la langue, la devise, la distribution, le paiement et le parcours constatés sur le marché du client. Aucun canal, ratio financier, seuil ou calendrier n'est une formule universelle. La [sélection des méthodes de croissance](GROWTH_SKILL_SELECTION.md) détaille ce lot, ses sources et les services différés.
 
 `frontend-design`, sous `skills/vendor/anthropic/frontend-design/`, apporte une méthode de direction visuelle et de hiérarchie pour des brouillons de page. Sa lecture ne fournit pas de shell, de navigateur, de moteur frontend ou de publication supplémentaire.
 
@@ -45,11 +59,13 @@ Ces quatre entrées portent `document_content_only`. Aucun moteur de création o
 
 ## Sources épinglées et licences
 
-Le snapshot marketing est décrit par [son manifest](../skills/vendor/marketing/manifest.json) : dépôt `coreyhaines31/marketingskills`, révision `e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b`, licence MIT. Les huit `SKILL.md`, leurs références Markdown sélectionnées et [la notice MIT](../skills/vendor/marketing/LICENSE) sont conservés avec leurs octets amont. Les scripts, guides d'intégration, installateurs, assets HTML et autres skills ne font pas partie de la sélection. Les liens vers des fichiers absents ou vers une branche amont évolutive ne sont pas des fichiers implicitement importés.
+Le snapshot marketing est décrit par [son manifest](../skills/vendor/marketing/manifest.json) : dépôt `coreyhaines31/marketingskills`, révision `e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b`, licence MIT. Les treize `SKILL.md`, leurs références Markdown sélectionnées et [la notice MIT](../skills/vendor/marketing/LICENSE) sont conservés avec leurs octets amont : 84 fichiers, soit 834 021 octets. Les scripts, guides d'intégration, installateurs, assets HTML et autres skills ne font pas partie de la sélection. Les liens vers des fichiers absents ou vers une branche amont évolutive ne sont pas des fichiers implicitement importés.
+
+Le snapshot social est décrit par [son manifest](../skills/vendor/social/manifest.json) : dépôt `social-media-skills/skills`, révision `f28cef2b7067ec64e79c9d85421c022c06659e03`, licence MIT. Deux `SKILL.md`, leurs huit références Markdown et [la notice MIT](../skills/vendor/social/LICENSE) sont conservés avec leurs octets amont : 11 fichiers, soit 40 784 octets. Les autres compétences citées, les outils WoopSocial ou Postiz et les guides d'intégration ne sont pas importés. Les prescriptions de pause, de réponse ou de modération restent des propositions tant qu'aucun outil Aïra disponible et autorisé ne les exécute.
 
 Le snapshot frontend est décrit par [son manifest](../skills/vendor/anthropic/frontend-design/manifest.json) : dépôt `anthropics/skills`, révision `dbd4588f9e1033efb41dad4bef2f7947c8993d44`, uniquement `skills/frontend-design/SKILL.md` et [sa licence Apache-2.0](../skills/vendor/anthropic/frontend-design/LICENSE.txt). Cette sélection et cette notice ne s'étendent pas à tous les répertoires du dépôt. Les compétences documentaires propriétaires amont, leurs prompts, scripts et assets sont exclus ; les quatre méthodes documentaires Aïra sont des textes originaux.
 
-Les méthodes originales portent `Aira-original` dans le catalogue et la version `1.0.0` dans la provenance générée. `Aira-original` est un repère de provenance du projet, pas une déclaration MIT ou Apache-2.0 ni une nouvelle licence publique. Ne pas attribuer les huit textes originaux à leurs sources d'inspiration.
+Les neuf méthodes originales portent `Aira-original` dans le catalogue et la version `1.0.0` dans la provenance générée. `Aira-original` est un repère de provenance du projet, pas une déclaration MIT ou Apache-2.0 ni une nouvelle licence publique. Ne pas attribuer ces textes originaux à leurs sources d'inspiration.
 
 La [sélection documentaire média](MEDIA_SOURCE_SELECTION.md) donne les décisions et révisions consultées :
 
@@ -90,6 +106,8 @@ Les plafonds de [lib/skills/policy.mjs](../lib/skills/policy.mjs) sont communs �
 
 Une méthode reste sous les règles système, le brief, les droits de l'utilisateur et les outils réellement exposés. Les commandes, chemins locaux, services, tarifs et installations cités dans un texte amont sont des données de référence, jamais des autorisations. Les agents ne lancent ni scripts amont, ni CLI genmedia, ni commandes shell ou requêtes fournisseur brutes à partir de ces textes.
 
+Les exemples, études de cas, seuils et calendriers amont ne sont pas des mesures du client ni des résultats d'Aïra. Les affirmations importantes demandent des preuves pertinentes et, si nécessaire, des sources primaires actuelles. Une compétence ne fournit pas un profil de marque local implicite, une instrumentation analytics, une attribution de ventes ni une expérience en cours.
+
 Les droits des modes et rôles restent ceux du runtime. Un spécialiste ne gagne aucun outil d'écriture, de dépense, de publication ou de délégation en lisant une méthode. En mode autonome, `search_skills` et `read_skill` sont autorisés mais la lecture d'un skill média n'ajoute pas `prepare_media` à la liste des outils permis. Les contrôles d'espace, d'identité, de budget et d'approbation existants demeurent applicables.
 
 Le contenu lu est transmis au modèle comme résultat interne. `publicSkillResult` réduit les événements SSE visibles par le client à des métadonnées de progression : pour une lecture, identifiant, titre, version, référence, nombre de caractères, indicateur de troncature et statut `method_loaded` ; pour une recherche, statut et nombre de résultats. Le corps, la liste des références et la provenance détaillée ne sont pas renvoyés dans ces événements.
@@ -106,6 +124,7 @@ Vérifications locales sans accès réseau :
 
 ```sh
 node scripts/import-marketing-skills.mjs --verify
+node scripts/import-social-skills.mjs --verify
 node scripts/import-design-skill.mjs --verify
 node scripts/build-skill-catalog.mjs --check
 ```
@@ -116,6 +135,7 @@ Pour réacquérir explicitement les mêmes snapshots depuis leurs sources résea
 
 ```sh
 node scripts/import-marketing-skills.mjs --import
+node scripts/import-social-skills.mjs --import
 node scripts/import-design-skill.mjs --import
 ```
 
@@ -135,11 +155,11 @@ Le générateur produit `lib/skills/catalog.generated.mjs` et un module `lib/ski
 Les contrôles ciblés suivants utilisent le préchargement hors ligne du projet :
 
 ```sh
-node --import ./tests/offline-network.mjs --test tests/skills.test.mjs tests/skills-design-import.test.mjs
+node --import ./tests/offline-network.mjs --test tests/skills.test.mjs tests/skills-social-import.test.mjs tests/skills-design-import.test.mjs
 node --import ./tests/offline-network.mjs tests/skills-agent.integration.mjs
 ```
 
-Ils couvrent la provenance et les règles de validation des snapshots, la découverte par métadonnées, les fragments, les références autorisées, les limites partagées, les droits des spécialistes et du mode autonome, les audits et les résultats SSE. La réacquisition réseau avec `--import` n'est pas exercée par ces tests hors ligne. L'intégration exécute les boucles réelles d'agents avec des réponses de modèle simulées et une base SQLite locale ; elle ne valide pas le raisonnement d'un modèle distant et n'appelle pas de fournisseur réel.
+Ils couvrent la provenance et les règles de validation des snapshots, les empreintes et chemins sociaux attendus, la découverte par métadonnées des huit nouvelles méthodes, les fragments, les références autorisées, les limites partagées, les droits des spécialistes et du mode autonome, les audits et les résultats SSE. La réacquisition réseau avec `--import` n'est pas exercée par ces tests hors ligne. L'intégration exécute les boucles réelles d'agents avec des réponses de modèle simulées et une base SQLite locale ; elle ne valide pas le raisonnement d'un modèle distant et n'appelle pas de fournisseur réel.
 
 Après une construction de production, contrôler aussi les fichiers effectivement émis :
 

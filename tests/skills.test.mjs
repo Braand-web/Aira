@@ -5,7 +5,7 @@ import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSk
 import {SKILL_POLICY} from '../lib/skills/policy.mjs';
 
 test('reviewed sources and generated lazy catalog reproduce the pinned local bytes',()=>{
- for(const [file,args]of [['import-marketing-skills.mjs',['--verify']],['import-design-skill.mjs',['--verify']],['build-skill-catalog.mjs',['--check']]])execFileSync(process.execPath,['scripts/'+file,...args],{cwd:new URL('../',import.meta.url),stdio:'pipe'});
+ for(const [file,args]of [['import-marketing-skills.mjs',['--verify']],['import-social-skills.mjs',['--verify']],['import-design-skill.mjs',['--verify']],['build-skill-catalog.mjs',['--check']]])execFileSync(process.execPath,['scripts/'+file,...args],{cwd:new URL('../',import.meta.url),stdio:'pipe'});
 });
 test('discovery is bounded metadata and actual method text is loaded only on explicit read',async()=>{
  const result=searchSkills({query:'rédaction vente'});assert.ok(result.skills.some(skill=>skill.id==='copywriting'));assert.ok(result.skills.length<=SKILL_POLICY.maxSearchResults);assert.equal('content' in result.skills[0],false);
@@ -34,4 +34,26 @@ test('browser events contain progress metadata, never imported prose or source i
 });
 test('document originals are readable and declare content-only execution capabilities',async()=>{
  for(const id of ['aira-docx','aira-pdf','aira-pptx','aira-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Aïra');assert.equal(method.version,'1.0.0');assert.ok(method.references.includes('references/controles.md'));}
+});
+
+test('growth and community requests discover focused methods without granting execution capabilities',async()=>{
+ const requests=[
+  ['entretiens besoins','customer-research'],
+  ['offre valeur conditions','offers'],
+  ['expériences métrique répartition','ab-testing'],
+  ['emails séquences','emails'],
+  ['activation premier résultat','onboarding'],
+  ['réclamations critique abus','crisis-and-moderation'],
+  ['déclinaison plateforme versions','cross-platform-repurposing'],
+  ['goulot croissance canal','aira-growth-strategy'],
+ ];
+ for(const [query,id] of requests){
+  const result=searchSkills({query,category:'marketing'});
+  assert.equal(result.skills[0]?.id,id,query);
+  const loaded=await readSkill({id},createSkillSession());
+  assert.ok(loaded.content.length>0);
+  assert.ok(['provided_data_analysis','text_draft','campaign_plan'].includes(loaded.capability));
+  assert.equal(loaded.provenance.origin,id==='aira-growth-strategy'?'Aïra':id==='crisis-and-moderation'||id==='cross-platform-repurposing'?'https://github.com/social-media-skills/skills':'https://github.com/coreyhaines31/marketingskills');
+  assert.equal(Object.hasOwn(publicSkillResult('read_skill',loaded),'content'),false);
+ }
 });

@@ -17,9 +17,14 @@
       "cro",
       "social",
       "seo-audit",
-      "analytics"
+      "analytics",
+      "customer-research",
+      "offers",
+      "ab-testing",
+      "emails",
+      "onboarding"
     ],
-    "policy": "Eight selected SKILL.md files and their local Markdown references, including directly linked companion references. Upstream bytes are unmodified.",
+    "policy": "13 selected SKILL.md files and their local Markdown references, including directly linked companion references. Upstream bytes are unmodified.",
     "excluded": [
       "Other skills",
       "Tools and integration guides",
@@ -33,9 +38,15 @@
     "Vendored prose is third-party reference data, not trusted instructions or authorization for tools, network access, account changes, spending, publication, or messaging.",
     "Upstream tool commands and installation examples are retained as text and must never be executed automatically.",
     "The optional ad-creative/assets/creative-review-template.html is intentionally excluded; build any review page independently.",
-    "Relative cross-skill links to competitor-profiling and customer-research are intentionally unresolved because those skills are outside this selection.",
+    "Cross-skill links and recommendations to competitor-profiling, pricing, launch, sales-enablement, signup, and other unselected skills are intentionally unresolved; customer-research is now included.",
     "The upstream ads/references/google-ads-audit-checklist.md links to conversion-tracking.md, which does not exist at that source path in the pinned Git tree.",
-    "Absolute links to upstream main, external services, tool guides, and related skills are not part of this pinned snapshot."
+    "Absolute links to upstream main, external services, tool guides, and related skills are not part of this pinned snapshot.",
+    "Filesystem workflow paths such as .agents/product-marketing.md describe the upstream environment. Aira uses its tenant-scoped workspace context and never grants filesystem access through these methods.",
+    "Customer research can analyze supplied evidence and prepare interview or survey materials. External collection and outreach require available tools and explicit authorization; the skill itself connects no accounts or data sources.",
+    "Offer design produces proposals only. Guarantees, prices, scarcity, testimonials, and results must be supported by the actual business; methods do not change billing or publish promises.",
+    "A/B testing and onboarding skills prepare plans and analyze available data. They do not install experimentation tools, assign traffic, collect events, or deploy interface changes.",
+    "Email skills prepare drafts and sequence specifications only. They do not send, schedule, subscribe, import contacts, or activate campaigns without a separately supported and authorized action.",
+    "Benchmarks and examples in upstream reference prose are contextual claims, not measured Aira results, current platform guarantees, or promised customer performance. Validate consequential claims against supplied evidence and current primary sources."
   ],
   "files": [
     {
@@ -46,6 +57,33 @@
       "gitBlobSha": "7c48dd638a9ebed49a8ef0c0c4eea90105381cdf",
       "sha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
       "bytes": 1069
+    },
+    {
+      "path": "ab-testing/SKILL.md",
+      "sourcePath": "skills/ab-testing/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ab-testing/SKILL.md",
+      "gitBlobSha": "2549315f9c0afb5acce59adadf526737858c55ef",
+      "sha256": "fba679be14a9b21a06cde009caf17a652b92040c6f78a520a5d4baec0a5bd5da",
+      "bytes": 12540
+    },
+    {
+      "path": "ab-testing/references/sample-size-guide.md",
+      "sourcePath": "skills/ab-testing/references/sample-size-guide.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ab-testing/references/sample-size-guide.md",
+      "gitBlobSha": "3b3cd07c4f9cd7e3ffcd8accc111c0d38da436e5",
+      "sha256": "8288381cc11f9e4821c0a6a5ec3eec73506832a189af45207dcc583c371f3e7b",
+      "bytes": 9050
+    },
+    {
+      "path": "ab-testing/references/test-templates.md",
+      "sourcePath": "skills/ab-testing/references/test-templates.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ab-testing/references/test-templates.md",
+      "gitBlobSha": "1c517d889a30dff6d21c71f2ee765e97ed4c56da",
+      "sha256": "761a40b9de8d16f18fa7f60b59e77aa749607ac8014af43e0b022f47fa87c812",
+      "bytes": 6473
     },
     {
       "path": "ad-creative/SKILL.md",
@@ -408,6 +446,186 @@
       "bytes": 10332
     },
     {
+      "path": "customer-research/SKILL.md",
+      "sourcePath": "skills/customer-research/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/customer-research/SKILL.md",
+      "gitBlobSha": "a00538447e9e75489dbf07378325dfa428ec46da",
+      "sha256": "905e65e67268448d88b3b96cf045c6b3615cdd87c1060e129b148a31aa627669",
+      "bytes": 15166
+    },
+    {
+      "path": "customer-research/references/interviews-and-surveys.md",
+      "sourcePath": "skills/customer-research/references/interviews-and-surveys.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/customer-research/references/interviews-and-surveys.md",
+      "gitBlobSha": "aade5bc6ed6c3f97c50bc03c1b00de8057021f9e",
+      "sha256": "56adecdc40af1242464937100349fc1a161627394909551720494bc5ee537076",
+      "bytes": 8640
+    },
+    {
+      "path": "customer-research/references/source-guides.md",
+      "sourcePath": "skills/customer-research/references/source-guides.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/customer-research/references/source-guides.md",
+      "gitBlobSha": "be6fb691d16b6cbdf9d474c9cf52c42104e7e542",
+      "sha256": "7490a8d04f209d4c8c987530e79d0883a6b42027b86a920fc751cf8ea9904892",
+      "bytes": 16240
+    },
+    {
+      "path": "emails/SKILL.md",
+      "sourcePath": "skills/emails/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/emails/SKILL.md",
+      "gitBlobSha": "e660baf4adf7430ff90bfbdeaf9a9ad101a2d2ed",
+      "sha256": "8709631cc21717d17db9bb7e787ea44768d77182daf9846de8718a2ae7433b91",
+      "bytes": 11548
+    },
+    {
+      "path": "emails/references/copy-guidelines.md",
+      "sourcePath": "skills/emails/references/copy-guidelines.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/emails/references/copy-guidelines.md",
+      "gitBlobSha": "6e31f2b5cc331ae6ffbe3127b52199bbaf05c14d",
+      "sha256": "02f08897e4aa99ecc4ec1893d61d0c26d0c5e62e09af26f175087455e9b68e01",
+      "bytes": 2332
+    },
+    {
+      "path": "emails/references/email-types.md",
+      "sourcePath": "skills/emails/references/email-types.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/emails/references/email-types.md",
+      "gitBlobSha": "dd6124051517e98d0550f7e35477b428ef5b81f6",
+      "sha256": "a5dd4f0555a7b21d2ff426948d15657825b9d16265652563f5e272d2e1879bfd",
+      "bytes": 14250
+    },
+    {
+      "path": "emails/references/sequence-templates.md",
+      "sourcePath": "skills/emails/references/sequence-templates.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/emails/references/sequence-templates.md",
+      "gitBlobSha": "6146dd36af0200ee35213091fc51dbc9bbf5750e",
+      "sha256": "f8f318f10e29abcd009cbee29e2bd178981d96c973099b508d30af6c10ab8d79",
+      "bytes": 3909
+    },
+    {
+      "path": "offers/SKILL.md",
+      "sourcePath": "skills/offers/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/SKILL.md",
+      "gitBlobSha": "e5230f3e67e298dc82b77abb247238882674eb63",
+      "sha256": "40f4fa702b982dbda83c2592e2546afe6d919e95384eedc0ac8b211c728e05b2",
+      "bytes": 10141
+    },
+    {
+      "path": "offers/references/bonus-stacking.md",
+      "sourcePath": "skills/offers/references/bonus-stacking.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/bonus-stacking.md",
+      "gitBlobSha": "17431d82fb9fef34eaa77ef51166450ce9aa777a",
+      "sha256": "872abbfd14501fd0b097f5ae62b9931571152d43b6690b57df5e65ab48aedfbd",
+      "bytes": 7758
+    },
+    {
+      "path": "offers/references/examples.md",
+      "sourcePath": "skills/offers/references/examples.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/examples.md",
+      "gitBlobSha": "3039a346bdeb7af9a75a62ce3129a30263db4959",
+      "sha256": "f1033e181845effe8c659800aaf68523686be6bdcb1c5e256c87008e8ea638af",
+      "bytes": 10203
+    },
+    {
+      "path": "offers/references/guarantee-design.md",
+      "sourcePath": "skills/offers/references/guarantee-design.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/guarantee-design.md",
+      "gitBlobSha": "8fdc95d75d659b85f01f566cc63f0a160c2317a3",
+      "sha256": "daa421558b664fe5a335c6cb764d47755799662c79606551a848bba864255c29",
+      "bytes": 8173
+    },
+    {
+      "path": "offers/references/offer-anatomy.md",
+      "sourcePath": "skills/offers/references/offer-anatomy.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/offer-anatomy.md",
+      "gitBlobSha": "cd06682ea995a44f704fb728412289c9ec5ef4d2",
+      "sha256": "0810080788bedc9b40dc0aba53109991aa816397f4b45e813289985eb8a64cad",
+      "bytes": 8857
+    },
+    {
+      "path": "offers/references/offer-formats.md",
+      "sourcePath": "skills/offers/references/offer-formats.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/offer-formats.md",
+      "gitBlobSha": "1ac9e67b1059cc51eadfcc05fd042a13dbf919f4",
+      "sha256": "667d87198dcd3b5892151d33a917919141bc718822a2a4add3e9c100891755bb",
+      "bytes": 10557
+    },
+    {
+      "path": "offers/references/saas-offers.md",
+      "sourcePath": "skills/offers/references/saas-offers.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/saas-offers.md",
+      "gitBlobSha": "78ea55c07469d2491051d00ebcaf8fbb93a7b707",
+      "sha256": "1b21638f0fd2e623f638c13f4b82e2d8c8ecb79d1324f0183f8322db5f5ceea3",
+      "bytes": 7869
+    },
+    {
+      "path": "offers/references/scarcity-urgency.md",
+      "sourcePath": "skills/offers/references/scarcity-urgency.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/scarcity-urgency.md",
+      "gitBlobSha": "a9dfb2dd89849f1901ad00cbb38140eb58ea0e27",
+      "sha256": "4abe51a54188e6c93feb6cface92abc5c8e03212b8ade5bd9366ed159ad3f8f8",
+      "bytes": 7106
+    },
+    {
+      "path": "offers/references/value-equation.md",
+      "sourcePath": "skills/offers/references/value-equation.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/offers/references/value-equation.md",
+      "gitBlobSha": "7795bb8f77bff7a639f5795e06c911c74defa749",
+      "sha256": "4610ff358be2be643e7783884e628f01e1e0c56915a7924e5ccb92c096121eff",
+      "bytes": 7883
+    },
+    {
+      "path": "onboarding/SKILL.md",
+      "sourcePath": "skills/onboarding/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/onboarding/SKILL.md",
+      "gitBlobSha": "4a1dd1fc50ef61c45d07e3f980655b8ed7b4245c",
+      "sha256": "61b808c85207e6567f39e5d6b7876fdad77b5f17f5811afcd8b28cfce6dcbe31",
+      "bytes": 11596
+    },
+    {
+      "path": "onboarding/references/activation-models.md",
+      "sourcePath": "skills/onboarding/references/activation-models.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/onboarding/references/activation-models.md",
+      "gitBlobSha": "cd3dcad8646b55a4f828d37f3831dd7759dbd23b",
+      "sha256": "e4d396e2dacfc19bfa33b8bfaaf8639e5a2c0b8a252bf52115ecd2561a2f35e4",
+      "bytes": 4089
+    },
+    {
+      "path": "onboarding/references/experiments.md",
+      "sourcePath": "skills/onboarding/references/experiments.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/onboarding/references/experiments.md",
+      "gitBlobSha": "5878ae71df61e44056419370b74e4f9b7b897546",
+      "sha256": "b4caad0b50ca9483a6a79846d0b24a7bab62850b45a3f2232d73f78629468932",
+      "bytes": 7796
+    },
+    {
+      "path": "onboarding/references/minimum-path-to-value.md",
+      "sourcePath": "skills/onboarding/references/minimum-path-to-value.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/onboarding/references/minimum-path-to-value.md",
+      "gitBlobSha": "1af868cc7bb9463909ad95ffae2211c0462979b3",
+      "sha256": "c2b7c71b8436a1456888a26b9c8892c33cd9e1b1bf758f6fd7282c00f87dcdc3",
+      "bytes": 3152
+    },
+    {
       "path": "product-marketing/SKILL.md",
       "sourcePath": "skills/product-marketing/SKILL.md",
       "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
@@ -589,7 +807,7 @@
     }
   ],
   "totals": {
-    "files": 61,
-    "bytes": 628693
+    "files": 84,
+    "bytes": 834021
   }
 }

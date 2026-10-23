@@ -43,18 +43,22 @@ const probes=[
  {label:'original media method',source:'skills/aira/media/aira-media-pipeline/SKILL.md',marker:'Une création média, un export, une publication et un lancement publicitaire sont des résultats distincts'},
  {label:'original motion design reference',source:'skills/aira/media/aira-video-direction/references/motion-design.md',marker:'Une direction minutée ne garantit pas une exécution exacte par un générateur vidéo.'},
  {label:'original document method',source:'skills/aira/documents/aira-xlsx/SKILL.md',marker:'Ne pas convertir automatiquement des dates ambiguës ni fusionner des libellés proches sans justification.'},
+ {label:'social moderation method',source:'skills/vendor/social/crisis-and-moderation/SKILL.md',marker:'a crisis is exactly when the agent must NOT act alone.'},
+ {label:'original growth strategy',source:'skills/aira/marketing/aira-growth-strategy/SKILL.md',marker:'Une hausse de trafic ne répare pas automatiquement une offre, une conversion ou une rétention faible.'},
 ];
 for(const probe of probes)assert.ok(readFileSync(path.join(project,probe.source),'utf8').includes(probe.marker),`Update the stale corpus probe: ${probe.label}`);
 const marketingManifest=JSON.parse(readFileSync(path.join(project,'skills/vendor/marketing/manifest.json'),'utf8'));
 const designManifest=JSON.parse(readFileSync(path.join(project,'skills/vendor/anthropic/frontend-design/manifest.json'),'utf8'));
-const provenanceMarkers=[marketingManifest.source.repository,marketingManifest.source.commit,designManifest.repository,designManifest.commit];
+const socialManifest=JSON.parse(readFileSync(path.join(project,'skills/vendor/social/manifest.json'),'utf8'));
+const provenanceMarkers=[marketingManifest.source.repository,marketingManifest.source.commit,designManifest.repository,designManifest.commit,socialManifest.source.repository,socialManifest.source.commit];
 for(const marker of provenanceMarkers)assert.ok(typeof marker==='string'&&marker.length>=32,'Missing full upstream provenance marker');
 const internalPaths=[
  /lib[\\/]+skills[\\/]+content[\\/]+/u,
  /lib[\\/]+skills[\\/]+catalog\.generated\.mjs/u,
  /skills[\\/]+vendor[\\/]+marketing[\\/]+/u,
+ /skills[\\/]+vendor[\\/]+social[\\/]+/u,
  /skills[\\/]+vendor[\\/]+anthropic[\\/]+frontend-design[\\/]+/u,
- /skills[\\/]+aira[\\/]+(?:media|documents)[\\/]+/u,
+ /skills[\\/]+aira[\\/]+(?:marketing|media|documents)[\\/]+/u,
 ];
 
 const clientFiles=files(clientRoot).filter(file=>/\.(?:m?js|map)$/u.test(file));
