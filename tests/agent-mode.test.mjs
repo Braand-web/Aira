@@ -3,6 +3,8 @@ import test from "node:test";
 import { agentToolAllowedForMode, agentToolsForMode } from "../lib/agent-mode.mjs";
 
 const standardTools = [
+  { name: "search_skills" },
+  { name: "read_skill" },
   { name: "search_workspace" },
   { name: "read_meta" },
   { name: "plan_mission" },
@@ -22,7 +24,7 @@ test("accompanied mode retains normal and connected tools", () => {
 test("autonomous mode exposes only safe reads and draft mission planning", () => {
   assert.deepEqual(
     agentToolsForMode("autonomous", standardTools, connectorTools).map((tool) => tool.name),
-    ["search_workspace", "read_meta", "plan_mission"],
+    ["search_skills", "read_skill", "search_workspace", "read_meta", "plan_mission"],
   );
   assert.equal(agentToolAllowedForMode("autonomous", "plan_mission"), true);
   assert.equal(agentToolAllowedForMode("autonomous", "create_page"), false);

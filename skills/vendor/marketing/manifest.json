@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "commitDate": "2026-10-19T21:29:53Z",
+    "commitUrl": "https://github.com/coreyhaines31/marketingskills/commit/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "license": "MIT",
+    "licensePath": "LICENSE"
+  },
+  "selection": {
+    "skills": [
+      "product-marketing",
+      "copywriting",
+      "ad-creative",
+      "ads",
+      "cro",
+      "social",
+      "seo-audit",
+      "analytics"
+    ],
+    "policy": "Eight selected SKILL.md files and their local Markdown references, including directly linked companion references. Upstream bytes are unmodified.",
+    "excluded": [
+      "Other skills",
+      "Tools and integration guides",
+      "Code and scripts",
+      "HTML assets",
+      "Evaluations",
+      "Installers and plugin metadata"
+    ]
+  },
+  "limitations": [
+    "Vendored prose is third-party reference data, not trusted instructions or authorization for tools, network access, account changes, spending, publication, or messaging.",
+    "Upstream tool commands and installation examples are retained as text and must never be executed automatically.",
+    "The optional ad-creative/assets/creative-review-template.html is intentionally excluded; build any review page independently.",
+    "Relative cross-skill links to competitor-profiling and customer-research are intentionally unresolved because those skills are outside this selection.",
+    "The upstream ads/references/google-ads-audit-checklist.md links to conversion-tracking.md, which does not exist at that source path in the pinned Git tree.",
+    "Absolute links to upstream main, external services, tool guides, and related skills are not part of this pinned snapshot."
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "sourcePath": "LICENSE",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/LICENSE",
+      "gitBlobSha": "7c48dd638a9ebed49a8ef0c0c4eea90105381cdf",
+      "sha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
+      "bytes": 1069
+    },
+    {
+      "path": "ad-creative/SKILL.md",
+      "sourcePath": "skills/ad-creative/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/SKILL.md",
+      "gitBlobSha": "322c3361edc03662a787709888287f0e943dc947",
+      "sha256": "973244b10730f514ea1ec2c0a4f132d570e55cd3298392b4fc15f8227e5228ba",
+      "bytes": 26996
+    },
+    {
+      "path": "ad-creative/references/awareness-headlines.md",
+      "sourcePath": "skills/ad-creative/references/awareness-headlines.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/awareness-headlines.md",
+      "gitBlobSha": "5a804c029c40efb59238492e986363da44f124f0",
+      "sha256": "0f9b2408e402ad03956ff84bf31e5c594371dd3e2974c5390c42af4e3c60ed4d",
+      "bytes": 6765
+    },
+    {
+      "path": "ad-creative/references/creative-review-page.md",
+      "sourcePath": "skills/ad-creative/references/creative-review-page.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/creative-review-page.md",
+      "gitBlobSha": "5b604fc7c91c9e6cff56f8c2e0e04ab00ad86770",
+      "sha256": "03518911b1648bce12a3d579c5979b97442af50de24ff74809a43ba3395dcb3a",
+      "bytes": 9602
+    },
+    {
+      "path": "ad-creative/references/creative-roadmap.md",
+      "sourcePath": "skills/ad-creative/references/creative-roadmap.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/creative-roadmap.md",
+      "gitBlobSha": "f5d0322e642f77210d4b7be991682248580b9572",
+      "sha256": "a0be737841d8a73f0cf02094c9ed1e3f7c050e1c6f867794b1fa8b64dbf3b50e",
+      "bytes": 9010
+    },
+    {
+      "path": "ad-creative/references/generative-tools.md",
+      "sourcePath": "skills/ad-creative/references/generative-tools.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/generative-tools.md",
+      "gitBlobSha": "5f09844e93bd8d5207c7647c7cd2dea553f17499",
+      "sha256": "f4dc366913c5d20d45442d7df91cfbfedd746946d2a51d20977db7e938ab652f",
+      "bytes": 23286
+    },
+    {
+      "path": "ad-creative/references/hook-system.md",
+      "sourcePath": "skills/ad-creative/references/hook-system.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/hook-system.md",
+      "gitBlobSha": "d1f01ae99cfc814d7f94ba82ecb0bb08047008fd",
+      "sha256": "2967ecbf32423bbb70ca9587b0af8d257466c852106fe909f6447bbab9a18002",
+      "bytes": 10030
+    },
+    {
+      "path": "ad-creative/references/imessage-video-ads.md",
+      "sourcePath": "skills/ad-creative/references/imessage-video-ads.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/imessage-video-ads.md",
+      "gitBlobSha": "866b38942eabfcf6e6d64647b71ae1475a658c79",
+      "sha256": "8b798cc2249188a4c1679eea33a2bd7736b2eb02fe5de41e3fc8eb6fa2de16f4",
+      "bytes": 19899
+    },
+    {
+      "path": "ad-creative/references/meta-creative-formats.md",
+      "sourcePath": "skills/ad-creative/references/meta-creative-formats.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/meta-creative-formats.md",
+      "gitBlobSha": "8808ea60d05569e5389f62121accaf8e3cc20e57",
+      "sha256": "09720c4550761365a8c93c8587fe629c87718dbb331677312d93e5b2faa9761f",
+      "bytes": 10686
+    },
+    {
+      "path": "ad-creative/references/motion-video-ads.md",
+      "sourcePath": "skills/ad-creative/references/motion-video-ads.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/motion-video-ads.md",
+      "gitBlobSha": "fab0ef4d47da0d02b9b54a35a355c1d08c2dde87",
+      "sha256": "c64e83199f0316e12e7811667f09a6475a34044c8eec2e3ba549faf9c33fc28c",
+      "bytes": 11801
+    },
+    {
+      "path": "ad-creative/references/platform-specs.md",
+      "sourcePath": "skills/ad-creative/references/platform-specs.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/platform-specs.md",
+      "gitBlobSha": "c9a3c4a53465b5b182ded365a47d3103443da6d3",
+      "sha256": "de69753161071a8d3e4d244280562810a6c4d6ae2696c5a21940f983abd0aa8e",
+      "bytes": 6525
+    },
+    {
+      "path": "ad-creative/references/short-form-video-specs.md",
+      "sourcePath": "skills/ad-creative/references/short-form-video-specs.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/short-form-video-specs.md",
+      "gitBlobSha": "5bde8b97a72b14148d34077694792751c672f890",
+      "sha256": "1aa1cc498e350ed00ec4783b60d2eddee5bc98f25750761f6086742d0758f953",
+      "bytes": 19389
+    },
+    {
+      "path": "ad-creative/references/static-ad-templates.md",
+      "sourcePath": "skills/ad-creative/references/static-ad-templates.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ad-creative/references/static-ad-templates.md",
+      "gitBlobSha": "271b342b7d1260bdb4577d138154fb7a8c377ef6",
+      "sha256": "fc93d3f5fa6b3442cc1c6785eda05979da0d299c640d5f0a277033209d68e651",
+      "bytes": 23710
+    },
+    {
+      "path": "ads/SKILL.md",
+      "sourcePath": "skills/ads/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/SKILL.md",
+      "gitBlobSha": "3ce3480e82685a359424d8131d4e331a981b1b36",
+      "sha256": "71b4f853c49f383a19777cec4f4e31a3b87f984e988a7e930942a88f592366b8",
+      "bytes": 30661
+    },
+    {
+      "path": "ads/references/abm-playbook.md",
+      "sourcePath": "skills/ads/references/abm-playbook.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/abm-playbook.md",
+      "gitBlobSha": "9e516051783a81b118574e5bd17864a96347a86e",
+      "sha256": "acb5c89ced4497674d012d015504a5c8e17c619bd2fc1f0191d833a9957eb44a",
+      "bytes": 8100
+    },
+    {
+      "path": "ads/references/ad-copy-templates.md",
+      "sourcePath": "skills/ads/references/ad-copy-templates.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/ad-copy-templates.md",
+      "gitBlobSha": "048184066833f76ea00a272e913203281fb17988",
+      "sha256": "853ab37e23b75aa3355bdbed9a1357948e635dbdf737be5a1a7aa0126d701206",
+      "bytes": 4821
+    },
+    {
+      "path": "ads/references/audience-targeting.md",
+      "sourcePath": "skills/ads/references/audience-targeting.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/audience-targeting.md",
+      "gitBlobSha": "00dc42bb38c0b1de5b1be00e2bb4ee8d6adf7c19",
+      "sha256": "21ed7c99fb1124ca38635d6f313cc2f3ca49a192f390cd55293b7bd5a028e1b1",
+      "bytes": 6067
+    },
+    {
+      "path": "ads/references/audit-guardrails.md",
+      "sourcePath": "skills/ads/references/audit-guardrails.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/audit-guardrails.md",
+      "gitBlobSha": "f150c796656a94cc4cbb56e37f2e788dc5bdeea5",
+      "sha256": "ffcbbda4cabd919bce93c11699fac49059dde7d96c64dbf34f77c482420e6667",
+      "bytes": 8136
+    },
+    {
+      "path": "ads/references/b2b-paid-playbook.md",
+      "sourcePath": "skills/ads/references/b2b-paid-playbook.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/b2b-paid-playbook.md",
+      "gitBlobSha": "d65badde0b1a0a4a5c9ad7052a7a13c8eeaa7e27",
+      "sha256": "21dc1125905f8d985763996afb24a2bf54539330535b7b2b45c052901c5b2006",
+      "bytes": 7951
+    },
+    {
+      "path": "ads/references/creative-research-automation.md",
+      "sourcePath": "skills/ads/references/creative-research-automation.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/creative-research-automation.md",
+      "gitBlobSha": "2b5ba3e75d1be3523b7c2b28dd084263a852caa0",
+      "sha256": "c2894a19eff596412f52c4a8aceea1b8f390e7f1821e9c13cb3e6c693e625cfd",
+      "bytes": 8481
+    },
+    {
+      "path": "ads/references/google-ads-audit-checklist.md",
+      "sourcePath": "skills/ads/references/google-ads-audit-checklist.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/google-ads-audit-checklist.md",
+      "gitBlobSha": "f09a09e9347f8fe61211297b16d5eab5a0e76bdc",
+      "sha256": "4c21526a52869f8045cc2f1c599dfbef487f6390c94cb9b38e8a7e830b1c0279",
+      "bytes": 12811
+    },
+    {
+      "path": "ads/references/google-search-playbook.md",
+      "sourcePath": "skills/ads/references/google-search-playbook.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/google-search-playbook.md",
+      "gitBlobSha": "9a9c61661cf5a554cbd07ef08c3353e83e80c63b",
+      "sha256": "5771d6c876ddd2b3cbaa28190884eebd698112febcf0ea83aeb0c8016e04e097",
+      "bytes": 10348
+    },
+    {
+      "path": "ads/references/linkedin-b2b-playbook.md",
+      "sourcePath": "skills/ads/references/linkedin-b2b-playbook.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/linkedin-b2b-playbook.md",
+      "gitBlobSha": "9e94d04404d0454506cc60355c179bc71d4a9df2",
+      "sha256": "8f38aadbf24c1a554fbaa47bf2f24bac0c4773fa16f65d34c1c600e5e3d8a6ee",
+      "bytes": 9222
+    },
+    {
+      "path": "ads/references/meta-andromeda-playbook.md",
+      "sourcePath": "skills/ads/references/meta-andromeda-playbook.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/meta-andromeda-playbook.md",
+      "gitBlobSha": "84213696adfff4e6abac0b71dec99287384e63e8",
+      "sha256": "8da58633c3866b9a4aa07b234a9a7e96eeb19a9497bb85bae09f1aac36e27268",
+      "bytes": 6365
+    },
+    {
+      "path": "ads/references/meta-decision-system.md",
+      "sourcePath": "skills/ads/references/meta-decision-system.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/meta-decision-system.md",
+      "gitBlobSha": "c52c628679b9cfb8404a1577a42aa28afb0cd078",
+      "sha256": "861709bcc4e7467eac7d4de63f0bdd6709eb3c12a1d72b3855dce313ca15407f",
+      "bytes": 15663
+    },
+    {
+      "path": "ads/references/operating-check.md",
+      "sourcePath": "skills/ads/references/operating-check.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/operating-check.md",
+      "gitBlobSha": "28a6348ec9122e3de10d0d956da30e6d7eb02241",
+      "sha256": "0039550a0867dc5f80595b824f8d6a6a298c5777ef2d0e54d225c1405f900de3",
+      "bytes": 5894
+    },
+    {
+      "path": "ads/references/payback-period.md",
+      "sourcePath": "skills/ads/references/payback-period.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/payback-period.md",
+      "gitBlobSha": "df10d99150e59556058a1cfe785f1f667093fc84",
+      "sha256": "77b0f35b65b35cdee53881105a16498e3e4538b657923a176b99a19b807daba1",
+      "bytes": 6920
+    },
+    {
+      "path": "ads/references/platform-setup-checklists.md",
+      "sourcePath": "skills/ads/references/platform-setup-checklists.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/platform-setup-checklists.md",
+      "gitBlobSha": "5e663a5e990af6b2e7b9c545e4776d3f4c5feaa5",
+      "sha256": "b86e206f8c7233c235d7d385a69e17fac16ac001ab130242b7700fe650752f69",
+      "bytes": 7613
+    },
+    {
+      "path": "ads/references/reading-google-ads-data.md",
+      "sourcePath": "skills/ads/references/reading-google-ads-data.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/reading-google-ads-data.md",
+      "gitBlobSha": "924bc0289b84e543dfb05636bb4525dc7d718110",
+      "sha256": "e5bb10f5bd81eabaae63c005a9be8c3f70d63df60e192dcd37faf3718ff0fd09",
+      "bytes": 8750
+    },
+    {
+      "path": "ads/references/rsa-output-spec.md",
+      "sourcePath": "skills/ads/references/rsa-output-spec.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads/references/rsa-output-spec.md",
+      "gitBlobSha": "44b0f1dc7aabc2f9d0b4cc0f50b98517da73b021",
+      "sha256": "285fec5c1671c9cc1a4cdfbcf06d8a54a022cbad52693941457d90e1f2c5f503",
+      "bytes": 3689
+    },
+    {
+      "path": "analytics/SKILL.md",
+      "sourcePath": "skills/analytics/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/analytics/SKILL.md",
+      "gitBlobSha": "4ae578717344df70ade772e7712c6e151d9c9e36",
+      "sha256": "675e284b745837d595aa4d36903cb54b3921181fd343cc519d31f34fe8002196",
+      "bytes": 14372
+    },
+    {
+      "path": "analytics/references/event-library.md",
+      "sourcePath": "skills/analytics/references/event-library.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/analytics/references/event-library.md",
+      "gitBlobSha": "376f182dfc7f9be6daee5bd570af90656c3025e4",
+      "sha256": "c60e3e145e6b06258570350b614913ed9150143b4494a71396abaef479502b05",
+      "bytes": 8654
+    },
+    {
+      "path": "analytics/references/ga4-implementation.md",
+      "sourcePath": "skills/analytics/references/ga4-implementation.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/analytics/references/ga4-implementation.md",
+      "gitBlobSha": "86895e4ae248e4441d724c04f7f9d8ac378ef18e",
+      "sha256": "b0232fc2ee873ffa5e6cbdf0ae712a5d74b18263372139d8ae72f9dcf48a8db4",
+      "bytes": 7084
+    },
+    {
+      "path": "analytics/references/gtm-implementation.md",
+      "sourcePath": "skills/analytics/references/gtm-implementation.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/analytics/references/gtm-implementation.md",
+      "gitBlobSha": "6012d1cf787087f81684b2ba948c35c3dbfb8ab1",
+      "sha256": "0b161102de710c978cc2ac52c78c79f32e184bc028aa946eba18e777d7a60d64",
+      "bytes": 8413
+    },
+    {
+      "path": "copywriting/SKILL.md",
+      "sourcePath": "skills/copywriting/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/copywriting/SKILL.md",
+      "gitBlobSha": "e70bd2e1f4e96cb94ef69b3899150950b0128be5",
+      "sha256": "13c580c2432a4499e9dfdcf5d553df7aa6589e90cf5bd869fb4fbde5caf9f567",
+      "bytes": 15520
+    },
+    {
+      "path": "copywriting/references/ai-tells.md",
+      "sourcePath": "skills/copywriting/references/ai-tells.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/copywriting/references/ai-tells.md",
+      "gitBlobSha": "0a93ab3b88fc2c683ff6280db187644a7aa04612",
+      "sha256": "b98c3a19b3a75c714d69e80a0076e4c07244b0e833c2ce81ff2631224fb7f7b2",
+      "bytes": 20804
+    },
+    {
+      "path": "copywriting/references/copy-frameworks.md",
+      "sourcePath": "skills/copywriting/references/copy-frameworks.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/copywriting/references/copy-frameworks.md",
+      "gitBlobSha": "194aefed131c4e2e508b76ae9fdfc9cdcd37a6ba",
+      "sha256": "352122944bf9e891ceb0e003adce41591d111e9d97057700626249919dfe430d",
+      "bytes": 14352
+    },
+    {
+      "path": "copywriting/references/natural-transitions.md",
+      "sourcePath": "skills/copywriting/references/natural-transitions.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/copywriting/references/natural-transitions.md",
+      "gitBlobSha": "5fba31a5d3bf0f35a9cc62605af5ceaa454a6186",
+      "sha256": "9bd61b0de5be2c4de4ce130c68236b4f290b12737823827a458bb2b4c8584683",
+      "bytes": 5561
+    },
+    {
+      "path": "cro/SKILL.md",
+      "sourcePath": "skills/cro/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/cro/SKILL.md",
+      "gitBlobSha": "2b0a5bb9aa17ed83ff111dbfe6ea722610828a29",
+      "sha256": "6e172cc38178c800ff41ceb097f36c6a1db8035fb88a1fee53043f8ec38a6f35",
+      "bytes": 7114
+    },
+    {
+      "path": "cro/references/experiments.md",
+      "sourcePath": "skills/cro/references/experiments.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/cro/references/experiments.md",
+      "gitBlobSha": "abc31c716ec966c9c6c9a12ca3e8b076ce3ea320",
+      "sha256": "bbcc356c0af36cfaa4556bf9e929deac30c65cafb37f909d7c51d4777fe254ca",
+      "bytes": 7850
+    },
+    {
+      "path": "cro/references/form.md",
+      "sourcePath": "skills/cro/references/form.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/cro/references/form.md",
+      "gitBlobSha": "56f6e03e28f3d6193316552ca840d26b66a89c79",
+      "sha256": "49b8f29b3da1ae6510572288cad3eb1f3d43a969373443be98b38639746587e6",
+      "bytes": 10332
+    },
+    {
+      "path": "product-marketing/SKILL.md",
+      "sourcePath": "skills/product-marketing/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/product-marketing/SKILL.md",
+      "gitBlobSha": "3af463a602aa0233c4d5fc98c23ba13224aa8f6b",
+      "sha256": "19ece0fa75c72a5a8b6e90db80f506586f54cc93bae6bffbb1bd2ef4ae7d603c",
+      "bytes": 13847
+    },
+    {
+      "path": "product-marketing/references/brand-voice.md",
+      "sourcePath": "skills/product-marketing/references/brand-voice.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/product-marketing/references/brand-voice.md",
+      "gitBlobSha": "697bc73db156319753d16e4eecfc8aadb469ef92",
+      "sha256": "932f3453db2761f03050792e39800150495dab449750b40913a4314ea97e7672",
+      "bytes": 8361
+    },
+    {
+      "path": "seo-audit/SKILL.md",
+      "sourcePath": "skills/seo-audit/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/SKILL.md",
+      "gitBlobSha": "e0a41d8c46c06d1e33ce5295c0f303a94d8f6c5b",
+      "sha256": "e0ebb5808787f2ff26b96d7b429423874d9785541cd4ab775629a5cf1137e7a9",
+      "bytes": 18192
+    },
+    {
+      "path": "seo-audit/references/ai-writing-detection.md",
+      "sourcePath": "skills/seo-audit/references/ai-writing-detection.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/ai-writing-detection.md",
+      "gitBlobSha": "cb67ece4135f4153575bbbdfbf722364babff61d",
+      "sha256": "f1e273f56ce7e2215ff218bf903680ddcec0fd026ab90c3ebfb3439ed0edfaa4",
+      "bytes": 6528
+    },
+    {
+      "path": "seo-audit/references/international-seo.md",
+      "sourcePath": "skills/seo-audit/references/international-seo.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/international-seo.md",
+      "gitBlobSha": "35a7ad2aeadcbef2541563b0077d5f717e4b147d",
+      "sha256": "0603022cca968acf7889fc224221aa0e70955ba64355bc18b06f7e86b32f45e5",
+      "bytes": 14898
+    },
+    {
+      "path": "seo-audit/references/local-seo-pages-and-measurement.md",
+      "sourcePath": "skills/seo-audit/references/local-seo-pages-and-measurement.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/local-seo-pages-and-measurement.md",
+      "gitBlobSha": "d49f0443e091c70e4778a4e33030a33d18a361a4",
+      "sha256": "20607ef91c4b8b37346f42130a6f51ed4ce64dc2731b6e1328b5b14f16917fe3",
+      "bytes": 4036
+    },
+    {
+      "path": "seo-audit/references/local-seo-profile-and-citations.md",
+      "sourcePath": "skills/seo-audit/references/local-seo-profile-and-citations.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/local-seo-profile-and-citations.md",
+      "gitBlobSha": "d34b7e043cb7c4d2da114f04e986bd476a22d0c6",
+      "sha256": "83b1b63eb6083e7aab1f56c4928335ea2a235e837861a9e9e8043b6af162a1f3",
+      "bytes": 3971
+    },
+    {
+      "path": "seo-audit/references/local-seo.md",
+      "sourcePath": "skills/seo-audit/references/local-seo.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/local-seo.md",
+      "gitBlobSha": "c2636ada98809d6ed8db588040817adc332add5e",
+      "sha256": "d2666d9c225bc36f9737ce612894abbe7e263b5974e2db7c1efc50f6010bb376",
+      "bytes": 7249
+    },
+    {
+      "path": "seo-audit/references/rankings-push.md",
+      "sourcePath": "skills/seo-audit/references/rankings-push.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/rankings-push.md",
+      "gitBlobSha": "5e3930e47e521cf3d27db2e7120ffde8ace3035d",
+      "sha256": "c21d6d4f9faf7ce5b1dc0f8bd508e7513967492fcd8ed9510a175ce243daf8c8",
+      "bytes": 4509
+    },
+    {
+      "path": "seo-audit/references/title-tags.md",
+      "sourcePath": "skills/seo-audit/references/title-tags.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit/references/title-tags.md",
+      "gitBlobSha": "5d5eac8002179ac5288f3b4bbd2aa35b3a409a42",
+      "sha256": "c40b3c6af3600ca15670db8eb81000c7ca6fa25265a6550ccc630f53db3fcf51",
+      "bytes": 5533
+    },
+    {
+      "path": "social/SKILL.md",
+      "sourcePath": "skills/social/SKILL.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/SKILL.md",
+      "gitBlobSha": "602451c83630228a8de3c643b0a271f7ce6e130e",
+      "sha256": "dd4c01d0925f571562d4e8dea4af6b60bd9d491149187d94927e65280fad1bee",
+      "bytes": 18313
+    },
+    {
+      "path": "social/references/carousel-frameworks.md",
+      "sourcePath": "skills/social/references/carousel-frameworks.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/carousel-frameworks.md",
+      "gitBlobSha": "76c65c3d34dfb43f9fdd672a9e55e48037a670aa",
+      "sha256": "e703aa530ec9f68cdf5b58e8e0d4d1a5cc3f22b9e2d3e3222f16a9763d423247",
+      "bytes": 11124
+    },
+    {
+      "path": "social/references/listening-sources-template.md",
+      "sourcePath": "skills/social/references/listening-sources-template.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/listening-sources-template.md",
+      "gitBlobSha": "286ca03a013ddfd23ef807cffd650ae04c6b7e02",
+      "sha256": "c68bc6f57b0a48c432b1ce72c9324d41a04d0e7784d0bab91afb4a6065a43e38",
+      "bytes": 3479
+    },
+    {
+      "path": "social/references/listening.md",
+      "sourcePath": "skills/social/references/listening.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/listening.md",
+      "gitBlobSha": "0b3569a5ff4fdc6d2f9ad5d8c0fb626bb6628b9b",
+      "sha256": "52cf68aaaa57a69b69b3587ffd9b848a6f1ca7e0d51378f566339ad7f2b730e0",
+      "bytes": 13474
+    },
+    {
+      "path": "social/references/platform-limits.md",
+      "sourcePath": "skills/social/references/platform-limits.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/platform-limits.md",
+      "gitBlobSha": "94e1df9f22128ffc59e826c702c8a492b0e1bb03",
+      "sha256": "6ecc6b40ff82b95c48906341f7d3c58337671d4d94f624c858764f1ed5a77c3c",
+      "bytes": 2830
+    },
+    {
+      "path": "social/references/platforms.md",
+      "sourcePath": "skills/social/references/platforms.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/platforms.md",
+      "gitBlobSha": "bbf7b9b6277f7c9ec5a23974fd9ff84b67568798",
+      "sha256": "a070eda1f54bdba103a9c89613d83331fc5c53c9e8a48543e0198f1a2995cb0c",
+      "bytes": 8313
+    },
+    {
+      "path": "social/references/post-templates.md",
+      "sourcePath": "skills/social/references/post-templates.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/post-templates.md",
+      "gitBlobSha": "10be33fe2104b3b984902deaa285d89963e18702",
+      "sha256": "9cca4680c95801daedfd8acadf9089d0083784c2567784888807569896f71d9b",
+      "bytes": 4016
+    },
+    {
+      "path": "social/references/reverse-engineering.md",
+      "sourcePath": "skills/social/references/reverse-engineering.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/reverse-engineering.md",
+      "gitBlobSha": "6d6b8f9d8a497fbefd9ab17f5a4d281c7035edf9",
+      "sha256": "c27bef59d463b3b11331c1770f4a23e9e6bbce7d7c8db1e7f7f4f14ba206243f",
+      "bytes": 5551
+    },
+    {
+      "path": "social/references/short-form-video.md",
+      "sourcePath": "skills/social/references/short-form-video.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/short-form-video.md",
+      "gitBlobSha": "477fc35b68dd47c2a865b72b7bd433a9db4d2695",
+      "sha256": "ed0976bd7ac1f85b7b8c162087e346118f2cf0ef46b3ccafc6a7a329118987d1",
+      "bytes": 7040
+    },
+    {
+      "path": "social/references/x-algorithm.md",
+      "sourcePath": "skills/social/references/x-algorithm.md",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "sourceUrl": "https://raw.githubusercontent.com/coreyhaines31/marketingskills/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social/references/x-algorithm.md",
+      "gitBlobSha": "af6aef741f893d644ec4d56617c1f8ace3ee82c1",
+      "sha256": "943b2c5a819aad53ebf62a1652adc47956d6fdf738e18cd98eeb609819a66180",
+      "bytes": 7113
+    }
+  ],
+  "totals": {
+    "files": 61,
+    "bytes": 628693
+  }
+}

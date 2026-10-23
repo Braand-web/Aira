@@ -6,7 +6,7 @@ import {fileURLToPath, pathToFileURL} from "node:url";
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const files = readdirSync(path.join(project, "tests")).sort();
-const artifactTests = ["file-preview-bundle.test.mjs", "worker-config.test.mjs", "composio-bundle.integration.mjs"];
+const artifactTests = ["file-preview-bundle.test.mjs", "worker-config.test.mjs", "composio-bundle.integration.mjs", "skills-bundle.integration.mjs"];
 const httpSuites = new Map([
   ["run-http-integration.mjs", ["http.integration.mjs", "composio-http.integration.mjs"]],
   ["run-file-upload-integration.mjs", ["file-preview.integration.mjs"]],
