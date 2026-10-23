@@ -11,6 +11,8 @@ metadata:
 
 Concevoir une séquence facile à comprendre sur son placement réel. Commencer par ce que le spectateur doit remarquer, comprendre et faire ; choisir ensuite les plans et le mouvement.
 
+Pour un teaser produit, une démonstration d'application, un bénéfice expliqué ou de la typographie animée, lire [la référence motion design](references/motion-design.md). Elle aide à préciser le storyboard et le rythme ; elle n'ajoute aucun moteur d'animation ou de rendu aux outils Aïra.
+
 ## Diriger la séquence
 
 Lire les ressources pertinentes de l'espace avec `search_workspace`. Reprendre l'offre, le public, la charte et les médias approuvés. Fixer la durée et le format en fonction du brief et des capacités disponibles, sans attribuer au produit une propriété non établie.

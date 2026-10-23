@@ -28,6 +28,8 @@ Les quatre méthodes originales média sont sous `skills/aira/media/`, dans un d
 - `aira-image-variants` : retouche et adaptation de format à partir d'une référence acceptée.
 - `aira-media-pipeline` : dépendances, critères d'acceptation, budget cumulé et reprise par étapes.
 
+La référence originale `aira-video-direction/references/motion-design.md` précise la préparation de teasers produit, de démonstrations d'application, d'explications animées et de typographie en mouvement. Le catalogue permet de retrouver cette méthode avec une demande de motion design. La [sélection des sources média](MEDIA_SOURCE_SELECTION.md) distingue les exemples consultés, leurs auteurs et le texte Aïra écrit indépendamment. Les animations HTML/Canvas et leur export MP4 n'ont pas de moteur connecté ; `create_page` reste un outil de sections JSON, et non d'exécution de code d'animation.
+
 Elles emploient le catalogue administrateur réel : `media_catalog`, puis `prepare_media` pour une proposition exacte. La génération attend sa validation dans l'interface. Une étape dépendante attend une sortie `ready` et acceptée comme référence ; une lecture de skill ne remplace jamais ces contrôles. Les modèles, paramètres et coûts viennent du serveur et du catalogue, pas des dépôts consultés. Le budget de production inclut les coûts consommés, engagements et devis en attente, sans double comptage.
 
 Les quatre méthodes originales documentaires sont sous `skills/aira/documents/` :

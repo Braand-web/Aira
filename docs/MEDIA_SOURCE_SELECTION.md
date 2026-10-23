@@ -33,6 +33,23 @@ Révision consultée : `8f4b4c44bacd14b469b3f4c3f1a9660a43deb2f6` (commit du 21 
 
 Intérêt : source primaire pour les contrats de la plateforme et un éventuel service Python distinct. Décision locale : ne pas installer le SDK Python dans le runtime Cloudflare actuel. Aïra dispose déjà d'un adaptateur de file d'attente dans `lib/providers.ts` ; un SDK supplémentaire n'est pas requis pour ces méthodes. Aucune licence de dépôt n'est présentée comme une autorisation d'exploiter toute référence, identité, marque ou sortie de modèle.
 
+## yihui-dev/awesome-opus5-5-videos
+
+Révision consultée : `92aee2f586ac0715cb3cbcb6384834f98a33383d` (commit du 13 octobre 2026). Le [README épinglé](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/README.md) décrit une collection de prompts et de liens vers des animations produites par du code HTML, Canvas, SVG ou Three.js. Le nom du dépôt et ses mentions de modèle sont des affirmations de sa présentation ; ils ne déterminent ni le modèle utilisé par Aïra ni ses capacités.
+
+Le [fichier de licence racine](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/LICENSE) fournit MIT, avec attribution à yihui-dev. Le README attribue également chaque vidéo et prompt à son créateur et certains prompts sont partiels. Cette sélection ne présume aucune autorisation d'exploiter les vidéos, marques, captures, musiques ou photos des auteurs et de leurs sources. Aucun média, code ou prompt amont n'est importé dans Aïra ; les pages ont été lues comme références documentaires, sans exécuter leurs commandes ni regarder ou évaluer les vidéos liées.
+
+Exemples examinés et pertinence retenue :
+
+- [Lancement d'application](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/prompts/screeendev-981790.md), attribué à @Screeendev : démonstration courte d'un produit avec une progression compréhensible. Le prompt partiel ne constitue pas un moteur de production.
+- [Film de lancement produit](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/prompts/ultimaxbt-549714.md), attribué à @ultimaxbt : préparation d'une séquence chronométrée avec références de produit. Ne pas reprendre ses ressources par défaut, sa charte ou son scénario.
+- [Rendu à partir des numéros d'images](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/prompts/0xkarmi-129839.md), attribué à @0xKarmi : séparer la description d'une animation, sa production, son encodage et ses contrôles. Les résultats de qualité rapportés par l'auteur n'ont pas été vérifiés ici.
+- [Vérification d'une animation](https://github.com/yihui-dev/awesome-opus5-5-videos/blob/92aee2f586ac0715cb3cbcb6384834f98a33383d/prompts/fleyta88-443662.md), attribué à @fleyta88 : contrôler des instants clés et corriger localement plutôt que réécrire toute la séquence. Ses durées et ses outils ne deviennent pas des réglages Aïra obligatoires.
+
+Décision : enrichir `aira-video-direction` avec une [référence française originale sur le motion design](../skills/aira/media/aira-video-direction/references/motion-design.md). Elle couvre le teaser produit, la démonstration à partir de captures autorisées, l'explication d'un bénéfice et la typographie animée. Le livrable actuel est une direction créative exploitable et un storyboard chronométré ; une proposition média reste conditionnée aux capacités exactes du catalogue.
+
+`create_page` accepte des sections JSON et échappe les chaînes ; ce n'est pas un environnement d'exécution HTML/Canvas/JavaScript. Aucun moteur de rendu d'animation codée, encodeur MP4, outil de montage ou dépendance Remotion/GSAP/FFmpeg n'est ajouté par cette livraison. Les contrôles d'images ou de vidéo ne doivent être annoncés comme réalisés qu'après accès au résultat et utilisation d'un outil adapté. Les jeux, simulations 3D et démonstrations techniques hors marketing restent hors de cette sélection.
+
 ## Contrat d'exécution conservé
 
 Les compétences utilisent les outils effectivement exposés par `lib/agent.ts` et les tâches de `lib/media-routing.mjs` :

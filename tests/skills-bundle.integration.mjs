@@ -41,6 +41,7 @@ const probes=[
  {label:'marketing reference',source:'skills/vendor/marketing/ad-creative/references/awareness-headlines.md',marker:'A complaint supports the pain angle; it does not substantiate a numerical performance promise.'},
  {label:'design method',source:'skills/vendor/anthropic/frontend-design/SKILL.md',marker:'Spend your boldness in one place.'},
  {label:'original media method',source:'skills/aira/media/aira-media-pipeline/SKILL.md',marker:'Une création média, un export, une publication et un lancement publicitaire sont des résultats distincts'},
+ {label:'original motion design reference',source:'skills/aira/media/aira-video-direction/references/motion-design.md',marker:'Une direction minutée ne garantit pas une exécution exacte par un générateur vidéo.'},
  {label:'original document method',source:'skills/aira/documents/aira-xlsx/SKILL.md',marker:'Ne pas convertir automatiquement des dates ambiguës ni fusionner des libellés proches sans justification.'},
 ];
 for(const probe of probes)assert.ok(readFileSync(path.join(project,probe.source),'utf8').includes(probe.marker),`Update the stale corpus probe: ${probe.label}`);
