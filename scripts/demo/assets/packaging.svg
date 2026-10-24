@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Maison Naya — Étude de packaging café</title>
+  <desc id="desc">Étude vectorielle originale pour une marque fictive, sachet café crème et boîte olive ornée d'une branche.</desc>
+  <rect width="1200" height="1200" fill="#74815a"/>
+  <g fill="#f4ead9" font-family="Manrope, sans-serif">
+    <text x="76" y="110" font-size="31" font-weight="700" letter-spacing="7">MAISON NAYA</text>
+    <text x="1124" y="110" text-anchor="end" font-size="21" letter-spacing="2">ÉTUDE / CAFÉ</text>
+    <text x="76" y="258" font-size="79" font-weight="600" letter-spacing="-4">Le rituel, bien habillé.</text>
+  </g>
+  <path d="M76 306H1124" stroke="#e0dcc4" stroke-width="2"/>
+  <rect x="611" y="425" width="426" height="583" fill="#f4ead9"/>
+  <rect x="632" y="445" width="384" height="542" fill="none" stroke="#74815a" stroke-width="2"/>
+  <g fill="#4e382a" font-family="Manrope, sans-serif" text-anchor="middle">
+    <text x="824" y="508" font-size="23" font-weight="700" letter-spacing="4">MAISON NAYA</text>
+    <text x="824" y="607" font-size="81" font-weight="600" letter-spacing="-4">Café</text>
+    <text x="824" y="646" font-size="21">Collection des instants</text>
+    <text x="824" y="936" font-size="19" letter-spacing="3">PRENEZ VOTRE TEMPS.</text>
+  </g>
+  <g fill="none" stroke="#74815a" stroke-width="4">
+    <path d="M811 872C868 793 826 751 874 694"/>
+    <path d="M841 805C883 770 922 776 930 794C903 827 868 834 841 805Z"/>
+    <path d="M840 786C805 762 789 732 803 716C838 725 854 758 840 786Z"/>
+    <path d="M853 746C876 715 907 706 927 719C911 748 876 767 853 746Z"/>
+  </g>
+  <g transform="translate(157 426) rotate(-7 207 292)">
+    <path d="M39 0H375L402 71L416 539Q416 581 377 585H39Q0 581 0 539L12 71Z" fill="#e5cfaa"/>
+    <path d="M39 0H375L402 71H12Z" fill="#c9ae86"/>
+    <path d="M42 36H373" stroke="#4e382a" stroke-width="3"/>
+    <rect x="39" y="118" width="338" height="373" fill="#4e382a"/>
+    <g text-anchor="middle" fill="#f4ead9" font-family="Manrope, sans-serif">
+      <text x="208" y="178" font-size="21" font-weight="700" letter-spacing="4">MAISON NAYA</text>
+      <text x="208" y="280" font-size="78" font-weight="600" letter-spacing="-3">Café</text>
+      <text x="208" y="321" font-size="18">Le rituel du matin</text>
+      <text x="208" y="459" font-size="16" letter-spacing="2">COLLECTION DES INSTANTS</text>
+    </g>
+    <g transform="translate(208 381) rotate(30)">
+      <ellipse rx="26" ry="36" fill="#ba644b"/>
+      <path d="M0 -36C-20 -10 20 12 0 36" fill="none" stroke="#f4ead9" stroke-width="4"/>
+    </g>
+  </g>
+  <g fill="#f4ead9" font-family="Manrope, sans-serif" font-size="21">
+    <text x="78" y="1135">DES FORMES SIMPLES. UNE IDENTITÉ À PARTAGER.</text>
+    <text x="1124" y="1135" text-anchor="end">NAYA / 2026</text>
+  </g>
+</svg>
