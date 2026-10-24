@@ -24,6 +24,9 @@ async function runScheduledTasks(
   const slot = Math.floor(scheduledTime / 300_000);
   try {await cleanupAuth(env);} catch {console.error("Aïra auth housekeeping failed.");}
   for (const task of scheduledTasks) {
+    // A deliberately closed feature is not a failed job. Keep billing/file
+    // housekeeping and monitoring running even while autonomy is disabled.
+    if (task.name === "missions" && env.AUTONOMY_ENABLED !== "true") continue;
     try {
       const request = new Request(`https://aira.internal${task.path}`, {
         method: "POST",
