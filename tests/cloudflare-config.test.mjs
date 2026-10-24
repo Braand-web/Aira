@@ -7,3 +7,18 @@ test('Cloudflare deployments keep resource isolation and start closed',()=>{cons
 test('missing or placeholder cloud resources are rejected',()=>{for(const patch of [{CLOUDFLARE_ACCOUNT_ID:''},{AIRA_STAGING_D1_ID:'00000000-0000-4000-8000-000000000000'},{AIRA_STAGING_FILES_BUCKET:''},{AIRA_STAGING_BACKUPS_BUCKET:input.AIRA_STAGING_FILES_BUCKET}])assert.throws(()=>deploymentConfig('staging',{...input,...patch},built));});
 test('staging cannot reuse a production database or bucket',()=>{for(const suffix of ['D1_ID','FILES_BUCKET','BACKUPS_BUCKET'])assert.throws(()=>deploymentConfig('staging',{...input,['AIRA_PRODUCTION_'+suffix]:input['AIRA_STAGING_'+suffix]},built));});
 test('deployment cannot target an arbitrary environment or obsolete build',()=>{assert.throws(()=>deploymentConfig('live',input,built));assert.throws(()=>deploymentConfig('staging',input,{...built,main:'untrusted.js'}));});
+
+test('database-only staging remains private and cannot advertise files or backups',()=>{
+  const partial={CLOUDFLARE_ACCOUNT_ID:input.CLOUDFLARE_ACCOUNT_ID,AIRA_STAGING_D1_ID:input.AIRA_STAGING_D1_ID};
+  const c=deploymentConfig('staging',partial,built,'/aira',{databaseOnly:true});
+  assert.deepEqual(c.r2_buckets,[]);assert.equal(c.workers_dev,false);assert.equal(c.preview_urls,false);assert.deepEqual(c.routes,[]);
+  for(const flag of ['AUTH_ENABLED','BACKUP_ENABLED','BROWSER_ENABLED','AUTONOMY_ENABLED','BILLING_ENABLED','COMPOSIO_INSTANT_ENABLED','MODEL_ROUTING_ENABLED','FILE_PREVIEW_V1'])assert.equal(c.vars[flag],'false');
+  assert.equal(c.d1_databases[0].database_id,input.AIRA_STAGING_D1_ID);
+});
+test('database-only staging still requires a real isolated D1 database',()=>{
+  for(const patch of [{CLOUDFLARE_ACCOUNT_ID:''},{AIRA_STAGING_D1_ID:'00000000-0000-4000-8000-000000000000'},{AIRA_PRODUCTION_D1_ID:input.AIRA_STAGING_D1_ID}])assert.throws(()=>deploymentConfig('staging',{...input,...patch},built,'/aira',{databaseOnly:true}));
+});
+test('database-only mode cannot bypass the complete production storage configuration',()=>{
+  assert.throws(()=>deploymentConfig('production',{},built,'/aira',{databaseOnly:true}),/limited to private staging/);
+  assert.throws(()=>deploymentConfig('staging',{CLOUDFLARE_ACCOUNT_ID:input.CLOUDFLARE_ACCOUNT_ID,AIRA_STAGING_D1_ID:input.AIRA_STAGING_D1_ID},built));
+});

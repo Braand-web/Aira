@@ -2,14 +2,18 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-export function deploymentConfig(environment, input, built, root=process.cwd()) {
+export function deploymentConfig(environment, input, built, root=process.cwd(), options={}) {
   if (!['staging','production'].includes(environment)) throw new Error('Choose staging or production.');
+  const databaseOnly=options.databaseOnly===true;
+  if (databaseOnly && environment!=='staging') throw new Error('Database-only deployment is limited to private staging.');
   const prefix=environment==='staging'?'AIRA_STAGING_':'AIRA_PRODUCTION_';
   const account=input.CLOUDFLARE_ACCOUNT_ID, database=input[prefix+'D1_ID'], files=input[prefix+'FILES_BUCKET'], backups=input[prefix+'BACKUPS_BUCKET'];
   if (!/^[a-f0-9]{32}$/.test(account||'')) throw new Error('CLOUDFLARE_ACCOUNT_ID is required.');
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(database||'') || database==='00000000-0000-4000-8000-000000000000') throw new Error('A real environment-specific D1 ID is required.');
-  for (const value of [files,backups]) if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(value||'')) throw new Error('Separate private R2 bucket names are required.');
-  if (files===backups) throw new Error('Backups must use a separate bucket.');
+  if (!databaseOnly) {
+    for (const value of [files,backups]) if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(value||'')) throw new Error('Separate private R2 bucket names are required.');
+    if (files===backups) throw new Error('Backups must use a separate bucket.');
+  }
   for (const suffix of ['D1_ID','FILES_BUCKET','BACKUPS_BUCKET']) {
     const other=environment==='staging'?'AIRA_PRODUCTION_':'AIRA_STAGING_';
     if (input[other+suffix] && input[prefix+suffix]===input[other+suffix]) throw new Error('Staging and production must not share resources.');
@@ -21,23 +25,26 @@ export function deploymentConfig(environment, input, built, root=process.cwd()) 
     no_bundle:true,rules:built.rules,assets:{directory:path.join(root,'dist/client')},
     workers_dev:false,preview_urls:false,routes:[],
     d1_databases:[{binding:'DB',database_name:'aira-'+environment,database_id:database,migrations_dir:path.join(root,'drizzle')}],
-    r2_buckets:[{binding:'BUCKET',bucket_name:files},{binding:'BACKUP_BUCKET',bucket_name:backups}],
+    r2_buckets:databaseOnly?[]:[{binding:'BUCKET',bucket_name:files},{binding:'BACKUP_BUCKET',bucket_name:backups}],
     durable_objects:built.durable_objects,migrations:built.migrations,browser:built.browser,
     triggers:{crons:['*/5 * * * *']},observability:{enabled:false},
     // Never claim an unperformed acceptance test by enabling a readiness flag.
     vars:{APP_ENV:environment,AUTH_ENABLED:'false',BILLING_ENABLED:'false',SASPAY_ENV:'sandbox',
       RESEND_MODE:'disabled',RESEND_LIVE_APPROVED:'false',MODEL_ROUTING_ENABLED:'false',
       COMPOSIO_INSTANT_ENABLED:'false',BROWSER_ENABLED:'false',AUTONOMY_ENABLED:'false',
-      BACKUP_ENABLED:'false',FREE_DAILY_CREDITS:'0'},
+      BACKUP_ENABLED:'false',FREE_DAILY_CREDITS:'0',FILE_PREVIEW_V1:'false'},
   };
 }
 async function main() {
   const environment=process.argv[2];
+  const flags=process.argv.slice(3);
+  if (flags.some(flag=>flag!=='--database-only') || flags.length>1) throw new Error('Only --database-only is supported.');
+  const databaseOnly=flags.includes('--database-only');
   const root=fileURLToPath(new URL('../',import.meta.url));
   const built=JSON.parse(await readFile(path.join(root,'dist/server/wrangler.json'),'utf8'));
-  const config=deploymentConfig(environment,process.env,built,root);
-  const output=path.join(root,'.wrangler','deploy',environment+'.json');
+  const config=deploymentConfig(environment,process.env,built,root,{databaseOnly});
+  const output=path.join(root,'.wrangler','deploy',environment+(databaseOnly?'-db-only':'')+'.json');
   await mkdir(path.dirname(output),{recursive:true});await writeFile(output,JSON.stringify(config,null,2)+'\n');
-  console.log(`Prepared ${environment}: private Worker, isolated D1/R2, no billable features enabled. Manifest: ${output}`);
+  console.log(`Prepared ${environment}: private Worker, ${databaseOnly?'D1 only; files and backups unavailable':'isolated D1/R2'}, no billable features enabled. Manifest: ${output}`);
 }
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url) await main();
