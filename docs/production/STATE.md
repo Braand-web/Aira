@@ -1,4 +1,74 @@
-# État du dépôt et des dépendances de production
+# État de production — 24 octobre 2026
+
+Le propriétaire a demandé de quitter Sites. Le code est préparé pour son propre
+compte Cloudflare ; aucun nouveau déploiement Sites n'est effectué. La mise en
+production indépendante n'a pas été exécutée. L'ancien site et ses données n'ont
+pas été supprimés.
+
+## Présent et vérifié localement
+
+- Entrée indépendante `build/worker.ts`, React 19, TypeScript, Vinext/Vite,
+  Cloudflare Workers, D1/Drizzle, R2 et Durable Objects ; aucun manifeste Sites requis.
+- Connexion Aïra par lien e-mail à usage unique, identité vérifiée par le Worker,
+  session privée révocable et migration additive `0014_independent_auth.sql`.
+  Tous les en-têtes d'identité fournis par le client sont effacés.
+- Types, lint, build et `npm test` réussis : 152 tests unitaires, 15 suites de
+  services, 4 suites d'artefacts et 2 lanceurs HTTP ; réseau externe bloqué.
+- Authentification : 18 contrôles SQLite/Web Crypto et 7 contrôles Chromium/HTTPS
+  avec formulaires, cookies, confirmation et déconnexion. Envoi Resend simulé.
+- Interface navigateur : 14 contrôles ; disposition du chat : 9 contrôles,
+  notamment mobile et clavier. Services simulés, aucune session cloud facturée.
+- Catalogue Essentiel/Pro/Business et recharges conservé ; taxes déterminées
+  côté serveur et configuration fiscale inconnue bloquante au paiement.
+- Adaptateurs IA, fal.ai, Composio, SasPay.me et Resend ; missions, publications,
+  crédits, sauvegardes et tâches présents. Leurs tests locaux ne prouvent pas
+  leur fonctionnement avec les comptes réels.
+- Générateur Cloudflare et workflow GitHub manuel pour un staging fermé, avec
+  ressources distinctes et fonctions payantes désactivées. Workflow non exécuté.
+- Vrai Worker compilé lancé en local : accueil 200, identité usurpée refusée
+  (401), authentification non configurée fermée (503). Aucun déploiement distant.
+
+## Bloqué ou non vérifié à distance
+
+- `wrangler whoami` indique « Not logged in ». Les tableaux de bord étaient
+  connectés, puis le contrôle du navigateur de cette session est devenu
+  indisponible. Ces connexions ne donnent pas automatiquement des droits API
+  au CLI ou au Worker. Aucun nouveau secret n'a été créé ou transféré.
+- Ressources D1/R2 Aïra, secrets et URL de staging à configurer. Le propriétaire
+  n'a pas encore fourni de domaine ni d'adresse e-mail de test. Resend attend
+  un domaine, SPF/DKIM/DMARC, une clé Aïra et la preuve de réception réelle.
+- SasPay.me : FlowPay confirmé par le propriétaire, avec une clé Aïra distincte.
+  Sandbox, Mobile Money/carte en XAF, frais, webhooks et remboursements de test
+  restent à vérifier. Composio attend le transfert de sa clé existante en secret
+  serveur ; OAuth Meta, permissions et parcours publicitaire non vérifiés.
+- Une clé OpenRouter est présente localement, sans appel réel pendant cette
+  préparation. Clés et tarifs du routage à valider dans l'environnement final.
+  fal.ai n'a pas exécuté de génération réelle.
+- Instant, navigateur cloud, autonomie, facturation et sauvegardes restent
+  fermés par la configuration initiale. Aucune restauration cloud ni alerte
+  reçue ne sont prouvées. Fiscalité, textes légaux, support et marge réelle
+  de 75 % restent à valider.
+- Les anciennes identités Sites ne sont pas fusionnées automatiquement : preuve
+  de propriété et rapprochement requis avant transfert des espaces et crédits.
+- Audit npm actualisé : 1 alerte élevée Zod (migration majeure vers 4.6.6 ou
+  supérieur à valider avant activation publique) et 4 modérées de développement
+  via Drizzle/esbuild. MCP, Vite, Wrangler, body-parser et fast-uri ont reçu des
+  versions correctives ; l'audit complet reste non propre.
+
+## Suite exacte
+
+Suivre [le guide Cloudflare indépendant](../CLOUDFLARE_SELF_HOSTED.md) : authentifier
+Wrangler, créer D1 et deux buckets R2 Aïra, définir variables GitHub et secrets,
+appliquer les migrations puis déployer le staging fermé. Le domaine et l'expéditeur
+de test permettent ensuite la recette réelle. Le générateur initial remet les
+flags à l'arrêt : conserver séparément la configuration finale validée avant les
+redéploiements. Ne pas déclarer l'application prête à encaisser sur les tests locaux.
+
+---
+
+# Archive : état du dépôt au 18 octobre 2026
+
+Les constats ci-dessous sont historiques ; l'état courant figure ci-dessus.
 
 Relevé final du 18 octobre 2026. Les vérifications applicatives ont été faites en local avec des données temporaires. Aucun déploiement, paiement, remboursement, e-mail, génération média, appel réel au modèle ou changement DNS n'a été effectué.
 

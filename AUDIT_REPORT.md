@@ -1,5 +1,33 @@
 # Audit et préparation production — Aïra
 
+## Mise à jour — 24 octobre 2026 : sortie de Sites
+
+Le code utilise désormais un Worker Cloudflare indépendant et une connexion Aïra
+par lien e-mail à usage unique. La migration 0014 est additive ; les anciens
+espaces ne sont ni supprimés ni fusionnés automatiquement. La nouvelle grille
+Essentiel/Pro/Business et le routage interne sont conservés.
+
+**VÉRIFIÉ localement :** types, lint, build et toutes les suites npm réussissent
+(152 tests unitaires, 15 suites de services, 4 suites d'artefacts, 2 lanceurs HTTP).
+L'authentification couvre 18 contrôles serveur, 7 contrôles Chromium/HTTPS et
+un démarrage du vrai bundle Worker : accueil 200, en-têtes usurpés refusés (401),
+connexion fermée sans configuration (503). Les sauvegardes testées conservent
+également les identités indépendantes. Resend, R2 et les fournisseurs sont simulés.
+
+**P1 non corrigé :** l'audit npm actualisé conserve une alerte élevée Zod,
+[GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), nécessitant
+une migration majeure à faire valider ; quatre alertes modérées restent dans la
+chaîne de développement Drizzle/esbuild. Les versions correctives MCP, Vite,
+Wrangler, body-parser et fast-uri sont installées et retestées. Ne pas affirmer
+que l'audit est propre ou que l'application est prête à encaisser.
+
+**BLOQUÉ à distance :** authentification Wrangler, ressources Cloudflare Aïra,
+secrets serveur, domaine/expéditeur et destinataire de test, recettes réelles des
+fournisseurs, fiscalité/marge, support et restauration cloud. FlowPay est confirmé
+avec une clé Aïra distincte à créer. Aucun nouveau déploiement Sites ni bascule
+live n'a été effectué. État courant : [production/STATE](docs/production/STATE.md)
+et [guide Cloudflare indépendant](docs/CLOUDFLARE_SELF_HOSTED.md).
+
 ## Mise à jour vérifiée — 20 octobre 2026
 
 Branche de correction : `audit/2026-10-20`, depuis `17f8ca5`. Les sections datées du 18 octobre ci-dessous constituent l'état initial ; leurs nombres de tests et leur constat de lint en échec sont historiques.
