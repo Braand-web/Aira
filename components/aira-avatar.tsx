@@ -8,10 +8,11 @@ type AiraAvatarProps = {
   busy?: boolean;
   size?: number;
   paused?: boolean;
+  followPointer?: boolean;
   className?: string;
 };
 
-export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, paused = false, className = ''}: AiraAvatarProps) {
+export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, paused = false, followPointer = false, className = ''}: AiraAvatarProps) {
   return (
     <span
       className={'aira-avatar ' + className}
@@ -25,7 +26,9 @@ export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, pau
           state={busy ? 'working' : 'default'}
           size={size}
           paused={paused}
-          interactive={false}
+          // The library tracks the document pointer and damps the gaze and head movement.
+          // Keep pointer-events disabled on the wrapper: the avatar has no click action.
+          interactive={followPointer}
           jumpEvery={0}
           theme="dark"
           aria-label={busy ? 'Aïra prépare une réponse' : 'Aïra'}
