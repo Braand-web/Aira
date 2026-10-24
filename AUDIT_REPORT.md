@@ -16,8 +16,11 @@ tout en conservant les autres tâches et les alertes sur erreurs réelles.
 `tests/worker-scheduler.integration.mjs` échouait avant correction et passe après
 (4 contrôles). Le mode de déploiement D1 seul est explicite, limité au staging
 privé, avec 3 tests supplémentaires ; la production exige toujours les deux R2.
-Types, lint, build et `npm test` relancés : 159 tests unitaires, 16 suites de
+Types, lint, build et `npm test` relancés après intégration du nouveau comparatif
+et du tableau de bord de `main` : 164 tests unitaires, 17 suites de
 services, 4 suites d'artefacts et 2 lanceurs HTTP passent, sans retirer de test.
+Les 37 contrôles React/Chromium passent également. Le cron corrigé est vérifié
+à 05:00 UTC : tâches terminées, aucune nouvelle fausse alerte missions.
 
 **BLOQUÉ :** R2 renvoie 10042 (« Please enable R2 »), aucun bucket créé ; clés
 Composio/Resend/fal.ai/SasPay de test manquantes ; pas de domaine vérifié. Le

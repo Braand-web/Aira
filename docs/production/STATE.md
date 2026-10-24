@@ -28,6 +28,8 @@ pas été supprimés.
   une tentative. Une fausse alerte sur l'autonomie volontairement désactivée a
   été reproduite puis corrigée dans le Worker ; 4 tests protègent le routage du
   cron, le maintien des vraies alertes et l'exigence du secret du planificateur.
+  Au passage de 05:00 UTC après déploiement du correctif, les deux tâches terminent
+  et aucune nouvelle alerte missions n'apparaît ; les anciennes sont conservées.
 - Détails et commandes : [recette du staging](STAGING_2026-10-24.md).
 
 ## Présent et vérifié localement
@@ -37,14 +39,15 @@ pas été supprimés.
 - Connexion Aïra par lien e-mail à usage unique, identité vérifiée par le Worker,
   session privée révocable et migration additive `0014_independent_auth.sql`.
   Tous les en-têtes d'identité fournis par le client sont effacés.
-- Types, lint, build et `npm test` réussis : 159 tests unitaires, 16 suites de
+- Types, lint, build et `npm test` réussis : 164 tests unitaires, 17 suites de
   services, 4 suites d'artefacts et 2 lanceurs HTTP ; réseau externe bloqué.
 - Authentification : 18 contrôles SQLite/Web Crypto et 7 contrôles Chromium/HTTPS
   avec formulaires, cookies, confirmation et déconnexion. Envoi Resend simulé.
 - Interface navigateur : 14 contrôles ; disposition du chat : 9 contrôles,
   notamment mobile et clavier. Services simulés, aucune session cloud facturée.
 - Les derniers changements de `main` sont intégrés ; la suite complète et les
-  14 contrôles de l'interface agent passent après cette intégration.
+  37 contrôles de l'interface agent passent après cette intégration, y compris
+  le nouveau comparatif des forfaits et le tableau de bord analytique.
 - Catalogue Essentiel/Pro/Business et recharges conservé ; taxes déterminées
   côté serveur et configuration fiscale inconnue bloquante au paiement.
 - Adaptateurs IA, fal.ai, Composio, SasPay.me et Resend ; missions, publications,

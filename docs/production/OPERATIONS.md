@@ -13,6 +13,8 @@ retournait 503 au cron. Le Worker omet désormais cette tâche lorsque
 `AUTONOMY_ENABLED` n'est pas `true`, tout en exécutant les autres tâches. Les
 4 contrôles de `tests/worker-scheduler.integration.mjs` couvrent aussi les vraies
 erreurs et le secret absent. Les alertes historiques sont conservées, sans purge.
+Le passage distant de 05:00 UTC après déploiement du correctif termine les tâches
+et ne crée aucune nouvelle alerte missions (dernière alerte historique : 04:55).
 
 R2 renvoie encore 10042 ; aucun bucket ni exercice de restauration cloud.
 Resend reste fermé sans clé API : destinataire de test configuré en secret,

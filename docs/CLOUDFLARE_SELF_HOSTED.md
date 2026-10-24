@@ -167,7 +167,7 @@ par adresse et aucune suppression des données historiques.
 ## Preuves locales du 24 octobre 2026
 
 `npm run typecheck`, `npm run lint`, `npm run build` et `npm test` réussissent.
-La suite comprend 159 tests unitaires, 16 suites de services, 4 suites d'artefacts
+La suite comprend 164 tests unitaires, 17 suites de services, 4 suites d'artefacts
 et 2 lanceurs HTTP. Aucun accès réseau externe n'est autorisé dans `npm test`.
 
 Les 18 contrôles d'authentification comprennent le vrai point d'entrée Worker
@@ -180,8 +180,9 @@ Les 14 contrôles de l'interface navigateur et les 9 contrôles de disposition d
 chat passent également avec des services simulés. Les captures de connexion
 ordinateur/mobile ont été examinées ; aucune preuve locale ne vaut recette cloud.
 Après intégration des derniers changements de `main`, types, lint, build et toute
-la suite ont été relancés avec succès, ainsi que les 14 contrôles de l'interface
-agent. Le lanceur de démonstration utilise aussi la nouvelle route de connexion.
+la suite ont été relancés avec succès, ainsi que les 37 contrôles de l'interface
+agent, comparatif des forfaits et tableau de bord compris. Le lanceur de
+démonstration utilise aussi la nouvelle route de connexion.
 
 Pour relancer le parcours de connexion, installer Playwright dans l'environnement
 de test (ou définir AIRA_PLAYWRIGHT_MODULE vers son module existant), disposer
