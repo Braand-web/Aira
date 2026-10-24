@@ -3,7 +3,7 @@
 SaaS de conversation, créations, pages et missions assistées. React 19,
 TypeScript, Vinext/Vite et Cloudflare Workers ; D1, R2 et Durable Objects.
 
-État du raccordement et du déploiement privé : [Braand sur Cloudflare](docs/production/BRAAND_ROLLOUT_2026-10-24.md). L’ouverture publique attend encore le domaine et le compte e-mail dédié.
+Accueil public : https://braand.fun. État du raccordement : [Braand sur Cloudflare](docs/production/BRAAND_ROLLOUT_2026-10-24.md). La connexion utilisateur reste fermée jusqu’à la vérification du domaine e-mail.
 
 ## Développement
 

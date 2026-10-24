@@ -2,6 +2,20 @@
 
 Le propriétaire a choisi **Braand**, `braand.fun` et un compte Resend dédié. L’adresse Gmail fournie sert de contact technique et de destinataire de test ; elle n’est pas utilisée comme expéditeur du domaine. Ce relevé décrit les opérations terminées à 15:17 UTC et les limites restantes.
 
+## Raccordement public corrigé : 24 octobre, 15:34 UTC
+
+Après le signalement d’une erreur 522 par le propriétaire, le contrôle public a retrouvé une page de stationnement Hostinger en HTTP 200. La zone était active, mais sans route Worker ni Custom Domain pour Braand. La délégation DNS seule ne raccordait donc pas le SaaS.
+
+L’attachement en Custom Domain a été refusé (409, code 100117) à cause d’enregistrements DNS externes déjà présents. Leur lecture directe est interdite à l’OAuth CLI ; aucun enregistrement n’a été supprimé ou deviné. Une route Worker officielle `braand.fun/*` vers `aira-production` a été ajoutée avec les droits disponibles, puis relue : ID `9ada3693c4f345b7a2c955020d4f7ba9`. L’échec du Worker n’est pas configuré pour laisser passer l’origine (`request_limit_fail_open=false`). Les DNS existants et le courrier sont conservés ; le staging et workers.dev restent privés. La version du Worker demeure `feb028cb-997f-450b-b6cb-a4e5b0e7abee`.
+
+Huit contrôles sur le **vrai domaine HTTPS**, avec validation normale du certificat : accueil Braand et `/api/health` en 200 ; workspace, chat en lecture/écriture et Meta sans session en 401 ; identité usurpée en 401 ; connexion volontairement fermée en 503. La santé D1 renvoie `{"status":"ok"}`. Chromium charge l’application réelle et le composeur sur ordinateur/mobile sans débordement horizontal ni erreur JavaScript. Aucune session créée, aucun e-mail, paiement ou appel modèle déclenché. Ces contrôles établissent l’accès public à l’application, pas un parcours connecté complet.
+
+Le manifeste final local `.wrangler/deploy/production-public.json` conserve cette route, les bindings isolés et les flags fermés. Pour les prochains déploiements de production, utiliser ce manifeste final revu : `wrangler deploy --config .wrangler/deploy/production-public.json`. Le générateur de base reste volontairement privé : **ne pas redéployer le manifeste initial sans routes sur la production publique**, car cela peut retirer le raccordement. Les manifests locaux sont ignorés par Git et ne contiennent aucune clé API en clair.
+
+Référence : https://developers.cloudflare.com/workers/configuration/routing/routes/
+
+Les notes ci-dessous conservent les étapes antérieures à ce raccordement. La connexion et les e-mails attendent toujours un domaine Resend vérifié ; ce blocage est indépendant de l’erreur d’accès au site désormais corrigée.
+
 ## Actualisation : domaine actif et nouvelle clé e-mail
 
 Vérifications ultérieures du 24 octobre, vers 15:28 UTC :

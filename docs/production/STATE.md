@@ -1,27 +1,28 @@
 # État courant : Braand — 24 octobre 2026
 
-Le produit porte désormais le nom **Braand**. Le domaine prévu est https://braand.fun. Le propriétaire a autorisé les connexions et le déploiement ; les environnements de staging et de production sont déployés **en privé**. La disponibilité publique et le parcours utilisateur authentifié ne sont pas encore prouvés.
+Le produit porte désormais le nom **Braand**. L’accueil public https://braand.fun est raccordé au Worker de production et vérifié en HTTPS. Le staging reste privé. Le parcours utilisateur authentifié reste fermé en attendant la vérification du domaine e-mail.
 
 Le [relevé Braand](BRAAND_ROLLOUT_2026-10-24.md) contient les versions actives, ressources, contrôles, limites fournisseurs et la procédure DNS. Il remplace les constats plus anciens des notes de préparation.
 
 ## Terminé et vérifié
 
 - Interface, connexion, documents, agents et compétences originales renommés ; contrats, cookies et identifiants techniques conservés.
-- Deux D1 distinctes, migrations 0000–0015 appliquées ; deux Workers privés ; quatre buckets R2 séparés. Écriture, relecture et suppression de contrôle réussies sur chacun ; accès publics désactivés.
+- Deux D1 distinctes, migrations 0000–0015 appliquées ; staging privé et production publique ; quatre buckets R2 privés séparés. Écriture, relecture et suppression de contrôle réussies sur chacun ; accès R2 publics désactivés.
 - OpenRouter, Composio et SasPay authentifiés par lectures réelles puis liés en secrets aux Workers. Modèle et prix de tokens existants conservés. Secrets techniques de production distincts.
 - Nouvelle clé Resend reconnue et stockée en secret dans les deux Workers ; aucun envoi. Elle voit encore trois domaines existants et l’ajout de braand.fun est refusé par la limite du forfait.
 - Domaine braand.fun actif dans le bon compte Cloudflare ; délégation publique vérifiée vers martha.ns.cloudflare.com et stanley.ns.cloudflare.com. Le propriétaire confirme Hostinger comme vendeur.
 - Types, lint, compilation et suite complète réussis : 176 tests unitaires, 18 suites d’intégration, 4 suites d’artefacts, 2 lanceurs HTTP. Tests locaux sans fournisseur externe.
 - Chromium : 41 contrôles interface et 7 connexion, services simulés ; captures ordinateur/mobile examinées.
 - Huit contrôles réels du bundle en preview Cloudflare avec ressources de production : santé D1 et accueil 200, accès anonymes/usurpés 401, connexion volontairement fermée 503. Ni accès public ni parcours connecté complet.
+- Raccordement public vérifié ensuite : route braand.fun/* vers aira-production, accueil Braand et santé D1 en 200, cinq accès anonymes/usurpés en 401, connexion fermée en 503. Chromium charge le vrai site, son composeur et ses ressources sans erreur JavaScript, sur ordinateur et mobile. Aucune génération, connexion utilisateur ou opération payante déclenchée.
 
-## À terminer avant ouverture publique
+## À terminer avant ouverture des fonctions authentifiées
 
 - Dans le compte ou l’équipe Resend dédié, disposer d’une place pour braand.fun et vérifier le domaine. La nouvelle clé est installée, mais son compte refuse encore l’ajout au-delà des trois domaines existants ; aucun domaine supprimé ni achat réalisé.
-- Raccorder l’origine HTTPS, tester les liens e-mail et l’isolation des vraies sessions avant d’activer l’authentification publique.
+- Tester les liens e-mail et l’isolation des vraies sessions sur l’origine HTTPS désormais raccordée avant d’activer l’authentification publique.
 - Valider séparément OAuth métier, générations et coûts réels, webhook SasPay, fiscalité, textes légaux, économie et restauration avant les fonctions payantes. Aucun paiement, e-mail ou appel de génération réel effectué.
 - Les fonctions sensibles restent désactivées. Les anciennes identités Sites demandent une preuve de propriété avant rapprochement ; pas de fusion automatique.
-- Les alertes de dépendances déjà documentées restent à traiter avant exposition ; le déploiement privé ne prouve pas une sécurité complète.
+- Les alertes de dépendances déjà documentées restent à traiter ; l’accès public à l’accueil et les tests de refus d’accès ne constituent pas un audit de sécurité complet.
 
 Les limites du panneau droit sont techniques : pas d’outil de contrôle de ses sessions dans ce contexte. Aucun cookie ou stockage d’authentification n’a été extrait. Les secrets ne sont jamais inclus au dépôt ; la rotation des clés partagées dans la conversation reste recommandée après raccordement.
 
