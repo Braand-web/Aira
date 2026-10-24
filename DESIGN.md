@@ -12,5 +12,9 @@ Le clover de Bot Avatars accompagne l’assistant : 64 px sur l’accueil et 32 
 
 Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Neuf rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations et aide. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
 
+Les forfaits de facturation se comparent dans un carrousel horizontal : deux cartes lisibles avec une amorce de la troisième, une seule carte sur les petits conteneurs. Flèches de navigation, défilement tactile et au trackpad, clavier et focus visible ; aucun défilement automatique. La navigation devient immédiate avec la réduction du mouvement.
+
+Le Tableau de bord conserve son nom. En-tête compact, compte actif contrôlé, périodes de 7, 30 ou 90 journées terminées dans le fuseau du compte. Six métriques calculées sur les totaux, courbe quotidienne avec comparaison précédente, barres par campagne et tableau triable avec recherche et export CSV. Les observations sont déterministes et les actions Aïra préparent une demande dans le chat. Séries absentes, rapports partiels et conversions non mesurées restent explicites. Graphiques accessibles au clavier, axes lisibles sur mobile et chargement à la demande ; aucune animation ni dépense automatique.
+
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 

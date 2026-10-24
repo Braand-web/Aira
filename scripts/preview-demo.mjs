@@ -6,6 +6,7 @@ import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {seedDemo,DEMO_FILES} from './demo/seed.mjs';
+import {demoAnalytics,DEMO_AD_ACCOUNT} from './demo/analytics.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const port = Number(process.env.AIRA_DEMO_PORT || 4202);
@@ -58,12 +59,6 @@ child.stdout.on('data', bytes => {if (bytes.toString().includes('Aïra local')) 
 child.stderr.on('data', bytes => process.stderr.write(bytes));
 child.on('exit', code => {childExited = true; if (server.listening) {console.error('Demo adapter stopped:', code); server.close();}});
 
-const account = {id:'act_demo_naya', name:'Maison Naya · compte fictif', currency:'XAF', timezone_name:'Africa/Douala'};
-const insights = [
-  {campaign_name:'Coffret cacao · découverte', spend:'18400', impressions:'54200', clicks:'1250'},
-  {campaign_name:'Café signature · collection', spend:'12600', impressions:'38600', clicks:'930'},
-  {campaign_name:'Infusion hibiscus · retours clients', spend:'7000', impressions:'24500', clicks:'620'},
-];
 const toolkits = [
   {slug:'gmail',name:'Gmail',description:'Boîte de réception fictive de Maison Naya. Aucune lecture ni aucun envoi réel.',connected:true,status:'active',accountId:'demo-gmail'},
   {slug:'googledrive',name:'Google Drive',description:'Exemple de dossier de marque connecté. Aucun accès à un compte Google.',connected:true,status:'active',accountId:'demo-drive'},
@@ -71,7 +66,7 @@ const toolkits = [
   {slug:'instagram',name:'Instagram',description:'Exemple de préparation de contenus. Aucune publication réelle.',connected:false,status:'disconnected'},
   {slug:'metaads',name:'Meta Ads',description:'Les campagnes et résultats présentés dans la démonstration sont fictifs.',connected:false,status:'disconnected'},
 ];
-const banner = `<aside class="demo-notice" aria-label="Espace de démonstration"><strong>Maison Naya · Démonstration</strong><span>Tous les contenus, comptes et chiffres sont fictifs.</span><nav aria-label="Parcours de démonstration"><a href="/?view=creations">Créations</a><a href="/?view=projects">Projets</a><a href="/?view=analytics">Résultats</a><a href="/?settings=billing">Facturation</a></nav></aside>`;
+const banner = `<aside class="demo-notice" aria-label="Espace de démonstration"><strong>Maison Naya · Démonstration</strong><span>Tous les contenus, comptes et chiffres sont fictifs.</span><nav aria-label="Parcours de démonstration"><a href="/?view=creations">Créations</a><a href="/?view=projects">Projets</a><a href="/?view=analytics">Tableau de bord</a><a href="/?settings=billing">Facturation</a></nav></aside>`;
 const demoStyle = `<style>.demo-notice{height:36px;display:flex;align-items:center;gap:20px;padding:0 20px;background:#e9d9bd;color:#30291e;font:12px/1.4 Manrope,system-ui,sans-serif;white-space:nowrap}.demo-notice strong{font-weight:700}.demo-notice nav{display:flex;gap:16px;margin-left:auto}.demo-notice a{color:inherit;text-decoration:underline;text-underline-offset:3px}.demo-notice a:focus-visible{outline:2px solid #30291e;outline-offset:3px}.app-shell{height:calc(100dvh - 36px)!important;min-height:calc(100dvh - 36px)!important}.home-footer{bottom:0}@media(max-width:900px){.demo-notice>span{display:none}}@media(max-width:600px){.demo-notice{padding:0 12px;gap:8px;font-size:11px}.demo-notice nav>a:not(:first-child){display:none}}</style>`;
 let cookie = '';
 const demoSidebarStyle = '<style>.app-shell>.sidebar{height:calc(100dvh - 36px)!important;min-height:0!important}@media(max-width:680px){.app-shell>.sidebar{top:36px!important}}</style>';
@@ -85,7 +80,11 @@ const server = createServer(async (request, response) => {
     if (fileSign && request.headers.origin !== origin && request.headers.origin !== 'http://localhost:' + port) return json(response, 403, {error:'Ouvrez le fichier depuis la démonstration locale.'});
     if (/^\/api\/(?:internal|admin|webhooks)(?:\/|$)/u.test(url.pathname) || url.pathname.endsWith('/connect')) return json(response, 403, {error:'Aucune connexion ou action externe dans cette démonstration.'});
     if (url.pathname === '/api/demo') return json(response, 200, seeded);
-    if (url.pathname === '/api/meta') return json(response, 200, url.searchParams.has('accountId') ? {account, insights:{data:insights}, fetchedAt:new Date().toISOString(), hasMore:false, demonstration:true} : {data:[account], demonstration:true});
+    if (url.pathname === '/api/meta') {
+      const days=Number(url.searchParams.get('days')||30);
+      if(![7,30,90].includes(days))return json(response,400,{error:'Choisissez une période de 7, 30 ou 90 jours.'});
+      return json(response,200,url.searchParams.has('accountId')?demoAnalytics(days):{data:[DEMO_AD_ACCOUNT],demonstration:true});
+    }
     if (url.pathname === '/api/connectors/toolkits') {
       const search = (url.searchParams.get('search') || '').toLocaleLowerCase('fr');
       const items = toolkits.filter(item => (url.searchParams.get('connected') !== 'true' || item.connected) && item.name.toLocaleLowerCase('fr').includes(search));

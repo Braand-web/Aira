@@ -1,0 +1,13 @@
+export type AnalyticsMetric = 'spend' | 'impressions' | 'clicks' | 'cpc' | 'ctr' | 'cpm';
+export type AnalyticsMetrics = Record<AnalyticsMetric, number | null>;
+export type AnalyticsAccount = {id: string; name: string; currency: string; timezone_name?: string};
+export type AnalyticsRow = {campaign_id?: string; campaign_name?: string; date_start?: string; date_stop?: string; spend?: string | number; impressions?: string | number; clicks?: string | number};
+export type AnalyticsRange = {days: number; timezone: string; since: string; until: string; previousSince: string; previousUntil: string};
+export type AnalyticsReport = {account: AnalyticsAccount; insights: {data: AnalyticsRow[]}; daily: {data: AnalyticsRow[]} | null; comparison: {data: AnalyticsRow[]} | null; range: AnalyticsRange; fetchedAt: string; hasMore: boolean; dailyHasMore?: boolean; comparisonHasMore?: boolean; demonstration?: boolean; warnings?: string[]};
+export const ANALYTICS_DAYS: number[];
+export function analyticsRange(days?: number, timezone?: string, now?: number): AnalyticsRange;
+export function metricNumber(value: unknown): number | null;
+export function summarizeAnalytics(rows: AnalyticsRow[]): AnalyticsMetrics;
+export function metricChange(current: number | null, previous: number | null): number | null;
+export function dailyAnalytics(rows: AnalyticsRow[], since: string, days: number): {date: string; metrics: AnalyticsMetrics | null}[];
+export function analyticsCSV(rows: AnalyticsRow[], account: AnalyticsAccount, range: AnalyticsRange): string;
