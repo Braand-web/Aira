@@ -1,6 +1,6 @@
 # Audit et renforcement du harness agentique — 24 octobre 2026
 
-> Mise à jour après l'audit : à la demande du propriétaire, la migration `0015_agent_harness.sql` a été appliquée et vérifiée sur D1 distante `aira-staging` le 24 octobre 2026 à 09:16:34 UTC : 16 migrations, quatre tables et deux index présents, aucune anomalie de clé étrangère ni migration en attente. Les mentions de migration distante non effectuée ci-dessous décrivent l'état initial de l'audit. Le nouveau runtime reste non déployé. Voir `production/STATE.md`.
+> Mise à jour après l'audit : à la demande du propriétaire, la migration `0015_agent_harness.sql` a été appliquée et vérifiée sur D1 distante `aira-staging` le 24 octobre 2026 à 09:16:34 UTC : 16 migrations, quatre tables et deux index présents, aucune anomalie de clé étrangère ni migration en attente. Les mentions de migration distante non effectuée ci-dessous décrivent l'état initial de l'audit. Le runtime a ensuite été déployé en staging privé, version `6f4aa0ee-abe9-4405-978b-a262af34978e` active à 100 % ; huit contrôles du bundle en preview distante passent, sans génération IA. Voir `production/STATE.md` et `production/STAGING_2026-10-24.md`.
 
 ## Portée et référence
 

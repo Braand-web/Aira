@@ -149,8 +149,10 @@ La documentation publique de prix est datée du 18 octobre 2026 dans `COST_SOURC
 
 Le manifeste de build contient `DB`, `BUCKET` et le cron de cinq minutes ; cela prouve uniquement la configuration générée localement. Les ressources Cloudflare, secrets, domaine, déclencheur distant, e-mails, comptes Meta et SasPay demeurent à valider en staging avant toute bascule live.
 
-## Harness agentique — migration appliquée, runtime non déployé
+## Harness agentique — migration et runtime déployés en staging privé
 
 À la demande du propriétaire, `0015_agent_harness.sql` a été appliquée sur D1 distante `aira-staging` (`7a2e1508-922b-4138-97ba-40e61c9be447`) le 24 octobre 2026 à 09:16:34 UTC. Le registre passe de 15 à 16 migrations. Les quatre tables `agent_checkpoints`, `agent_plans`, `agent_verifications`, `agent_tool_receipts` et les deux index explicites sont présents. `PRAGMA foreign_key_check` ne renvoie aucune anomalie ; `d1 migrations list` ne trouve plus de migration en attente.
 
-Cette opération ne déploie pas le nouveau runtime et n'active aucun drapeau fournisseur. L'onglet local sur le port 4202 reste une démonstration séparée. Le rapport `../AGENT_HARNESS_AUDIT.md` conserve les preuves des tests locaux ; les validations réelles des fournisseurs restent à effectuer.
+Après la migration, le runtime contenant `58286ec` a été déployé sur `aira-staging` le 24 octobre 2026 à 12:52:22 UTC. Version active à 100 % : `6f4aa0ee-abe9-4405-978b-a262af34978e` ; déploiement `972cba24-5ec0-4e5d-8fb2-18e1d607576a`. Le manifeste conserve `workers_dev=false`, `preview_urls=false` et aucune route publique. La relecture de version confirme la D1 attendue, les flags fermés et 13 bindings secrets conservés, sans lecture de leurs valeurs.
+
+Huit contrôles du même bundle en preview distante Cloudflare passent : accueil/santé D1 200 ; workspace sans session, identité usurpée, lecture et POST chat, lecture Meta 401 ; connexion désactivée 503. Le proxy de recette est arrêté. Ces contrôles ne constituent pas un parcours authentifié, une génération IA ni une validation des intégrations payantes. L'onglet local sur le port 4202 reste une démonstration séparée. Le rapport `../AGENT_HARNESS_AUDIT.md` conserve les preuves des tests locaux ; les validations réelles des fournisseurs restent à effectuer.
