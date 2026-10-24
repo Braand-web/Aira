@@ -144,7 +144,7 @@ try {
   for (let attempt = 0; attempt < 150; attempt++) {
     if (childExited) throw Error('Demo adapter failed to start.');
     try {
-      const signIn = await fetch(backendOrigin + '/signin-with-chatgpt', {redirect:'manual'});
+      const signIn = await fetch(backendOrigin + '/auth/sign-in', {redirect:'manual'});
       if (signIn.status === 302 && signIn.headers.get('set-cookie')?.startsWith('aira_local_session=')) {cookie = signIn.headers.get('set-cookie').split(';')[0]; ready = true; break;}
     } catch { /* Wait for the local bundle, without using live credentials. */ }
     await new Promise(resolve => setTimeout(resolve, 200));

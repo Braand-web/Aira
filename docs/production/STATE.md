@@ -12,12 +12,14 @@ pas été supprimés.
 - Connexion Aïra par lien e-mail à usage unique, identité vérifiée par le Worker,
   session privée révocable et migration additive `0014_independent_auth.sql`.
   Tous les en-têtes d'identité fournis par le client sont effacés.
-- Types, lint, build et `npm test` réussis : 152 tests unitaires, 15 suites de
+- Types, lint, build et `npm test` réussis : 156 tests unitaires, 15 suites de
   services, 4 suites d'artefacts et 2 lanceurs HTTP ; réseau externe bloqué.
 - Authentification : 18 contrôles SQLite/Web Crypto et 7 contrôles Chromium/HTTPS
   avec formulaires, cookies, confirmation et déconnexion. Envoi Resend simulé.
 - Interface navigateur : 14 contrôles ; disposition du chat : 9 contrôles,
   notamment mobile et clavier. Services simulés, aucune session cloud facturée.
+- Les derniers changements de `main` sont intégrés ; la suite complète et les
+  13 contrôles de l'interface agent passent après cette intégration.
 - Catalogue Essentiel/Pro/Business et recharges conservé ; taxes déterminées
   côté serveur et configuration fiscale inconnue bloquante au paiement.
 - Adaptateurs IA, fal.ai, Composio, SasPay.me et Resend ; missions, publications,

@@ -8,7 +8,7 @@ espaces ne sont ni supprimés ni fusionnés automatiquement. La nouvelle grille
 Essentiel/Pro/Business et le routage interne sont conservés.
 
 **VÉRIFIÉ localement :** types, lint, build et toutes les suites npm réussissent
-(152 tests unitaires, 15 suites de services, 4 suites d'artefacts, 2 lanceurs HTTP).
+(156 tests unitaires, 15 suites de services, 4 suites d'artefacts, 2 lanceurs HTTP).
 L'authentification couvre 18 contrôles serveur, 7 contrôles Chromium/HTTPS et
 un démarrage du vrai bundle Worker : accueil 200, en-têtes usurpés refusés (401),
 connexion fermée sans configuration (503). Les sauvegardes testées conservent
