@@ -132,7 +132,7 @@ const server=createServer(async(req,res)=>{
   if(url.pathname==='/app.js'||url.pathname==='/app.css'||url.pathname.startsWith('/chunks/')){
     try{const target=path.resolve(output,'.'+url.pathname);if(!target.startsWith(output+path.sep))throw Error();res.writeHead(200,{'Content-Type':url.pathname.endsWith('.css')?'text/css':'application/javascript'});res.end(await readFile(target));}catch{res.writeHead(404);res.end();}return;
   }
-  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr" data-design-system="muse"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Aïra · Test isolé</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
+  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr" data-design-system="muse"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Braand · Test isolé</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin='http://127.0.0.1:'+server.address().port;
@@ -151,9 +151,13 @@ try{
     await page.screenshot(options);
   };
   await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
-  await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).waitFor();
+  await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Braand'}).waitFor();
+  assert.equal(await page.locator('.brand-lockup').innerText(),'Braand');
+  assert.ok(await page.locator('.sidebar-brand').evaluate(element=>element.scrollWidth<=element.clientWidth),'Braand wordmark must fit beside navigation controls');
+  assert.ok(!(await page.locator('body').innerText()).includes('Aïra'),'Visible application keeps the new product name');
+  checks.push('Braand identity fits the existing sidebar without changing technical storage or session identifiers');
   await page.locator('.welcome-symbol canvas[data-bot-avatar="clover"][data-state="default"]').waitFor();
-  const composer=page.getByRole('textbox',{name:'Votre demande à Aïra'});
+  const composer=page.getByRole('textbox',{name:'Votre demande à Braand'});
   const initial=await page.locator('.composer').boundingBox();
   assert.equal(await page.locator('body').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(24, 24, 25)');
   assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),240);
@@ -425,7 +429,7 @@ try{
   await page.goto(origin);await composer.fill('Bonjour');
   checks.push('Design system: shared tokens, desktop/mobile settings, catalog, billing and 72px rail');
   checks.push('Composer grows only vertically, caps at 192px and scrolls internally');
-  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
+  await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
   assert.equal(await page.locator('.message.assistant .aira-avatar[data-state="working"]').count(),1);
@@ -476,9 +480,9 @@ try{
   assert.equal(await useful.getAttribute('aria-pressed'),'false');assert.equal(votes.get('assistant-1'),null);
   await useful.click();await page.waitForFunction(()=>document.querySelector('[aria-label="Réponse utile"]').getAttribute('aria-pressed')==='true');
   assert.equal(feedbackCalls,4);checks.push('Votes persist by message, toggle back to null, and retain prior value on API failure');
-  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Mon brouillon');
+  await page.getByRole('textbox',{name:'Votre demande à Braand'}).fill('Mon brouillon');
   await response.getByRole('button',{name:'Reprendre la demande',exact:true}).click();
-  assert.equal(await page.getByRole('textbox',{name:'Votre demande à Aïra'}).inputValue(),'Mon brouillon\n\nBonjour');assert.equal(chatCalls,1);
+  assert.equal(await page.getByRole('textbox',{name:'Votre demande à Braand'}).inputValue(),'Mon brouillon\n\nBonjour');assert.equal(chatCalls,1);
   checks.push('Resume preserves draft and prepares request without executing a new model/tool call');
   await page.reload();
   await page.getByRole('button',{name:'Rechercher',exact:true}).click();
@@ -496,10 +500,10 @@ try{
   assert.equal(await composer.inputValue(),'Brouillon avec ressource ouverte');assert.equal(await page.locator('.messages article').count(),messageCountBeforeSettings);assert.equal(await page.locator('.messages').evaluate(element=>element.scrollTop),scrollBeforeSettings);
   await sidePanel.getByRole('heading',{name:proposal.title,exact:true}).waitFor();assert.equal(approvals,0);assert.equal(checkoutCalls,0);
   checks.push('Billing settings preserve the current messages, composer draft, conversation scroll and open resource panel');
-  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Coupure réseau');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
+  await page.getByRole('textbox',{name:'Votre demande à Braand'}).fill('Coupure réseau');await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=error]').waitFor();
   assert.ok((await page.locator('.messages').innerText()).includes('Résultat de test conservé.'));checks.push('Interrupted stream keeps received text and never claims success');
-  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Arrêt utilisateur');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
+  await page.getByRole('textbox',{name:'Votre demande à Braand'}).fill('Arrêt utilisateur');await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
   await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).click();
   await page.locator('[data-slot=ai-status][data-state=cancelled]').waitFor();assert.equal(stops,1);checks.push('Stop remains distinct from failure and cancels the existing run');
@@ -523,7 +527,7 @@ try{
   await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:390,height:844});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
   await page.getByRole('complementary',{name:'Espace de travail'}).getByRole('button',{name:'Fermer l’espace de travail',exact:true}).click();
-  await page.getByRole('textbox',{name:'Votre demande à Aïra'}).fill('Mobile');await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
+  await page.getByRole('textbox',{name:'Votre demande à Braand'}).fill('Mobile');await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-active]').waitFor();
   await page.waitForFunction(()=>{const path=document.querySelector('[data-slot=ai-status][data-active] .ai-status-icon svg path');return path&&getComputedStyle(path).animationName==='none';});
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();

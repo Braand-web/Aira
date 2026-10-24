@@ -51,7 +51,7 @@ function checkSession(session:Session,scopeUser:string,mode:'connected'|'instant
 export async function connectorStatus(who:BillingIdentity){
  const policy=await instantPolicy(who);
  return {enabled:policy.enabled,monthlyLimitUsd:policy.organizationMonthlyMicros/1e6,perCallLimitUsd:policy.perCallMicros/1e6,
- note:'Instant : confirmation par appel, crédits Aïra et tarif vérifié requis. Le plafond Business est partagé par l’équipe.'};
+ note:'Instant : confirmation par appel, crédits Braand et tarif vérifié requis. Le plafond Business est partagé par l’équipe.'};
 }
 
 export async function connectorSession(who:BillingIdentity,conversationId='catalog',mode:'connected'|'instant'='connected'){
@@ -91,7 +91,7 @@ export async function authorizeConnector(who:BillingIdentity,toolkit:string){
  toolkit=toolkitSchema.parse(toolkit);await authorize(who.tenant,who.user.userId,'write');
  const {session}=await connectorSession(who);
  try{
-  // Composio owns the authorization flow. Aïra never supplies provider tokens or accepts consent.
+  // Composio owns the authorization flow. Braand never supplies provider tokens or accepts consent.
   const result=await session.authorize(toolkit);
   const url=new URL(result.redirectUrl!);
   if(url.protocol!=='https:'||url.username||url.password||!/(^|\.)composio\.(dev|ai)$/.test(url.hostname))throw providerError();
@@ -116,11 +116,11 @@ export async function connectorAgentTools(who:BillingIdentity,conversationId:str
  if(!connectorConfigured())return [];
  const {session}=await connectorSession(who,conversationId);
  const tools=z.array(z.object({name:z.string(),description:z.string().optional(),input_schema:z.record(z.unknown())}).passthrough()).parse(await session.tools());
- // Execution and authentication helpers are intentionally replaced by guarded Aïra adapters.
+ // Execution and authentication helpers are intentionally replaced by guarded Braand adapters.
  return [...tools.filter(t=>SAFE_META.has(t.name)),...connectorActionTools];
 }
 async function metadata(sdk:Client,call:ConnectorCall){
- if(isGenericBrowserTool(call.toolkit,call.toolSlug))throw new AppError('Utilisez le navigateur privé Aïra pour cette action.',403,'browser_adapter_required');
+ if(isGenericBrowserTool(call.toolkit,call.toolSlug))throw new AppError('Utilisez le navigateur privé Braand pour cette action.',403,'browser_adapter_required');
  const tools=await sdk.tools.getRawComposioTools({tools:[call.toolSlug]});
  const tool=tools.find(t=>t.slug===call.toolSlug&&t.toolkit?.slug===call.toolkit);
  if(!tool)throw new AppError('Outil introuvable. Recherchez son schéma avant de continuer.',404,'connector_tool_unknown');
@@ -203,7 +203,7 @@ export async function executeConnectorAgentTool(who:BillingIdentity,conversation
    await log(who,name,result.resultType,result.logId);return result;
   }catch{await log(who,name,'failed');throw providerError();}
  }
- if(name!=='aira_connector_action')throw new AppError('Cet outil ne peut pas contourner les validations Aïra.',403,'connector_tool_denied');
+ if(name!=='aira_connector_action')throw new AppError('Cet outil ne peut pas contourner les validations Braand.',403,'connector_tool_denied');
  const call=callSchema.parse(input);
  if(canonicalJSON(call.arguments).length>50000)throw new AppError('Les paramètres sont trop volumineux.',400);
  const tool=await metadata(sdk,call);

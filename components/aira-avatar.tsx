@@ -31,7 +31,7 @@ export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, pau
           interactive={followPointer}
           jumpEvery={0}
           theme="dark"
-          aria-label={busy ? 'Aïra prépare une réponse' : 'Aïra'}
+          aria-label={busy ? 'Braand prépare une réponse' : 'Braand'}
         />
       </Suspense>
     </span>

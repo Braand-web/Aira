@@ -10,7 +10,7 @@ export type BillingPlan = {
 };
 export type PlanId='essential'|'pro'|'business';
 export const PLAN_IDS:PlanId[]=['essential','pro','business'];
-export const planName=(plan:unknown)=>plan==='essential'?'Essentiel':plan==='pro'?'Pro':plan==='business'?'Business':'Aïra';
+export const planName=(plan:unknown)=>plan==='essential'?'Essentiel':plan==='pro'?'Pro':plan==='business'?'Business':'Braand';
 type Props={
  plans:Record<PlanId,BillingPlan>;free:{credits:number;days:number;enabled:boolean};
  paymentsEnabled:boolean;priceLabel:string;
@@ -79,11 +79,11 @@ export default function BillingOffers({plans,free,paymentsEnabled,priceLabel,sel
   {currentPlan&&PLAN_IDS.includes(currentPlan as PlanId)&&PLAN_IDS.indexOf(selected)>PLAN_IDS.indexOf(currentPlan as PlanId)&&<button type="button" className="button secondary" disabled={busy||!owner} onClick={()=>onUpgrade(selected)}>Passer à {plan.name} maintenant · voir le prorata<ArrowUpRight size={16}/></button>}
   <section className={styles.discovery} aria-labelledby="billing-discovery-title">
    <div className={styles.ticket}><strong>{number(free.credits)}</strong><span>crédits</span></div>
-   <div className={styles.discoveryBody}><div><h2 id="billing-discovery-title">Commencez par une idée.</h2><p>Découverte : {number(free.credits)} crédits, une seule fois, valables {free.days} jours. Sans carte bancaire.</p></div><button type="button" className="button secondary" disabled={busy||!free.enabled} onClick={onDiscover}>{free.enabled?'Découvrir Aïra':'Découverte indisponible'}</button></div>
+   <div className={styles.discoveryBody}><div><h2 id="billing-discovery-title">Commencez par une idée.</h2><p>Découverte : {number(free.credits)} crédits, une seule fois, valables {free.days} jours. Sans carte bancaire.</p></div><button type="button" className="button secondary" disabled={busy||!free.enabled} onClick={onDiscover}>{free.enabled?'Découvrir Braand':'Découverte indisponible'}</button></div>
   </section>
   <section className={styles.explainer} aria-labelledby="billing-credits-title"><h2 id="billing-credits-title">Comment fonctionnent les crédits</h2><div className={styles.explainerGrid}>
    <article><span><SlidersVertical size={20} aria-hidden="true"/></span><div><h3>Un solde commun</h3><p>Conversation, créations, outils et missions utilisent les mêmes crédits. Les petits appels consomment des fractions de crédit.</p></div></article>
-   <article><span><ShieldCheck size={20} aria-hidden="true"/></span><div><h3>Un plafond avant d’agir</h3><p>Aïra présente le plafond à approuver avant une génération ou une mission. Elle s’arrête au budget autorisé.</p></div></article>
+   <article><span><ShieldCheck size={20} aria-hidden="true"/></span><div><h3>Un plafond avant d’agir</h3><p>Braand présente le plafond à approuver avant une génération ou une mission. Elle s’arrête au budget autorisé.</p></div></article>
    <article><span><Megaphone size={20} aria-hidden="true"/></span><div><h3>Publicité séparée</h3><p>Les dépenses publicitaires sont réglées directement à Meta, Google ou à la plateforme concernée.</p></div></article>
   </div><p className={styles.resultsNote}>Les exemples de résultats seront publiés après mesure des parcours.</p></section>
  </div>;

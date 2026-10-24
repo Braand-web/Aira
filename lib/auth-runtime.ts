@@ -42,7 +42,7 @@ function page(title: string, body: string, status = 200, cookies?: string) {
   // Preserve the POST Origin for CSRF checks without sending magic-link paths.
   const headers = new Headers({'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'private, no-store', 'Referrer-Policy':'strict-origin', 'X-Content-Type-Options':'nosniff', 'Content-Security-Policy':"default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"});
   if (cookies) headers.set('Set-Cookie', cookies);
-  return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · Aïra</title><link rel="stylesheet" href="/auth.css"><link rel="icon" href="/favicon.svg"></head><body><main><a class="brand" href="/">Aïra</a><h1>${escape(title)}</h1>${body}<a class="back" href="/">Revenir à Aïra</a></main></body></html>`, {status, headers});
+  return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · Braand</title><link rel="stylesheet" href="/auth.css"><link rel="icon" href="/favicon.svg"></head><body><main><a class="brand" href="/">Braand</a><h1>${escape(title)}</h1>${body}<a class="back" href="/">Revenir à Braand</a></main></body></html>`, {status, headers});
 }
 const denied = () => page('Connexion impossible', '<p>Ce lien est expiré, a déjà été utilisé ou appartient à un autre navigateur. Demandez un nouveau lien depuis cet appareil.</p><a class="button" href="/auth/sign-in">Demander un nouveau lien</a>', 400);
 function redirect(location: string, cookies?: string) {return new Response(null, {status:303, headers:{Location:location, 'Cache-Control':'private, no-store', 'Referrer-Policy':'no-referrer', ...(cookies ? {'Set-Cookie':cookies} : {})}});}
@@ -72,8 +72,8 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
   const url = new URL(request.url), path = url.pathname;
   if (!path.startsWith('/auth/') && !['/signin-with-chatgpt','/signout-with-chatgpt'].includes(path)) return null;
   if (path.includes('with-chatgpt')) return redirect(path.startsWith('/signin') ? '/auth/sign-in' : '/auth/sign-out');
-  if (!configured(env)) return page('Connexion bientôt disponible', '<p>La connexion Aïra attend la configuration sécurisée du serveur. Votre brouillon reste sur cet appareil.</p>', 503);
-  if (url.origin !== origin(env)) return page('Adresse non autorisée', '<p>Utilisez l’adresse officielle d’Aïra.</p>', 403);
+  if (!configured(env)) return page('Connexion bientôt disponible', '<p>La connexion Braand attend la configuration sécurisée du serveur. Votre brouillon reste sur cet appareil.</p>', 503);
+  if (url.origin !== origin(env)) return page('Adresse non autorisée', '<p>Utilisez l’adresse officielle de Braand.</p>', 403);
   if (!['GET','POST'].includes(request.method)) return new Response(null, {status:405, headers:{Allow:'GET, POST'}});
   if (request.method === 'POST' && (request.headers.get('origin') !== origin(env) || request.headers.get('sec-fetch-site') === 'cross-site')) return denied();
   if (request.method === 'POST' && !request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) return denied();
@@ -97,7 +97,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     const email = (form.get('email') || '').trim().toLowerCase(), browser = cookie(request.headers, LOGIN_COOKIE);
     if (!browser || form.get('browser') !== browser || email.length > 254 || !emailPattern.test(email)) return denied();
     const ip = request.headers.get('cf-connecting-ip');
-    if (!ip && env.APP_ENV !== 'test') return page('Connexion indisponible', '<p>Réessayez depuis l’adresse officielle d’Aïra.</p>', 503);
+    if (!ip && env.APP_ENV !== 'test') return page('Connexion indisponible', '<p>Réessayez depuis l’adresse officielle de Braand.</p>', 503);
     if (!await rate(env, 'ip', ip || 'offline-fixture', 10, 600_000, now) || !await rate(env, 'global', 'mail', 100, 600_000, now)) return page('Patientez un instant', '<p>Trop de demandes. Réessayez dans quelques minutes.</p>', 429);
     const generic = () => page('Consultez votre messagerie', '<p>Si cette adresse est autorisée, un lien valable dix minutes vous sera envoyé. Ouvrez le lien dans ce navigateur.</p>');
     if (env.RESEND_MODE === 'sandbox' && email !== env.RESEND_TEST_RECIPIENT?.toLowerCase()) return generic();
@@ -106,7 +106,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     await env.DB!.prepare('INSERT INTO auth_challenges(id,email,token_hash,browser_hash,expires_at,return_to,created_at) VALUES (?,?,?,?,?,?,?)').bind(id, email, await hash('challenge:' + token, env), await hash('browser:' + browser, env), now+600_000, safeAuthReturn(form.get('return_to')), now).run();
     const link = `${origin(env)}/auth/verify?id=${id}&token=${token}`;
     try {
-      const response = await fetch('https://api.resend.com/emails', {method:'POST', headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`, 'Content-Type':'application/json', 'Idempotency-Key':`aira-auth/${id}`}, body:JSON.stringify({from:env.RESEND_FROM, to:[email], subject:'Votre lien de connexion Aïra', text:`Pour retrouver votre espace Aïra, ouvrez ce lien dans le navigateur où vous avez demandé la connexion :\n${link}\nCe lien expire dans dix minutes et ne peut être utilisé qu’une fois. Si vous n’avez rien demandé, ignorez ce message.`}), signal:AbortSignal.timeout(8000)});
+      const response = await fetch('https://api.resend.com/emails', {method:'POST', headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`, 'Content-Type':'application/json', 'Idempotency-Key':`aira-auth/${id}`}, body:JSON.stringify({from:env.RESEND_FROM, to:[email], subject:'Votre lien de connexion Braand', text:`Pour retrouver votre espace Braand, ouvrez ce lien dans le navigateur où vous avez demandé la connexion :\n${link}\nCe lien expire dans dix minutes et ne peut être utilisé qu’une fois. Si vous n’avez rien demandé, ignorez ce message.`}), signal:AbortSignal.timeout(8000)});
       if (!response.ok) throw new Error('email_rejected');
     } catch {
       // Invalidate even an uncertain send. Never resend authentication links blindly.
@@ -122,7 +122,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     if (request.method === 'GET') {
       // Link scanners cannot consume a challenge or create a session.
       const row = await env.DB!.prepare('SELECT id FROM auth_challenges WHERE id=? AND token_hash=? AND browser_hash=? AND expires_at>?').bind(id,tokenHash,browserHash,now).first();
-      return row ? page('Confirmez votre connexion', `<p>Ce lien vous connectera à votre espace Aïra.</p><form method="post" action="/auth/verify"><input type="hidden" name="id" value="${id}"><input type="hidden" name="token" value="${token}"><button type="submit">Entrer dans mon espace</button></form>`) : denied();
+      return row ? page('Confirmez votre connexion', `<p>Ce lien vous connectera à votre espace Braand.</p><form method="post" action="/auth/verify"><input type="hidden" name="id" value="${id}"><input type="hidden" name="token" value="${token}"><button type="submit">Entrer dans mon espace</button></form>`) : denied();
     }
     // Atomic consume: concurrent clicks can produce only one authenticated session.
     const challenge = await env.DB!.prepare('DELETE FROM auth_challenges WHERE id=? AND token_hash=? AND browser_hash=? AND expires_at>? RETURNING id,email,browser_hash,return_to').bind(id,tokenHash,browserHash,now).first<Challenge>();

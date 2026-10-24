@@ -3,13 +3,13 @@ name: aira-growth-strategy
 description: Prioriser une stratégie de croissance selon l'offre, le marché, les données et le budget, puis construire un test mesurable et un plan d'action adapté. Utile pour choisir un canal ou résoudre un goulot d'acquisition, d'activation, de conversion ou de rétention.
 metadata:
   version: "1.0.0"
-  author: "Aïra"
+  author: "Braand"
   origin: "original"
 ---
 
 # Stratégie de croissance mesurable
 
-Méthode originale Aïra : produire une décision contextualisée et un test vérifiable, sans attribuer la recommandation à un expert ni promettre ses résultats.
+Méthode originale Braand : produire une décision contextualisée et un test vérifiable, sans attribuer la recommandation à un expert ni promettre ses résultats.
 
 ## Diagnostiquer avant de multiplier les actions
 

@@ -7,7 +7,7 @@ const record=(value:unknown)=>modelRecordSchema.parse(value);
 const blocks=(value:unknown):RecordValue[]=>typeof value==='string'?[{type:'text',text:value}]:Array.isArray(value)?value.map(record):[];
 function image(source:unknown){const data=record(source);if(data.type==='base64'&&typeof data.media_type==='string'&&/^image\/(png|jpeg|webp|gif)$/.test(data.media_type)&&typeof data.data==='string')return 'data:'+data.media_type+';base64,'+data.data;
  // Remote URLs are intentionally excluded: the provider would fetch a destination
- // outside Aïra's private file authorization boundary.
+ // outside Braand's private file authorization boundary.
  throw new AppError('Image privée non disponible dans le contexte du modèle.',400,'model_image_invalid');}
 function inputContent(content:RecordValue[],role:string):RecordValue[]{return content.flatMap<RecordValue>(block=>{
  if(block.type==='text'&&typeof block.text==='string')return [{type:role==='assistant'?'output_text':'input_text',text:block.text}];

@@ -43,7 +43,7 @@ const server=createServer(async(req,res)=>{
   if(url.pathname==='/app.js'||url.pathname==='/app.css'||url.pathname.startsWith('/chunks/')){
     try{const target=path.resolve(output,'.'+url.pathname);if(!target.startsWith(output+path.sep))throw Error();res.writeHead(200,{'Content-Type':url.pathname.endsWith('.css')?'text/css':'application/javascript'});res.end(await readFile(target));}catch{res.writeHead(404);res.end();}return;
   }
-  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr" data-design-system="muse"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Aïra · Test du compositeur</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
+  res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html lang="fr" data-design-system="muse"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"><title>Braand · Test du compositeur</title></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin='http://127.0.0.1:'+server.address().port;
@@ -87,7 +87,7 @@ try{
     });
     const page=await context.newPage();lastPage=page;page.on('pageerror',error=>pageErrors.push(error.message));
     await page.goto(origin);await page.locator('.recent-chat').filter({hasText:conversation.title}).waitFor({state:'attached'});
-    const composer=page.getByRole('textbox',{name:'Votre demande à Aïra',exact:true});
+    const composer=page.getByRole('textbox',{name:'Votre demande à Braand',exact:true});
     for(const surface of ['home','conversation']){
       if(surface==='conversation'){
         await composer.fill('');

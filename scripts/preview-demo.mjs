@@ -55,7 +55,7 @@ for (const key of Object.keys(env)) {
 Object.assign(env, {APP_ENV:'development', PORT:String(backendPort), AIRA_DATA_DIR:data, AIRA_BUILD_DIR:build, AIRA_CONFIG_FILE:configFile, FILE_PREVIEW_V1:'true', FILE_URL_SIGNING_SECRET:randomBytes(32).toString('hex'), NODE_OPTIONS:'--max-old-space-size=1536 --max-semi-space-size=8'});
 const child = spawn(process.execPath, ['--import', new URL('./demo/offline.mjs', import.meta.url).href, path.join(root, 'scripts', 'dev-local.mjs')], {cwd:root, env, stdio:['ignore','pipe','pipe'], windowsHide:true});
 let childExited = false;
-child.stdout.on('data', bytes => {if (bytes.toString().includes('Aïra local')) console.log('Demo data adapter ready.');});
+child.stdout.on('data', bytes => {if (bytes.toString().includes('Braand local')) console.log('Demo data adapter ready.');});
 child.stderr.on('data', bytes => process.stderr.write(bytes));
 child.on('exit', code => {childExited = true; if (server.listening) {console.error('Demo adapter stopped:', code); server.close();}});
 
@@ -126,7 +126,7 @@ const server = createServer(async (request, response) => {
       response.writeHead(upstream.status, Object.fromEntries(outgoing)); response.end(JSON.stringify(signed)); return;
     }
     if (outgoing.get('content-type')?.includes('text/html') && !url.pathname.startsWith('/api/')) {
-      const html = (await upstream.text()).replace('</head>', demoStyle + demoSidebarStyle + '</head>').replace('<body>', '<body>' + banner).replace('Aïra · Développement local','Aïra · Maison Naya · Démonstration');
+      const html = (await upstream.text()).replace('</head>', demoStyle + demoSidebarStyle + '</head>').replace('<body>', '<body>' + banner).replace('Braand · Développement local','Braand · Maison Naya · Démonstration');
       response.writeHead(upstream.status, Object.fromEntries(outgoing)); response.end(html); return;
     }
     response.writeHead(upstream.status, Object.fromEntries(outgoing));
@@ -149,7 +149,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!ready) throw Error('Demo adapter did not become ready.');
-  server.listen(port, '127.0.0.1', () => console.log('Aïra · Maison Naya · données fictives\nAperçu : ' + origin + '/?view=creations\nBase isolée : ' + data));
+  server.listen(port, '127.0.0.1', () => console.log('Braand · Maison Naya · données fictives\nAperçu : ' + origin + '/?view=creations\nBase isolée : ' + data));
 } catch (error) {child.kill(); throw error;}
 const stop = () => {child.kill(); server.close();};
 server.once('error', error => {child.kill(); console.error('Demo preview:', error.message); process.exitCode = 1;});

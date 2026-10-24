@@ -1,9 +1,9 @@
 ---
 name: aira-video-direction
-description: Concevoir des vidéos courtes de produit, démonstration ou publicité avec intention, plans et continuité, puis proposer uniquement les créations couvertes par le catalogue Aïra.
+description: Concevoir des vidéos courtes de produit, démonstration ou publicité avec intention, plans et continuité, puis proposer uniquement les créations couvertes par le catalogue Braand.
 metadata:
   version: "1.0.0"
-  author: "Aïra"
+  author: "Braand"
   origin: "original"
 ---
 
@@ -11,7 +11,7 @@ metadata:
 
 Concevoir une séquence facile à comprendre sur son placement réel. Commencer par ce que le spectateur doit remarquer, comprendre et faire ; choisir ensuite les plans et le mouvement.
 
-Pour un teaser produit, une démonstration d'application, un bénéfice expliqué ou de la typographie animée, lire [la référence motion design](references/motion-design.md). Elle aide à préciser le storyboard et le rythme ; elle n'ajoute aucun moteur d'animation ou de rendu aux outils Aïra.
+Pour un teaser produit, une démonstration d'application, un bénéfice expliqué ou de la typographie animée, lire [la référence motion design](references/motion-design.md). Elle aide à préciser le storyboard et le rythme ; elle n'ajoute aucun moteur d'animation ou de rendu aux outils Braand.
 
 ## Diriger la séquence
 
@@ -29,7 +29,7 @@ Conserver les éléments de continuité : produit, proportions, couleurs, visage
 2. Choisir `video_short` pour une séquence simple, `video_narrative` lorsque le récit le justifie, ou `video_reference` pour des références utilisables et autorisées. L'intitulé d'une tâche ne prouve pas qu'un modèle accepte tous ces besoins.
 3. Composer `input` selon le schéma validé, sans paramètres supposés, modèle ou prix recopiés d'une source externe. Un storyboard peut être livré seul lorsqu'une capacité manque.
 4. Appeler `prepare_media` avec `title`, `rationale`, `task`, `input`, `maxCredits` sous le plafond connu du mandat. Si le plafond manque, finaliser la direction et le faire préciser. L'outil prépare une proposition exacte ; il ne génère ni ne débite.
-5. Attendre l'approbation de cette proposition dans l'interface Aïra. Ne pas appeler genmedia, un shell, du réseau brut ou une clé fournisseur. Tout changement d'entrées, de modèle ou de coût appelle une nouvelle proposition approuvée.
+5. Attendre l'approbation de cette proposition dans l'interface Braand. Ne pas appeler genmedia, un shell, du réseau brut ou une clé fournisseur. Tout changement d'entrées, de modèle ou de coût appelle une nouvelle proposition approuvée.
 
 Si le catalogue est vide, non configuré ou incompatible, livrer le storyboard et signaler la capacité manquante. Pour plusieurs plans ou créations, déduire du budget total les coûts déjà consommés, les opérations encore engagées et les devis en attente, sans compter deux fois une même opération ; ne pas réutiliser le budget total comme plafond de chaque proposition.
 

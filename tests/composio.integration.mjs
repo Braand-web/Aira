@@ -1,4 +1,4 @@
-// Real Aïra services, routes, permissions and SQLite; simulated SDK only. No real external calls.
+// Real Braand services, routes, permissions and SQLite; simulated SDK only. No real external calls.
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync,mkdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -50,7 +50,7 @@ function makeSession(id,userId,options){
 globalThis.__composioTest={NativeInputRequiredError,env:{DB,COMPOSIO_API_KEY:'fixture_project_key_not_a_real_secret'},headers:new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'}),makeClient(options){assert.equal(options.apiKey,'fixture_project_key_not_a_real_secret');return {
  sessions:{async create(userId,config){const id='session_fixture_'+(created.length+1);created.push({id,userId,config});return makeSession(id,userId,config);},async use(id){assert.ok(sessions.has(id),'A session must be persisted before reuse');return sessions.get(id);}},
  tools:{async getRawComposioTools({tools}){return tools.map(slug=>metadata.get(slug)).filter(Boolean);}},
- connectedAccounts:{async list({userIds}){assert.ok(userIds?.length===1,'Account listing must be scoped to one Aïra user');return {items:[...accounts.values()].filter(account=>userIds.includes(account.userId))};},async revoke(id){revoked.push(id);accounts.get(id).status='REVOKED';return {};}}
+ connectedAccounts:{async list({userIds}){assert.ok(userIds?.length===1,'Account listing must be scoped to one Braand user');return {items:[...accounts.values()].filter(account=>userIds.includes(account.userId))};},async revoke(id){revoked.push(id);accounts.get(id).status='REVOKED';return {};}}
  };}};
 const originalFetch=globalThis.fetch;
 globalThis.fetch=async()=>{throw new Error('External calls are forbidden in this isolated suite');};
@@ -222,7 +222,7 @@ sql.prepare("INSERT INTO credit_lots(id,organization_id,source,source_id,granted
 env.COMPOSIO_INSTANT_ENABLED='true';env.ANTHROPIC_RATE_JSON=JSON.stringify({model:'claude-opus-5-5',input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1,verifiedAt:new Date().toISOString()});
 env.COMPOSIO_INSTANT_CATALOG_JSON=JSON.stringify([{toolkit:'exa',toolSlug:'EXA_SEARCH',maxCostUsd:'0.10',verifiedAt:new Date().toISOString(),sourceUrl:'https://docs.composio.dev/docs/instant-tools'}]);
 const instant=()=>proposal({toolkit:'exa',toolSlug:'EXA_SEARCH',arguments:{query:'Fictional test only'},mode:'instant'});
-await check('Instant approval reserves Aïra credits and reconciles explicit actual charge',async()=>{
+await check('Instant approval reserves Braand credits and reconciles explicit actual charge',async()=>{
  const pending=await instant(),before=countExecutions();assert.equal(pending.data.priceUsd,.10);assert.equal(countExecutions(),before);
  const result=await c.decideConnectorAction(who,pending.id,'approve');assert.equal(result.status,'completed');const row=sql.prepare('SELECT actual_micros,hold_id FROM connector_actions WHERE id=?').get(pending.id);assert.equal(row.actual_micros,100000);assert.equal(sql.prepare('SELECT status FROM credit_holds WHERE id=?').get(row.hold_id).status,'settled');assert.equal(calls.filter(item=>item.kind==='execute').at(-1).options.account,'instant_account');
 });
@@ -261,7 +261,7 @@ await check('A repeated native challenge stops after one approved resume without
  let result;try{result=await c.decideConnectorAction(who,pending.id,'approve');}finally{nativeChallenge=null;}
  assert.equal(result.status,'needs_input');assert.equal(effects.length,beforeEffects);assert.equal(countExecutions(),beforeRequests+2);const row=sql.prepare('SELECT hold_id FROM connector_actions WHERE id=?').get(pending.id);assert.equal(sql.prepare('SELECT actual FROM credit_holds WHERE id=?').get(row.hold_id).actual,0);
 });
-await check('A provider failure without a delivery returns Aïra credits while retaining the actual platform cost',async()=>{
+await check('A provider failure without a delivery returns Braand credits while retaining the actual platform cost',async()=>{
  const pending=await instant();executionResult='failed';try{await c.decideConnectorAction(who,pending.id,'approve');}finally{executionResult='completed';}
  const row=sql.prepare('SELECT status,actual_micros,hold_id FROM connector_actions WHERE id=?').get(pending.id);assert.equal(row.status,'failed');assert.equal(row.actual_micros,100000);
  const hold=sql.prepare('SELECT status,actual FROM credit_holds WHERE id=?').get(row.hold_id);assert.equal(hold.status,'settled');assert.equal(hold.actual,0);

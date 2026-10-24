@@ -8,7 +8,7 @@ test("file foundation migration copies legacy file metadata without deleting pri
  const migrations=readdirSync("drizzle").filter(name=>/^\d+_.*\.sql$/u.test(name)).sort();
  for(const name of migrations.filter(file=>file<"0005_file_foundation.sql"))database.exec(readFileSync(`drizzle/${name}`,"utf8"));
  const created=Date.now();
- database.prepare("INSERT INTO organizations (id,name,owner_id,created_at) VALUES (?,?,?,?)").run("org-a","Aïra test","owner-a",created);
+ database.prepare("INSERT INTO organizations (id,name,owner_id,created_at) VALUES (?,?,?,?)").run("org-a","Braand test","owner-a",created);
  database.prepare("INSERT INTO workspaces (id,name,created_at,organization_id) VALUES (?,?,?,?)").run("space-a","Espace test",created,"org-a");
  database.prepare("INSERT INTO resources (id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?, 'file', ?, ?, 'ready', ?, ?)").run("legacy-file","space-a","référence.txt",JSON.stringify({key:"internal/private-key",mime:"text/plain",size:12,text:"private text"}),created,created);
  database.prepare("INSERT INTO messages (id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'user','[]',?)").run("message-a","space-a","legacy-file",created);

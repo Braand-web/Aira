@@ -1,9 +1,9 @@
 ---
 name: aira-product-visuals
-description: Préparer des photographies produit, mises en scène et visuels publicitaires pour une marque, puis proposer leur génération dans le circuit média Aïra.
+description: Préparer des photographies produit, mises en scène et visuels publicitaires pour une marque, puis proposer leur génération dans le circuit média Braand.
 metadata:
   version: "1.0.0"
-  author: "Aïra"
+  author: "Braand"
   origin: "original"
 ---
 
@@ -26,11 +26,11 @@ Une référence produit sert à conserver son identité. Une référence d'ambia
 
 ## Préparer le média
 
-1. Appeler `media_catalog` et ne retenir que les capacités, paramètres et coûts validés qu'il retourne. Le catalogue Aïra est borné ; aucun modèle, prix, endpoint ou accès illimité ne vient de cette compétence.
+1. Appeler `media_catalog` et ne retenir que les capacités, paramètres et coûts validés qu'il retourne. Le catalogue Braand est borné ; aucun modèle, prix, endpoint ou accès illimité ne vient de cette compétence.
 2. Choisir `image` pour une création, `image_edit` pour travailler depuis un média existant. Utiliser `image_precision` ou `image_edit_precision` seulement si le besoin de fidélité le justifie et si le catalogue couvre les entrées requises. Ne pas promettre une reproduction parfaite.
 3. Construire `input` avec les seuls champs et bornes du schéma retenu. Inclure les références autorisées sous la forme acceptée ; ne pas inventer une URL ou un champ pour contourner une capacité absente.
 4. Appeler `prepare_media` avec `title`, `rationale`, `task`, `input` et un `maxCredits` compatible avec le plafond connu du mandat. Si ce plafond manque, terminer le brief et le faire préciser avant la proposition. Cet appel enregistre une proposition, sans génération ni débit.
-5. Présenter la proposition exacte et attendre son approbation dans l'interface Aïra. Une modification du modèle, des entrées ou du coût exige une nouvelle proposition. Aucun shell genmedia, réseau brut, clé ou appel fournisseur ne remplace cette approbation.
+5. Présenter la proposition exacte et attendre son approbation dans l'interface Braand. Une modification du modèle, des entrées ou du coût exige une nouvelle proposition. Aucun shell genmedia, réseau brut, clé ou appel fournisseur ne remplace cette approbation.
 
 Si le catalogue est vide, non configuré ou incompatible avec le brief, livrer la direction préparée et signaler la capacité manquante. Pour plusieurs créations, déduire du budget total les coûts déjà consommés, les opérations encore engagées et les devis en attente, sans compter deux fois une même opération ; ne pas réutiliser le budget total comme plafond de chaque proposition.
 

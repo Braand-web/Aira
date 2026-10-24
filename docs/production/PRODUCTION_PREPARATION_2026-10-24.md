@@ -1,5 +1,7 @@
 # Préparation de la production — 24 octobre 2026
 
+> Relevé historique antérieur au raccordement des clés. L’état plus récent figure dans [le déploiement Braand](BRAAND_ROLLOUT_2026-10-24.md) : R2 est désormais disponible et les deux Workers privés sont déployés.
+
 Le propriétaire a explicitement autorisé la connexion des fournisseurs et la préparation d'une mise en production. Cette note distingue les opérations réellement terminées des accès encore manquants.
 
 ## Ressource créée et vérifiée

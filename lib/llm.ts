@@ -12,7 +12,7 @@ export function modelConnection(){
   headers,
   rateKey:openrouter?'OPENROUTER_RATE_JSON':'ANTHROPIC_RATE_JSON'};
 }
-export function requireModel(){const model=modelConnection();if(!model.key)throw new AppError('Ajoutez la clé '+(model.provider==='openrouter'?'OpenRouter':'Anthropic')+' dans les secrets de l’hébergement pour activer Aïra. Votre brouillon est conservé.',503,'model_not_configured');return model;}
+export function requireModel(){const model=modelConnection();if(!model.key)throw new AppError('Ajoutez la clé '+(model.provider==='openrouter'?'OpenRouter':'Anthropic')+' dans les secrets de l’hébergement pour activer Braand. Votre brouillon est conservé.',503,'model_not_configured');return model;}
 export function modelRequest(body:Record<string,unknown>,signal:AbortSignal){
  const m=requireModel();return {url:m.url,init:{method:'POST',headers:m.headers,body:JSON.stringify({...body,model:m.model,...(m.provider==='openrouter'?{provider:{require_parameters:true,allow_fallbacks:false}}:{})}),signal} satisfies RequestInit};
 }

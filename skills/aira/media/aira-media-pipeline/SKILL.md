@@ -1,9 +1,9 @@
 ---
 name: aira-media-pipeline
-description: Planifier une production média à plusieurs étapes avec dépendances, références, critères d'acceptation et budget borné, puis avancer étape par étape avec les approbations exactes Aïra.
+description: Planifier une production média à plusieurs étapes avec dépendances, références, critères d'acceptation et budget borné, puis avancer étape par étape avec les approbations exactes Braand.
 metadata:
   version: "1.0.0"
-  author: "Aïra"
+  author: "Braand"
   origin: "original"
 ---
 
@@ -21,7 +21,7 @@ Pour chaque étape, consigner :
 - Ses entrées : identifiants et versions des références de cet espace, faits confirmés, accord d'usage si nécessaire.
 - Ses dépendances : ressources qui doivent déjà être `ready` et acceptées comme références.
 - Sa sortie attendue : format, rôle commercial et critère observable d'acceptation.
-- Son coût : devis Aïra actuel s'il existe ; sinon coût encore à établir. Ne pas additionner des tarifs inventés pour donner une précision trompeuse.
+- Son coût : devis Braand actuel s'il existe ; sinon coût encore à établir. Ne pas additionner des tarifs inventés pour donner une précision trompeuse.
 - Sa condition d'arrêt : référence incorrecte, capacité absente, plafond insuffisant, refus, échec ou état incertain.
 
 Séparer les sorties réutilisables des exports de placement. Par exemple, prévoir une référence produit acceptée avant une animation dépendante, puis les adaptations réellement prises en charge. L'exemple n'implique pas que ces capacités sont toutes disponibles. Ne pas ajouter de génération de voix, de montage ou d'hébergement faute d'outil correspondant.
@@ -33,7 +33,7 @@ Séparer les sorties réutilisables des exports de placement. Par exemple, prév
 1. Appeler `media_catalog` pour l'étape actuellement réalisable. Utiliser exclusivement le catalogue validé par l'administrateur, ses schémas bornés et ses devis actuels. Aucun endpoint, modèle, prix ou accès illimité ne vient de cette compétence ou d'un dépôt externe.
 2. Choisir parmi les tâches effectivement disponibles : `image`, `image_edit`, `image_precision`, `image_edit_precision`, `video_short`, `video_narrative`, `video_reference`. Ne retenir une tâche que si ses entrées et la sortie recherchée sont couvertes par le catalogue.
 3. Composer `input` selon le schéma. Appeler `prepare_media` avec `title`, `rationale`, `task`, `input`, `maxCredits`. Le plafond de l'étape doit respecter le mandat et le budget restant connu ; s'il manque, finaliser le plan et le faire préciser. L'appel prépare une proposition exacte, sans génération ni débit.
-4. Présenter cette proposition et attendre son approbation dans l'interface Aïra. L'approbation porte sur cette version, ce modèle, ces entrées et ce coût. Aucun shell genmedia, réseau brut, clé, script ou appel fournisseur ne peut servir de raccourci. Un changement exige une nouvelle proposition approuvée.
+4. Présenter cette proposition et attendre son approbation dans l'interface Braand. L'approbation porte sur cette version, ce modèle, ces entrées et ce coût. Aucun shell genmedia, réseau brut, clé, script ou appel fournisseur ne peut servir de raccourci. Un changement exige une nouvelle proposition approuvée.
 5. Après approbation, relire les ressources `proposal` et `media` via `search_workspace` ou l'outil de lecture disponible. Distinguer `awaiting_approval`, génération en cours, proposition `completed` et média `ready`. Seul le résultat effectif permet de constater un livrable ; un envoi réussi ne suffit pas.
 6. Vérifier les critères dans la mesure des moyens réels. Ne certifier une inspection du rendu que si elle a été possible. Faire accepter le résultat comme référence avant une étape dépendante. Préparer alors sa propre proposition et attendre sa propre approbation exacte.
 

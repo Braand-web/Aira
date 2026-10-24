@@ -16,7 +16,7 @@ Avant de proposer une formule, identifier l'objectif métier et la plage réelle
 
 Préciser la convention de formule utilisée lorsque le moteur ou la langue cible ne sont pas connus. Les fonctions disponibles et leur syntaxe peuvent différer entre versions et tableurs ; ne pas promettre une compatibilité universelle.
 
-Une formule correctement écrite n'est pas nécessairement insérée, reconnue ou recalculée. Une bibliothèque capable d'écrire un XLSX ne possède pas nécessairement de moteur de calcul. Les valeurs mises en cache peuvent être absentes ou anciennes. Ne pas les remplacer silencieusement par des estimations. À titre de repère technique, la [documentation primaire d'openpyxl](https://openpyxl.readthedocs.io/en/stable/simple_formulae.html) distingue écriture et évaluation des formules ; cela ne suppose pas cette bibliothèque installée dans Aïra.
+Une formule correctement écrite n'est pas nécessairement insérée, reconnue ou recalculée. Une bibliothèque capable d'écrire un XLSX ne possède pas nécessairement de moteur de calcul. Les valeurs mises en cache peuvent être absentes ou anciennes. Ne pas les remplacer silencieusement par des estimations. À titre de repère technique, la [documentation primaire d'openpyxl](https://openpyxl.readthedocs.io/en/stable/simple_formulae.html) distingue écriture et évaluation des formules ; cela ne suppose pas cette bibliothèque installée dans Braand.
 
 Pour un calcul explicable sur des données complètes et peu nombreuses, exposer les entrées et la méthode, vérifier les unités et faire un contrôle de cohérence. Pour des milliers de cellules non accessibles, des dépendances externes ou un modèle complexe, ne pas simuler une exécution mentale exhaustive.
 

@@ -3,19 +3,19 @@ name: aira-pdf
 description: "Accompagne la lecture et l'extraction de PDF, leur création, fusion, sélection de pages et remplissage de formulaires, avec un périmètre sans OCR et des limites explicites sur les opérations réellement exécutables."
 ---
 
-# PDF pour Aïra
+# PDF pour Braand
 
 Utiliser ce skill pour du contenu PDF ou une opération sur des fichiers `.pdf`. Distinguer les informations extraites, l'apparence visible et la structure interne du fichier. Ce périmètre n'inclut pas l'OCR.
 
 ## Capacité d'exécution
 
-Aïra dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Les extractions et aperçus présentés par l'application peuvent servir de source lorsqu'ils sont accessibles. Le modèle n'a ni shell ni moteur PDF connecté.
+Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Les extractions et aperçus présentés par l'application peuvent servir de source lorsqu'ils sont accessibles. Le modèle n'a ni shell ni moteur PDF connecté.
 
 - Utiliser seulement les passages, pages et métadonnées réellement reçus. Un résultat `search_workspace` ne garantit pas la couverture de toutes les pages ; `read_meta` ne remplit ni ne transforme le PDF.
-- `create_page` peut enregistrer un contenu dans une page Aïra ; il ne crée pas un PDF. `save_knowledge` et `prepare_media` ne sont pas des outils de fusion, d'export ou de formulaire.
+- `create_page` peut enregistrer un contenu dans une page Braand ; il ne crée pas un PDF. `save_knowledge` et `prepare_media` ne sont pas des outils de fusion, d'export ou de formulaire.
 - Ne jamais annoncer un PDF exporté, fusionné, découpé, rempli, expurgé ou modifié sans outil adapté, résultat concret et contrôle du fichier. Ne pas fabriquer de lien de téléchargement.
 - Si une opération binaire est demandée, dire brièvement qu'elle n'est pas disponible, puis préparer ce qui peut l'être : contenu structuré, ordre de fusion, sélection de pages ou correspondance des champs et valeurs. Nommer clairement ce livrable préparatoire.
-- Si un outil PDF est réellement ajouté à Aïra, s'appuyer sur son schéma et vérifier sa prise en charge de l'opération. Le présent skill ne l'installe pas et n'élargit aucune autorisation.
+- Si un outil PDF est réellement ajouté à Braand, s'appuyer sur son schéma et vérifier sa prise en charge de l'opération. Le présent skill ne l'installe pas et n'élargit aucune autorisation.
 
 ## Modes de travail
 

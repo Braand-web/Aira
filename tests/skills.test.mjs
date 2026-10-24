@@ -33,7 +33,7 @@ test('browser events contain progress metadata, never imported prose or source i
  const result=await readSkill({id:'copywriting'},createSkillSession());const publicResult=publicSkillResult('read_skill',result);assert.equal(publicResult.id,result.id);assert.equal('content' in publicResult,false);assert.equal('provenance' in publicResult,false);assert.equal('references' in publicResult,false);assert.equal(JSON.stringify(publicResult).includes('coreyhaines31'),false);assert.deepEqual(publicSkillResult('search_skills',searchSkills({query:'conversion'})),{status:'methods_found',total:searchSkills({query:'conversion'}).total});
 });
 test('document originals are readable and declare content-only execution capabilities',async()=>{
- for(const id of ['aira-docx','aira-pdf','aira-pptx','aira-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Aïra');assert.equal(method.version,'1.0.0');assert.ok(method.references.includes('references/controles.md'));}
+ for(const id of ['aira-docx','aira-pdf','aira-pptx','aira-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,'1.0.0');assert.ok(method.references.includes('references/controles.md'));}
 });
 
 test('growth and community requests discover focused methods without granting execution capabilities',async()=>{
@@ -53,7 +53,7 @@ test('growth and community requests discover focused methods without granting ex
   const loaded=await readSkill({id},createSkillSession());
   assert.ok(loaded.content.length>0);
   assert.ok(['provided_data_analysis','text_draft','campaign_plan'].includes(loaded.capability));
-  assert.equal(loaded.provenance.origin,id==='aira-growth-strategy'?'Aïra':id==='crisis-and-moderation'||id==='cross-platform-repurposing'?'https://github.com/social-media-skills/skills':'https://github.com/coreyhaines31/marketingskills');
+  assert.equal(loaded.provenance.origin,id==='aira-growth-strategy'?'Braand':id==='crisis-and-moderation'||id==='cross-platform-repurposing'?'https://github.com/social-media-skills/skills':'https://github.com/coreyhaines31/marketingskills');
   assert.equal(Object.hasOwn(publicSkillResult('read_skill',loaded),'content'),false);
  }
 });

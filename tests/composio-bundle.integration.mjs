@@ -9,8 +9,8 @@ assert.ok(scripts.length>0,'Run npm run build before inspecting browser bundles.
 const sources=scripts.map(file=>readFileSync(file,'utf8')).join('\n');
 for(const marker of ['COMPOSIO_API_KEY','@composio/core','fixture_project_key_not_a_real_secret'])assert.equal(sources.includes(marker),false,'Server credentials/SDK must not be emitted into browser JavaScript.');
 console.log('PASS Built browser JavaScript contains neither Composio server configuration, SDK nor test credential.');
-assert.ok(sources.includes('/api/connectors/'),'Built UI must use the authenticated Aïra API.');
-console.log('PASS Connector UI calls Aïra routes instead of the Composio API directly.');
+assert.ok(sources.includes('/api/connectors/'),'Built UI must use the authenticated Braand API.');
+console.log('PASS Connector UI calls Braand routes instead of the Composio API directly.');
 
 for(const marker of ['BROWSER_PROFILE_KEY','BROWSER_PRICING_JSON','@cloudflare/playwright','_browser_rpc/','browser_retained_session_required'])assert.equal(sources.includes(marker),false,'Browser provider and secret configuration stay server-only.');assert.ok(sources.includes('/api/browser'),'Browser UI must use private application routes.');console.log('PASS Browser cloud SDK, runtime handles and encryption configuration remain outside the client bundle.');
 for(const marker of ['OPENAI_API_KEY','ANTHROPIC_API_KEY','MODEL_ROUTING_CATALOG_JSON','BILLING_TAX_JSON','https://api.openai.com/v1/responses'])assert.equal(sources.includes(marker),false,'Model credentials, routing tariffs and authoritative tax configuration stay server-only.');console.log('PASS Native model transport, credential names and tax configuration remain outside the client bundle.');

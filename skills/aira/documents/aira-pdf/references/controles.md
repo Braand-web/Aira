@@ -8,7 +8,7 @@ Pour des données chiffrées, garder les séparateurs décimaux, unités, signes
 
 Une réponse fondée sur une recherche doit indiquer la couverture observée. Ne pas attribuer un texte à une page si la recherche ne fournit pas ce repère. Les mentions comme « page 7 » peuvent désigner une étiquette imprimée différente de la septième page du fichier ; lever cette ambiguïté avant une opération sur les pages.
 
-La documentation primaire de pypdf décrit les difficultés de reconstruction des tableaux et la différence entre extraction de texte et reconnaissance d'images. Elle sert ici de repère technique, sans supposer pypdf installé dans Aïra. Voir [l'extraction de texte PDF](https://pypdf.readthedocs.io/en/stable/user/extract-text.html).
+La documentation primaire de pypdf décrit les difficultés de reconstruction des tableaux et la différence entre extraction de texte et reconnaissance d'images. Elle sert ici de repère technique, sans supposer pypdf installé dans Braand. Voir [l'extraction de texte PDF](https://pypdf.readthedocs.io/en/stable/user/extract-text.html).
 
 ## Manifeste de fusion ou de sélection
 

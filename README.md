@@ -1,7 +1,9 @@
-# Aïra
+# Braand
 
 SaaS de conversation, créations, pages et missions assistées. React 19,
 TypeScript, Vinext/Vite et Cloudflare Workers ; D1, R2 et Durable Objects.
+
+État du raccordement et du déploiement privé : [Braand sur Cloudflare](docs/production/BRAAND_ROLLOUT_2026-10-24.md). L’ouverture publique attend encore le domaine et le compte e-mail dédié.
 
 ## Développement
 
@@ -39,7 +41,7 @@ Voir [le guide Cloudflare](docs/CLOUDFLARE_SELF_HOSTED.md) pour les ressources,
 migrations, secrets, staging et limites de la bascule. Le workflow GitHub manuel
 prépare un staging fermé dans votre compte Cloudflare après les vérifications.
 
-## Connexion Aïra
+## Connexion Braand
 
 L'utilisateur reçoit un lien e-mail à usage unique via Resend. La session est
 révocable côté serveur dans D1. Aucun compte ChatGPT n'est requis. Migration

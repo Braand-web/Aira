@@ -1,104 +1,29 @@
-# État de production — 24 octobre 2026
+# État courant : Braand — 24 octobre 2026
 
-Le propriétaire a demandé de quitter Sites. Le code est préparé pour son propre
-compte Cloudflare ; aucun nouveau déploiement Sites n'est effectué. La mise en
-production publique n'a pas été exécutée. Un staging privé indépendant est
-maintenant déployé. L'ancien site et ses données n'ont
-pas été supprimés.
+Le produit porte désormais le nom **Braand**. Le domaine prévu est https://braand.fun. Le propriétaire a autorisé les connexions et le déploiement ; les environnements de staging et de production sont déployés **en privé**. La disponibilité publique et le parcours utilisateur authentifié ne sont pas encore prouvés.
 
-## Vérifié sur le compte Cloudflare
+Le [relevé Braand](BRAAND_ROLLOUT_2026-10-24.md) contient les versions actives, ressources, contrôles, limites fournisseurs et la procédure DNS. Il remplace les constats plus anciens des notes de préparation.
 
-- Autorisation OAuth du CLI confirmée par `wrangler whoami` ; compte
-  `2ead1748668417f67d184d93a3fd69ec`. Aucune application existante n'a été modifiée.
-- D1 `aira-staging`, ID `7a2e1508-922b-4138-97ba-40e61c9be447`, créée ; les
-  15 migrations sont appliquées. Requête distante : 64 tables, aucun utilisateur
-  fictif. Les requêtes de constat sont en lecture seule.
-- Worker `aira-staging` déployé, sans route publique ni URL workers.dev ou preview.
-  D1 et les bindings navigateur/DO sont présents ; navigateur, autonomie,
-  paiements, e-mails, Instant et sauvegardes restent désactivés.
-- Secrets techniques créés directement côté Cloudflare, sans fichier en clair ;
-  configuration OpenRouter existante transférée. `wrangler secret list` confirme
-  les noms, jamais les valeurs. La clé OpenRouter a répondu HTTP 200 à
-  `GET /api/v1/key` : authentification seulement, aucune génération facturée.
-- Test du bundle en preview distante Cloudflare avec D1 réelle : `/api/health`
-  200, `/api/workspace` 401, en-têtes d'identité usurpés toujours 401,
-  `/auth/sign-in` 503 tant que la connexion n'est pas configurée. Ce test ne
-  constitue pas une connexion utilisateur ni une ouverture publique.
-- Cron distant observé : tâches `monitor` et `browser_cleanup` terminées avec
-  une tentative. Une fausse alerte sur l'autonomie volontairement désactivée a
-  été reproduite puis corrigée dans le Worker ; 4 tests protègent le routage du
-  cron, le maintien des vraies alertes et l'exigence du secret du planificateur.
-  Au passage de 05:00 UTC après déploiement du correctif, les deux tâches terminent
-  et aucune nouvelle alerte missions n'apparaît ; les anciennes sont conservées.
-- Détails et commandes : [recette du staging](STAGING_2026-10-24.md).
+## Terminé et vérifié
 
-## Présent et vérifié localement
+- Interface, connexion, documents, agents et compétences originales renommés ; contrats, cookies et identifiants techniques conservés.
+- Deux D1 distinctes, migrations 0000–0015 appliquées ; deux Workers privés ; quatre buckets R2 séparés. Écriture, relecture et suppression de contrôle réussies sur chacun ; accès publics désactivés.
+- OpenRouter, Composio et SasPay authentifiés par lectures réelles puis liés en secrets aux Workers. Modèle et prix de tokens existants conservés. Secrets techniques de production distincts.
+- Clé Resend existante reconnue ; aucun envoi. Le propriétaire choisit un autre compte dédié à Braand : sa clé reste attendue en production.
+- Types, lint, compilation et suite complète réussis : 176 tests unitaires, 18 suites d’intégration, 4 suites d’artefacts, 2 lanceurs HTTP. Tests locaux sans fournisseur externe.
+- Chromium : 41 contrôles interface et 7 connexion, services simulés ; captures ordinateur/mobile examinées.
+- Huit contrôles réels du bundle en preview Cloudflare avec ressources de production : santé D1 et accueil 200, accès anonymes/usurpés 401, connexion volontairement fermée 503. Ni accès public ni parcours connecté complet.
 
-- Entrée indépendante `build/worker.ts`, React 19, TypeScript, Vinext/Vite,
-  Cloudflare Workers, D1/Drizzle, R2 et Durable Objects ; aucun manifeste Sites requis.
-- Connexion Aïra par lien e-mail à usage unique, identité vérifiée par le Worker,
-  session privée révocable et migration additive `0014_independent_auth.sql`.
-  Tous les en-têtes d'identité fournis par le client sont effacés.
-- Types, lint, build et `npm test` réussis : 164 tests unitaires, 17 suites de
-  services, 4 suites d'artefacts et 2 lanceurs HTTP ; réseau externe bloqué.
-- Authentification : 18 contrôles SQLite/Web Crypto et 7 contrôles Chromium/HTTPS
-  avec formulaires, cookies, confirmation et déconnexion. Envoi Resend simulé.
-- Interface navigateur : 14 contrôles ; disposition du chat : 9 contrôles,
-  notamment mobile et clavier. Services simulés, aucune session cloud facturée.
-- Les derniers changements de `main` sont intégrés ; la suite complète et les
-  37 contrôles de l'interface agent passent après cette intégration, y compris
-  le nouveau comparatif des forfaits et le tableau de bord analytique.
-- Catalogue Essentiel/Pro/Business et recharges conservé ; taxes déterminées
-  côté serveur et configuration fiscale inconnue bloquante au paiement.
-- Adaptateurs IA, fal.ai, Composio, SasPay.me et Resend ; missions, publications,
-  crédits, sauvegardes et tâches présents. Leurs tests locaux ne prouvent pas
-  leur fonctionnement avec les comptes réels.
-- Générateur Cloudflare et workflow GitHub manuel pour un staging fermé, avec
-  ressources distinctes et fonctions payantes désactivées. Workflow non exécuté.
-- Vrai Worker compilé lancé en local : accueil 200, identité usurpée refusée
-  (401), authentification non configurée fermée (503). Voir aussi les contrôles
-  distants ci-dessus, distincts des tests avec services simulés.
+## À terminer avant ouverture publique
 
-## Bloqué ou non vérifié à distance
+- Ajouter braand.fun dans Cloudflare et configurer sa délégation chez le vendeur du domaine. La création via OAuth CLI est refusée, permission de création de zone manquante. DNS actuel : aster.dns-parking.com et helios.dns-parking.com.
+- Créer le compte Resend dédié, ajouter et vérifier le domaine, stocker sa clé côté serveur. L’ancien compte refuse un quatrième domaine ; aucun domaine existant supprimé ni achat réalisé.
+- Raccorder l’origine HTTPS, tester les liens e-mail et l’isolation des vraies sessions avant d’activer l’authentification publique.
+- Valider séparément OAuth métier, générations et coûts réels, webhook SasPay, fiscalité, textes légaux, économie et restauration avant les fonctions payantes. Aucun paiement, e-mail ou appel de génération réel effectué.
+- Les fonctions sensibles restent désactivées. Les anciennes identités Sites demandent une preuve de propriété avant rapprochement ; pas de fusion automatique.
+- Les alertes de dépendances déjà documentées restent à traiter avant exposition ; le déploiement privé ne prouve pas une sécurité complète.
 
-- L'API R2 répond encore « Please enable R2 », code 10042, malgré la confirmation
-  d'activation du propriétaire. Aucun bucket Aïra n'a été créé. Le staging partiel
-  omet explicitement les bindings R2 et ferme les aperçus fichiers ; ni fichiers
-  ni sauvegardes cloud ne sont déclarés opérationnels.
-- Les clés Composio, Resend, fal.ai et SasPay de test restent absentes des secrets
-  du Worker. Le contrôle du panneau droit n'est pas disponible dans cette session.
-  Une connexion aux tableaux de bord ne fournit pas automatiquement ces clés.
-- Pas de domaine. L'adresse du compte Resend a été fournie ; destinataire et
-  expéditeur de test sont configurés en secrets, envoi toujours désactivé faute
-  de clé. `onboarding@resend.dev` permet seulement de tester vers l'adresse du
-  compte Resend. SPF/DKIM/DMARC et les envois clients attendent un domaine vérifié.
-- SasPay.me : FlowPay confirmé par le propriétaire, avec une clé Aïra distincte.
-  Sandbox, Mobile Money/carte en XAF, frais, webhooks et remboursements de test
-  restent à vérifier. Composio attend le transfert de sa clé existante en secret
-  serveur ; OAuth Meta, permissions et parcours publicitaire non vérifiés.
-- La clé OpenRouter est acceptée sur une lecture réelle, sans génération.
-  Modèle, tarifs et coûts de facture du routage à valider dans l'environnement final.
-  fal.ai n'a pas exécuté de génération réelle.
-- Instant, navigateur cloud, autonomie, facturation et sauvegardes restent
-  fermés par la configuration initiale. Aucune restauration cloud ni alerte
-  reçue ne sont prouvées. Fiscalité, textes légaux, support et marge réelle
-  de 75 % restent à valider.
-- Les anciennes identités Sites ne sont pas fusionnées automatiquement : preuve
-  de propriété et rapprochement requis avant transfert des espaces et crédits.
-- Audit npm actualisé : 1 alerte élevée Zod (migration majeure vers 4.6.6 ou
-  supérieur à valider avant activation publique) et 4 modérées de développement
-  via Drizzle/esbuild. MCP, Vite, Wrangler, body-parser et fast-uri ont reçu des
-  versions correctives ; l'audit complet reste non propre.
-
-## Suite exacte
-
-Suivre [le guide Cloudflare indépendant](../CLOUDFLARE_SELF_HOSTED.md) : ne pas
-recréer la base déjà migrée. Terminer l'activation R2 du bon compte, créer les
-deux buckets privés, ajouter les clés fournisseurs dédiées puis déployer le
-staging complet. La clé Resend permettra le premier test vers son propriétaire,
-puis un domaine vérifié permettra les envois clients. Le générateur initial remet les
-flags à l'arrêt : conserver séparément la configuration finale validée avant les
-redéploiements. Ne pas déclarer l'application prête à encaisser sur les tests locaux.
+Les limites du panneau droit sont techniques : pas d’outil de contrôle de ses sessions dans ce contexte. Aucun cookie ou stockage d’authentification n’a été extrait. Les secrets ne sont jamais inclus au dépôt ; la rotation des clés partagées dans la conversation reste recommandée après raccordement.
 
 ---
 

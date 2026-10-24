@@ -37,7 +37,7 @@ const server=createServer({key:await readFile(keyFile),cert:await readFile(certF
    assert.equal(request.headers.get('origin'),env.APP_ORIGIN,'Browser form preserves the same-origin CSRF proof');
    assert.equal(request.headers.get('referer'),env.APP_ORIGIN+'/','Form requests never leak magic-link paths or tokens');
   }
-  const response=await auth.handleAuth(request,env)||new Response('<h1>Espace Aïra</h1>',{headers:{'Content-Type':'text/html; charset=utf-8'}});
+  const response=await auth.handleAuth(request,env)||new Response('<h1>Espace Braand</h1>',{headers:{'Content-Type':'text/html; charset=utf-8'}});
   const headers=Object.fromEntries(response.headers),cookies=response.headers.getSetCookie();if(cookies.length)headers['set-cookie']=cookies;
   res.writeHead(response.status,headers);res.end(await response.text());
  } catch {requestFailures.push('HTTPS fixture request failed');res.writeHead(500);res.end();}
@@ -63,9 +63,9 @@ try {
  await page.getByRole('heading',{name:'Consultez votre messagerie'}).waitFor();assert.equal(mailCount,1);check('A real form requests one email without showing the private token');
  await page.goto(link);await page.getByRole('button',{name:'Entrer dans mon espace'}).waitFor();assert.equal(sql.prepare('SELECT count(*) n FROM auth_sessions').get().n,0);check('Opening the email link requests confirmation before authentication');
  await page.getByRole('button',{name:'Entrer dans mon espace'}).click();
- await page.getByRole('heading',{name:'Espace Aïra'}).waitFor();
+ await page.getByRole('heading',{name:'Espace Braand'}).waitFor();
  const cookies=await context.cookies(env.APP_ORIGIN),session=cookies.find(c=>c.name==='__Host-aira_session');assert.ok(session?.httpOnly&&session?.secure);assert.ok(await auth.sessionIdentity(new Headers({cookie:session.name+'='+session.value}),env));check('Confirmed login sets a private Secure/HttpOnly cookie and a real revocable session');
- await page.goto(env.APP_ORIGIN+'/auth/sign-out');await page.getByRole('button',{name:'Confirmer la déconnexion'}).click();await page.getByRole('heading',{name:'Espace Aïra'}).waitFor();
+ await page.goto(env.APP_ORIGIN+'/auth/sign-out');await page.getByRole('button',{name:'Confirmer la déconnexion'}).click();await page.getByRole('heading',{name:'Espace Braand'}).waitFor();
  assert.equal(await auth.sessionIdentity(new Headers({cookie:session.name+'='+session.value}),env),null);check('Logout revokes the stored session and removes the browser cookie');
  assert.deepEqual(errors,[]);assert.deepEqual(requestFailures,[]);assert.equal(mailCount,1);check('No client errors and zero real provider or payment requests');
 } finally {globalThis.fetch=originalFetch;await browser?.close();await new Promise(resolve=>server.close(resolve));sql.close();}

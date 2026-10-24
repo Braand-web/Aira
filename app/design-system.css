@@ -1,6 +1,6 @@
 @import "./design-tokens.css";
 
-/* Components adapted to Aïra's existing behavior. See docs/design-system.md. */
+/* Components adapted to Braand's existing behavior. See docs/design-system.md. */
 html[data-design-system="muse"] body {
   background: var(--ds-bg);
   color: var(--ds-text);

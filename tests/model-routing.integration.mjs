@@ -19,7 +19,7 @@ sql.prepare('INSERT INTO credit_lots(id,organization_id,source,source_id,granted
 const secret='FIXTURE-NEVER-A-REAL-KEY';env.MODEL_ROUTING_ENABLED='true';env.OPENAI_API_KEY=secret;env.ANTHROPIC_API_KEY=secret;
 function catalog(){return Object.fromEntries(Object.entries(router.REASONING_MODELS).map(([key,model],index)=>[key,{enabled:true,maxInputTokens:100000,maxOutputTokens:8192,rate:{...model,input:index+1,output:(index+1)*5,cacheWrite:(index+1)*1.25,cacheRead:(index+1)*.1,usdXaf:600,overheadXaf:0,verifiedAt:new Date().toISOString()}}]));}
 env.MODEL_ROUTING_CATALOG_JSON=JSON.stringify(catalog());
-const body={max_tokens:512,stream:true,system:'Be Aïra.',messages:[{role:'user',content:'Bonjour'}],tools:[{name:'read_fixture',description:'Read only fixture',input_schema:{type:'object',properties:{},required:[]}}]};
+const body={max_tokens:512,stream:true,system:'Be Braand.',messages:[{role:'user',content:'Bonjour'}],tools:[{name:'read_fixture',description:'Read only fixture',input_schema:{type:'object',properties:{},required:[]}}]};
 const calls=[];let mode='success',abortObserved=false;
 const encode=events=>events.map(e=>'event: '+e.type+'\ndata: '+JSON.stringify(e)+'\n\n').join('');
 function openaiEvents(model,withTool=false){return [

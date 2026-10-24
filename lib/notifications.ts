@@ -56,7 +56,7 @@ export async function dispatchOperationalNotifications(limit = 10, now = Date.no
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: {'Authorization': 'Bearer ' + c.RESEND_API_KEY, 'Content-Type': 'application/json', 'Idempotency-Key': 'aira-ops/' + row.id},
         body: JSON.stringify({from: c.RESEND_FROM, to: [readiness.mode === 'sandbox' ? c.RESEND_TEST_RECIPIENT : c.OPS_ALERT_EMAIL],
-          subject: 'Aïra — une intervention est nécessaire', text: `Une alerte technique requiert votre attention.\nCatégorie : ${payload.category}\nRéférence : ${payload.target}\nConsultez la console d’exploitation Aïra. Aucun secret n’est inclus dans ce message.`}),
+          subject: 'Braand — une intervention est nécessaire', text: `Une alerte technique requiert votre attention.\nCatégorie : ${payload.category}\nRéférence : ${payload.target}\nConsultez la console d’exploitation Braand. Aucun secret n’est inclus dans ce message.`}),
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) {

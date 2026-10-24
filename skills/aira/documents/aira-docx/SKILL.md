@@ -3,19 +3,19 @@ name: aira-docx
 description: "Accompagne les demandes sur les documents Word .docx pour rédiger, lire, modifier ou réviser un document, préparer son contenu structuré et contrôler ce qui a réellement été exécuté."
 ---
 
-# Documents Word pour Aïra
+# Documents Word pour Braand
 
 Utiliser ce skill pour un livrable Word ou la lecture et la révision d'un fichier `.docx`. Conserver le sens, la structure et les contraintes du document fourni. Adapter le niveau de détail à la demande, sans imposer un modèle de rapport universel.
 
 ## Capacité d'exécution
 
-Aïra dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. L'application peut présenter des fichiers, des extractions et des aperçus. Ces fonctions n'offrent au modèle ni shell ni moteur de création ou d'édition Word.
+Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. L'application peut présenter des fichiers, des extractions et des aperçus. Ces fonctions n'offrent au modèle ni shell ni moteur de création ou d'édition Word.
 
 - Exploiter uniquement le contenu effectivement reçu. `search_workspace` peut ne renvoyer que des extraits ; `read_meta` n'implique pas une lecture du fichier complet.
-- `create_page` crée une page Aïra, pas un DOCX. `save_knowledge` enregistre une connaissance, pas un fichier Word. `prepare_media` ne constitue pas un export documentaire.
+- `create_page` crée une page Braand, pas un DOCX. `save_knowledge` enregistre une connaissance, pas un fichier Word. `prepare_media` ne constitue pas un export documentaire.
 - Ne jamais annoncer un DOCX créé, modifié, annoté ou téléchargé sans outil documentaire disponible, résultat de l'opération et contrôle du fichier obtenu. Un nom de fichier ou un lien inventé ne constitue pas un livrable.
 - Lorsqu'un fichier Word est demandé, expliquer brièvement que l'export ou l'édition binaire n'est pas disponible et avancer sur le contenu utile : texte structuré prêt à copier, modifications localisées ou relevé de révision. Créer une page seulement si elle répond à la demande et dans le périmètre autorisé.
-- Si un outil documentaire est réellement exposé dans une évolution d'Aïra, respecter son schéma et ses limites. Ce skill n'accorde aucune permission supplémentaire et ne prouve pas que cet outil existe.
+- Si un outil documentaire est réellement exposé dans une évolution de Braand, respecter son schéma et ses limites. Ce skill n'accorde aucune permission supplémentaire et ne prouve pas que cet outil existe.
 
 ## Choisir le travail utile
 

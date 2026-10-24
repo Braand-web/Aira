@@ -3,16 +3,16 @@ name: aira-pptx
 description: "Accompagne la création, la structuration, la lecture et la modification de présentations PowerPoint .pptx, du récit aux contenus des diapositives, avec contrôle explicite des exports et modifications réellement réalisés."
 ---
 
-# Présentations PowerPoint pour Aïra
+# Présentations PowerPoint pour Braand
 
 Utiliser ce skill pour une présentation `.pptx` ou un contenu destiné à PowerPoint. Construire un récit adapté au public, au temps disponible et à la décision attendue. Respecter le nombre de diapositives, le modèle et les contraintes déjà donnés.
 
 ## Capacité d'exécution
 
-Aïra dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Le modèle peut exploiter des contenus extraits ou des aperçus rendus accessibles par l'application. Il n'a ni shell ni moteur PowerPoint connecté.
+Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Le modèle peut exploiter des contenus extraits ou des aperçus rendus accessibles par l'application. Il n'a ni shell ni moteur PowerPoint connecté.
 
 - Ne déduire ni le contenu complet ni le rendu du diaporama à partir de son seul nom, de ses métadonnées ou de quelques résultats `search_workspace`.
-- `create_page` crée une page Aïra, pas un PPTX ; `save_knowledge` enregistre une connaissance. `prepare_media` peut contribuer à une préparation de médias selon son contrat, sans garantir leur insertion dans une diapositive ou l'export d'un diaporama.
+- `create_page` crée une page Braand, pas un PPTX ; `save_knowledge` enregistre une connaissance. `prepare_media` peut contribuer à une préparation de médias selon son contrat, sans garantir leur insertion dans une diapositive ou l'export d'un diaporama.
 - Ne jamais annoncer un PPTX créé, modifié ou prêt à télécharger sans outil adapté, fichier résultant et contrôle. Ne pas inventer de téléchargement, de vignette ou de capture de contrôle.
 - Lorsque le fichier PowerPoint est demandé, signaler brièvement l'absence d'export ou d'édition binaire puis livrer le contenu exploitable : plan, diapositives rédigées, notes et modifications localisées. Identifier ce résultat comme une préparation de présentation.
 - Un éventuel futur outil PowerPoint doit être réellement exposé et utilisé selon son schéma. Ce skill ne l'active pas et n'accorde aucune autorisation supplémentaire.

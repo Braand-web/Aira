@@ -113,7 +113,7 @@ await check('Customer credit note downloads are scoped to the paying organizatio
  const note=sql.prepare('SELECT id FROM billing_credit_notes LIMIT 1').get();
  const get=()=>route.GET(new Request('https://aira.test/api/billing/credit-notes/'+encodeURIComponent(note.id)),{params:Promise.resolve({path:['credit-notes',note.id]})});
  globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'});
- const result=await get();assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'private, no-store');assert.match(await result.text(),/Avoir Aïra/);
+ const result=await get();assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'private, no-store');assert.match(await result.text(),/Avoir Braand/);
  globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'outsider','x-aira-identity-email':'outsider@test.invalid'});assert.equal((await get()).status,404);
  const html=notes.creditNoteHTML('<script>',{invoiceNumber:'<img src=x>',total:2500,currency:'XAF',confirmedAt:Date.now(),environment:'sandbox',externalReference:'external-fixture',originalInvoice:{seller:{name:'<script>alert(1)</script>'}}});
  assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;/);assert.match(html,/DOCUMENT DE TEST/);

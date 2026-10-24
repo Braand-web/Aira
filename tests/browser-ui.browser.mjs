@@ -355,14 +355,14 @@ try {
   await page.emulateMedia({reducedMotion: 'reduce'});
   await page.setViewportSize({width: 390, height: 844});
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Human controls must fit a 390px viewport');
-  for (const name of ['Rendre le contrôle à Aïra', 'Arrêter la session', 'Cliquer dans la page', 'Saisir dans la page']) {
+  for (const name of ['Rendre le contrôle à Braand', 'Arrêter la session', 'Cliquer dans la page', 'Saisir dans la page']) {
     const button = page.getByRole('button', {name, exact: true});
     const bounds = await button.boundingBox();
     assert.ok(bounds.width >= 44 && bounds.height >= 44, 'Mobile controls need usable touch targets: ' + name);
     assert.equal(await button.evaluate(element => getComputedStyle(element).transitionDuration), '0s');
   }
   await capture('human-control-mobile.png');
-  await submit(page.getByRole('button', {name: 'Rendre le contrôle à Aïra', exact: true}), '/control');
+  await submit(page.getByRole('button', {name: 'Rendre le contrôle à Braand', exact: true}), '/control');
   await page.getByRole('button', {name: /Prendre le contrôle/}).waitFor();
   assert.deepEqual(mutations.filter(request => request.path.endsWith('/control')).at(-1).body, {action: 'return', version: 43});
   assert.equal(await privateInput.count(), 0);

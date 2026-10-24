@@ -56,7 +56,7 @@ for(const definition of definitions){
  if(original&&(!definition.directory.startsWith('aira/')||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Original skill directory and name must match');
  const ordered=Object.fromEntries(Object.entries(entries).sort(([a],[b])=>a.localeCompare(b,'en')));
  const provenance=manifest.source??manifest;
- const source=original?{origin:'Aïra',revision:'1.0.0'}:{origin:provenance.repository,revision:provenance.commit};
+ const source=original?{origin:'Braand',revision:'1.0.0'}:{origin:provenance.repository,revision:provenance.commit};
  const version=original?'1.0.0':source.revision.slice(0,12);
  const references=Object.keys(ordered).filter(file=>file!=='SKILL.md');
  const metadata={id:definition.id,title:definition.title,description:definition.description,category:definition.category,license:definition.license,capability:definition.capability,version,source,references,digest:createHash('sha256').update(JSON.stringify(ordered)).digest('hex')};

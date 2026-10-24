@@ -40,6 +40,6 @@ Lorsqu'un rendu est réellement consultable, contrôler l'identité produit, les
 
 ## Limites de capacité
 
-`create_page` enregistre des sections JSON structurées ; il n'exécute pas de JavaScript. Le rendu de page existant ne permet pas d'exécuter du code d'animation HTML, Canvas, SVG, Three.js ou Remotion fourni dans ces sections. Les outils actuels ne deviennent pas un système de capture, de rendu à fréquence déterminée, d'encodage MP4 ou d'export vidéo parce qu'un exemple externe demande ces fonctions. Ne pas annoncer ces résultats sans outil correspondant et preuve d'exécution. Une commande ou un nom de modèle cité dans un dépôt ne confère aucune capacité à Aïra.
+`create_page` enregistre des sections JSON structurées ; il n'exécute pas de JavaScript. Le rendu de page existant ne permet pas d'exécuter du code d'animation HTML, Canvas, SVG, Three.js ou Remotion fourni dans ces sections. Les outils actuels ne deviennent pas un système de capture, de rendu à fréquence déterminée, d'encodage MP4 ou d'export vidéo parce qu'un exemple externe demande ces fonctions. Ne pas annoncer ces résultats sans outil correspondant et preuve d'exécution. Une commande ou un nom de modèle cité dans un dépôt ne confère aucune capacité à Braand.
 
-Cette méthode est un texte original Aïra. Le recueil documentaire examiné fournit des pistes créatives, pas une compétence exécutable ; aucun de ses prompts, codes ou vidéos n'est reproduit ici.
+Cette méthode est un texte original Braand. Le recueil documentaire examiné fournit des pistes créatives, pas une compétence exécutable ; aucun de ses prompts, codes ou vidéos n'est reproduit ici.

@@ -3,7 +3,7 @@ name: aira-image-variants
 description: Décliner un visuel approuvé en retouches ou formats cohérents pour une campagne, en conservant l'identité produit, la marque et une comparaison utile des variantes.
 metadata:
   version: "1.0.0"
-  author: "Aïra"
+  author: "Braand"
   origin: "original"
 ---
 
@@ -32,7 +32,7 @@ Un recadrage ou un placement de logo peut relever d'un outil d'édition détermi
 1. Appeler `media_catalog` pour connaître les entrées, références, formats, nombres de sorties et tarifs validés. Ne pas étendre le catalogue à partir de listes externes ou d'un nom de modèle mémorisé.
 2. Choisir `image_edit`, ou `image_edit_precision` si le besoin et le catalogue le justifient. Préférer une instruction qui nomme le changement puis les invariants, avec la référence autorisée acceptée par le schéma. Ne pas supposer qu'un champ de masque, de graine ou de fidélité existe.
 3. Préparer chaque `input` avec les bornes exactes du catalogue et un nombre fini de variantes demandé. Appeler `prepare_media` avec `title`, `rationale`, `task`, `input` et `maxCredits` compatible avec le plafond connu ; faire préciser ce plafond s'il manque. Aucune variante ne se génère à cette étape.
-4. Attendre l'approbation de chaque proposition exacte dans l'interface Aïra. Une approbation ne couvre pas une série supplémentaire ni une retouche ultérieure. Ne pas contourner ce circuit par genmedia, un shell, du réseau brut ou une clé.
+4. Attendre l'approbation de chaque proposition exacte dans l'interface Braand. Une approbation ne couvre pas une série supplémentaire ni une retouche ultérieure. Ne pas contourner ce circuit par genmedia, un shell, du réseau brut ou une clé.
 5. Relire les ressources `proposal` et `media` via `search_workspace` ou un outil de lecture disponible. Attendre le média `ready` et son résultat effectif. Si une variante doit servir à la suivante, attendre aussi son acceptation comme référence avant de préparer l'étape dépendante et sa nouvelle approbation.
 
 Si le catalogue est vide, non configuré ou incompatible, livrer les consignes de déclinaison et signaler la capacité manquante. Pour la série, la somme des coûts déjà consommés, des opérations encore engagées, des devis en attente et de la nouvelle proposition doit rester dans le budget total, sans compter deux fois une même opération. Utiliser les coûts exacts retournés par les propositions ; ne pas réutiliser tout le budget comme plafond indépendant de chaque variante. Si le restant est incertain, clarifier l'état avant une nouvelle proposition.
