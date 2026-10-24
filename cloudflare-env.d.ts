@@ -31,6 +31,7 @@ declare namespace Cloudflare {
     OPENAI_API_KEY?: string;
     MODEL_ROUTING_ENABLED?: string;
     MODEL_ROUTING_POLICY?: string;
+    MODEL_PRICING_REFRESH_JSON?: string;
     MODEL_ROUTING_CATALOG_JSON?: string;
     LLM_PROVIDER?: string;
     OPENROUTER_API_KEY?: string;

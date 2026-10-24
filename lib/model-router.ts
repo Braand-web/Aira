@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {AppError} from './core.mjs';
 import {modelRateSchema,type ModelRate} from './model-protocol';
+import {currentPricingRate} from './model-pricing';
 
 export const MODEL_TASKS=['conversation','orchestration','creative','campaigns','extraction','analysis','review','browser'] as const;
 export type ModelTask=typeof MODEL_TASKS[number];
@@ -36,12 +37,14 @@ export function routedModel(env:Record<string,string|undefined>,request:RoutingR
  let catalog:unknown;try{catalog=JSON.parse(env.MODEL_ROUTING_CATALOG_JSON||'{}');}catch{throw new AppError('Catalogue IA invalide.',503,'model_not_configured');}
  const entries=z.record(z.unknown()).safeParse(catalog),parsed=entrySchema.safeParse(entries.success?entries.data[key]:undefined);
  if(!parsed.success)throw new AppError('Le modèle requis et son tarif doivent être configurés.',503,'rate_unverified');
- const definition=REASONING_MODELS[key],entry=parsed.data,age=now-Date.parse(entry.rate.verifiedAt);
+ const definition=REASONING_MODELS[key],entry=parsed.data;
  const provider=entry.transport==='openrouter'?'openrouter':definition.provider;
  const model=provider==='openrouter'?openRouterModels[key]:definition.model;
  if(!model)throw new AppError('Ce modèle n’est pas validé pour ce transport.',503,'model_not_configured');
+ entry.rate=currentPricingRate(model,provider,now)||entry.rate;
+ const age=now-Date.parse(entry.rate.verifiedAt);
  if(entry.rate.model!==model||entry.rate.provider&&entry.rate.provider!==provider||!Number.isFinite(age)||age<0||age>86400000||provider==='openrouter'&&(typeof entry.rate.fundingFeeBps!=='number'||!Number.isFinite(entry.rate.fundingFeeBps)||entry.rate.fundingFeeBps<0||entry.rate.fundingFeeBps>10000))throw new AppError('Le tarif exact du modèle et le taux de change doivent être vérifiés.',503,'rate_unverified');
  const apiKey=env[provider==='openrouter'?'OPENROUTER_API_KEY':provider==='openai'?'OPENAI_API_KEY':'ANTHROPIC_API_KEY']?.trim();if(!apiKey)throw new AppError('Le fournisseur IA requis n’est pas configuré sur le serveur.',503,'model_not_configured');
  const headers:Record<string,string>=provider==='anthropic'?{'x-api-key':apiKey,'anthropic-version':'2023-06-01','Content-Type':'application/json'}:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json',...(provider==='openrouter'?{'X-OpenRouter-Metadata':'enabled'}:{})};
- return {key,provider,model,rate:{...entry.rate,provider},maxInputTokens:entry.maxInputTokens,maxOutputTokens:entry.maxOutputTokens,apiKey,url:provider==='openrouter'?'https://openrouter.ai/api/v1/messages':provider==='openai'?'https://api.openai.com/v1/responses':'https://api.anthropic.com/v1/messages',headers,routing:{...decision.data,...(adaptive?{tier:escalation?MODEL_TIERS[MODEL_TIERS.indexOf(tier)+1]:tier}:{})}};
+ return {key,provider,model,rate:{...entry.rate,provider},maxInputTokens:Math.min(entry.maxInputTokens,typeof entry.rate.maxInputTokens==='number'?entry.rate.maxInputTokens:entry.maxInputTokens),maxOutputTokens:entry.maxOutputTokens,apiKey,url:provider==='openrouter'?'https://openrouter.ai/api/v1/messages':provider==='openai'?'https://api.openai.com/v1/responses':'https://api.anthropic.com/v1/messages',headers,routing:{...decision.data,...(adaptive?{tier:escalation?MODEL_TIERS[MODEL_TIERS.indexOf(tier)+1]:tier}:{})}};
 }

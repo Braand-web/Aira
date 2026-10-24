@@ -84,8 +84,12 @@ missing funding fees, context ceilings and existing budget/reconciliation guards
 Providers are simulated. Request counts are reproducible runtime observations;
 they are not production latency, quality or spending benchmarks.
 
-Activation requires configuring and verifying all three entries in the private
-staging catalog, then enabling the two switches there and validating live
-streaming/quality/cost with an authorized test budget. Production is still gated
-by verified financial configuration; the prior 24-hour expiry problem cannot be
-fixed by choosing another model without its own verified tariff.
+On 24 October 2026, the three OpenRouter entries were configured in private
+staging and production, with adaptive routing enabled. The optional
+[automatic price registry](MODEL_PRICING_REFRESH.md) supplies source-verified
+per-model rates and a dated BEAC reference. Its explicit accounting basis is
+inference-credit consumption; company funding expenses remain separate.
+Commercial checkout and all unrelated experimental gates remain disabled.
+Source verification and a minimal native streaming diagnostic succeeded;
+neither proves an authenticated end-to-end customer conversation or the quality
+of every tier. The prior 24-hour expiry guard remains enforced.

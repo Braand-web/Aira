@@ -6,9 +6,11 @@ import {summary,releaseReadiness} from '@/lib/billing';
 import {modelReadiness} from '@/lib/metering';
 import {durableReadiness} from '@/lib/durable-missions';
 import {routingEnabled,routedModel} from '@/lib/model-router';
+import {ensureModelPricing} from '@/lib/model-pricing';
 export async function GET(request:Request){try{
  const {tenant,user,organization,role}=await identity(request);const workspace=await db().prepare("SELECT * FROM workspaces WHERE id=?").bind(tenant).first<{id:string;name:string;organization_id:string;created_at:number}>();const billing=await summary(organization);if(role!=='owner'){billing.orders=[];billing.invoices=[];billing.creditNotes=[];}
  const connection=await db().prepare("SELECT id,expires_at FROM connections WHERE workspace_id=? AND provider='meta'").bind(tenant).first();
+ try{await ensureModelPricing(Date.now(),false);}catch{/* Navigation reads cached evidence only and never waits for a public pricing source. */}
  const cfg=config(),readiness=modelReadiness();const routing=routingEnabled(cfg);let model:{key?:string;model:string;provider:string}=routing?{model:'gpt-6.1-sol',provider:'openai'}:modelConnection();if(routing){try{const selected=routedModel(cfg,{task:'conversation'});model={key:selected.apiKey,model:selected.model,provider:selected.provider};}catch{/* Public readiness contains no credential or supplier error. */}}
  return Response.json({user:{id:user.userId,name:user.displayName,email:user.email},workspace:{...workspace,credits:billing.wallet.available+billing.wallet.reserved,reserved:billing.wallet.reserved},billing,organization,role,resources:(await list(tenant)).filter(resource=>resource.kind!=="connector_action"||(resource.data as Record<string,unknown>).requester===user.userId),capabilities:{model:!!model.key,modelReady:readiness.ready,modelStatus:readiness.reason,modelStatusDetail:readiness.detail,modelId:model.model,modelProvider:model.provider,modelRouting:routing,media:!!cfg.FAL_KEY&&falCatalog().length>0,metaOAuth:!!(cfg.META_APP_ID&&cfg.META_APP_SECRET&&cfg.META_GRAPH_VERSION&&cfg.TOKEN_ENCRYPTION_KEY&&cfg.META_REDIRECT_URI),metaConnected:!!connection,filePreview:cfg.FILE_PREVIEW_V1==="true",autonomy:durableReadiness().enabled,publishing:false,browser:false,billing:releaseReadiness().enabled},catalog:falCatalog()});
  }catch(error){return failure(error);}}

@@ -229,6 +229,7 @@ async function proposeAction(who:BillingIdentity,session:Session,call:ConnectorC
   const search=await paid.session.search({query:call.toolSlug,toolkits:[call.toolkit]});
   if(!search.toolkitConnectionStatuses.some(t=>t.toolkit===call.toolkit&&t.instantAccount?.allowedToolSlugs.includes(call.toolSlug)))throw new AppError('Cet outil ne prend pas en charge Instant.',409,'instant_unsupported');
   maxMicros=entry.maxCostMicros;
+  await (await import('./model-pricing')).ensureModelPricing();
   const rate=modelRate();maxCredits=Math.ceil(((maxMicros/1e6)*rate.usdXaf*1.2+rate.overheadXaf)/4*100);
  }
  const data={...call,accountId:account||null,requester:who.user.userId,sessionId,priceUsd:maxMicros?maxMicros/1e6:null,maxCredits:maxCredits/100,expiresAt:Date.now()+15*60000,status:'pending'};
