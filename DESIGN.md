@@ -12,5 +12,7 @@ Le clover de Bot Avatars accompagne l’assistant : 64 px sur l’accueil et 32 
 
 Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Neuf rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations et aide. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
 
+Les forfaits de facturation se comparent dans un carrousel horizontal : deux cartes lisibles avec une amorce de la troisième, une seule carte sur les petits conteneurs. Flèches de navigation, défilement tactile et au trackpad, clavier et focus visible ; aucun défilement automatique. La navigation devient immédiate avec la réduction du mouvement.
+
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 

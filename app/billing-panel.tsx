@@ -1,6 +1,6 @@
 "use client";
-import {useState,useEffect,useCallback,useRef} from 'react';
-import {ArrowUpRight,ShieldCheck,RefreshCw,ArrowLeft,LoaderCircle,Download} from 'lucide-react';
+import {useState,useEffect,useCallback,useRef,useId} from 'react';
+import {ArrowUpRight,ShieldCheck,RefreshCw,ArrowLeft,ChevronLeft,ChevronRight,LoaderCircle,Download} from 'lucide-react';
 import {api,post,workspaceHeaders} from '../lib/client-api';
 import BillingOffers,{PLAN_IDS,planName,type PlanId,type BillingPlan} from '../components/billing-offers';
 import {CreditsView,PaymentsView,RechargeView,TeamView} from './billing-sections';
@@ -80,10 +80,40 @@ function BillingPanelContent({onChange,embedded=false,initialTab,onTeam,onBillin
 function Guest({href}:{href:string}){return <div className="billing-empty"><p>Connectez-vous pour retrouver votre forfait et vos crédits.</p><a className="button primary" href={href} target="_top">Se connecter<ArrowUpRight size={16}/></a></div>;}
 
 function CompactOffers({catalog,priceLabel,currentPlan,busy,owner,guest,signInHref,onChoose,onUpgrade,onDiscover,onTeam}:{catalog:Catalog;priceLabel:string;currentPlan?:string;busy:boolean;owner:boolean;guest:boolean;signInHref:string;onChoose:(plan:PlanId)=>void;onUpgrade:(plan:PlanId)=>void;onDiscover:()=>void;onTeam?:()=>void}){
+ const carouselRef=useRef<HTMLDivElement>(null),carouselId=useId();
+ const [navigation,setNavigation]=useState({previous:false,next:true});
+ useEffect(()=>{
+  const carousel=carouselRef.current;if(!carousel)return;
+  const update=()=>{
+   const previous=carousel.scrollLeft>2,next=carousel.scrollLeft<carousel.scrollWidth-carousel.clientWidth-2;
+   setNavigation(current=>current.previous===previous&&current.next===next?current:{previous,next});
+  };
+  update();carousel.addEventListener('scroll',update,{passive:true});
+  const observer=new ResizeObserver(update);observer.observe(carousel);
+  return ()=>{carousel.removeEventListener('scroll',update);observer.disconnect();};
+ },[]);
+ const move=(direction:-1|1)=>{
+  const carousel=carouselRef.current;if(!carousel)return;
+  const cards=carousel.children,step=cards.length>1?(cards[1] as HTMLElement).offsetLeft-(cards[0] as HTMLElement).offsetLeft:carousel.clientWidth;
+  carousel.scrollBy({left:direction*step,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+ };
  return <div className={styles.compactStack}>
-  <p className={styles.compactNote}>Pour 30 jours · {priceLabel}</p>
+  <div className={styles.planToolbar}>
+   <p className={styles.compactNote}>Pour 30 jours · {priceLabel}</p>
+   <div className={styles.planControls}>
+    <button type="button" aria-label="Forfaits précédents" aria-controls={carouselId} disabled={!navigation.previous} onClick={()=>move(-1)}><ChevronLeft size={18}/></button>
+    <button type="button" aria-label="Forfaits suivants" aria-controls={carouselId} disabled={!navigation.next} onClick={()=>move(1)}><ChevronRight size={18}/></button>
+   </div>
+  </div>
   {guest&&<Guest href={signInHref}/>}
-  <div className={styles.compactPlans}>{PLAN_IDS.map(id=>{const plan=catalog.plans[id],current=currentPlan===id;return <article key={id} className={styles.compactPlan}><header><h3>{plan.name}</h3>{current&&<span className={styles.currentPlan}>Actuel</span>}</header><p className={styles.compactPrice}><strong>{money(plan.periodPrice)}</strong><span>pour 30 jours</span></p><dl><div><dt>Crédits</dt><dd>{number(plan.credits)} / 30 jours</dd></div><div><dt>Membres</dt><dd>{number(plan.members)}</dd></div><div><dt>Marques</dt><dd>{number(plan.spaces)}</dd></div><div><dt>Projets</dt><dd>{number(plan.projects)}</dd></div><div><dt>Stockage</dt><dd>{number(plan.storage/1024**3)} Go</dd></div></dl><button type="button" className={'button '+(id==='business'?'primary':'secondary')} disabled={busy||!owner||!catalog.readiness.enabled} onClick={()=>onChoose(id)}>{busy?'Préparation…':(current?'Renouveler ':'Choisir ')+plan.name}<ArrowUpRight size={15}/></button>{currentPlan&&PLAN_IDS.includes(currentPlan as PlanId)&&PLAN_IDS.indexOf(id)>PLAN_IDS.indexOf(currentPlan as PlanId)&&<button type="button" className={'button secondary '+styles.upgradeButton} disabled={busy||!owner||!catalog.readiness.enabled} onClick={()=>onUpgrade(id)}>Passer à {plan.name} maintenant<span>Voir le prorata</span></button>}<details className={styles.planDetails}><summary>Autres limites</summary><p>{number(plan.transfer/1024**3)} Go de transfert sur 30 jours · {number(plan.concurrency)} opération{plan.concurrency>1?'s':''} simultanée{plan.concurrency>1?'s':''}.</p><p>{id==='essential'?'Navigateur cloud et missions autonomes à partir de Pro.':'Navigateur cloud et missions autonomes sous plafond approuvé, selon leur disponibilité.'}</p></details></article>;})}</div>
+  <div ref={carouselRef} id={carouselId} className={styles.compactPlans} role="region" aria-label="Forfaits disponibles" aria-roledescription="carrousel" tabIndex={0} onKeyDown={event=>{
+   if(event.target!==event.currentTarget)return;
+   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();move(event.key==='ArrowLeft'?-1:1);}
+   if(event.key==='Home'||event.key==='End'){event.preventDefault();event.currentTarget.scrollTo({left:event.key==='Home'?0:event.currentTarget.scrollWidth,behavior:'auto'});}
+  }} onFocusCapture={event=>{
+   const carousel=event.currentTarget,card=(event.target as HTMLElement).closest('article');if(!card)return;
+   if(card.offsetLeft<carousel.scrollLeft||card.offsetLeft+card.offsetWidth>carousel.scrollLeft+carousel.clientWidth)carousel.scrollTo({left:card.offsetLeft,behavior:'auto'});
+  }}>{PLAN_IDS.map(id=>{const plan=catalog.plans[id],current=currentPlan===id;return <article key={id} className={styles.compactPlan}><header><h3>{plan.name}</h3>{current&&<span className={styles.currentPlan}>Actuel</span>}</header><p className={styles.compactPrice}><strong>{money(plan.periodPrice)}</strong><span>pour 30 jours</span></p><dl><div><dt>Crédits</dt><dd>{number(plan.credits)} / 30 jours</dd></div><div><dt>Membres</dt><dd>{number(plan.members)}</dd></div><div><dt>Marques</dt><dd>{number(plan.spaces)}</dd></div><div><dt>Projets</dt><dd>{number(plan.projects)}</dd></div><div><dt>Stockage</dt><dd>{number(plan.storage/1024**3)} Go</dd></div></dl><button type="button" className={'button '+(id==='business'?'primary':'secondary')} disabled={busy||!owner||!catalog.readiness.enabled} onClick={()=>onChoose(id)}>{busy?'Préparation…':(current?'Renouveler ':'Choisir ')+plan.name}<ArrowUpRight size={15}/></button>{currentPlan&&PLAN_IDS.includes(currentPlan as PlanId)&&PLAN_IDS.indexOf(id)>PLAN_IDS.indexOf(currentPlan as PlanId)&&<button type="button" className={'button secondary '+styles.upgradeButton} disabled={busy||!owner||!catalog.readiness.enabled} onClick={()=>onUpgrade(id)}>Passer à {plan.name} maintenant<span>Voir le prorata</span></button>}<details className={styles.planDetails}><summary>Autres limites</summary><p>{number(plan.transfer/1024**3)} Go de transfert sur 30 jours · {number(plan.concurrency)} opération{plan.concurrency>1?'s':''} simultanée{plan.concurrency>1?'s':''}.</p><p>{id==='essential'?'Navigateur cloud et missions autonomes à partir de Pro.':'Navigateur cloud et missions autonomes sous plafond approuvé, selon leur disponibilité.'}</p></details></article>;})}</div>
   {!guest&&!owner&&<p className={styles.compactNote}>Seul le propriétaire peut gérer les paiements.</p>}
   <p className={styles.compactNote}>Un seul solde pour la conversation, les créations, les outils et les missions. Les petits appels utilisent des fractions de crédit. Les crédits du forfait expirent à la fin de la période.</p>
   <p className={styles.compactNote}>Renouvellement volontaire, sans prélèvement automatique. Les dépenses publicitaires sont réglées séparément à leur plateforme.</p>
