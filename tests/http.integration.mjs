@@ -5,8 +5,8 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(base))throw new Error("These tests run on
 let cookie="";const results=[];
 async function request(path,method="GET",body,extra={}){const response=await fetch(base+path,{method,headers:{...(cookie?{Cookie:cookie}:{}),...(body instanceof FormData?{}:{"Content-Type":"application/json"}),...extra},body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body),redirect:"manual"});return {status:response.status,response,data:response.headers.get("content-type")?.includes("json")?await response.json():await response.text()};}
 let r=await request("/api/workspace");assert.equal(r.status,401);results.push("Unauthenticated workspace denied");
-r=await request("/api/workspace","GET",undefined,{"oai-authenticated-user-id":"fake","oai-authenticated-user-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
-r=await request("/signin-with-chatgpt");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
+r=await request("/api/workspace","GET",undefined,{"x-aira-identity-id":"fake","x-aira-identity-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
+r=await request("/auth/sign-in");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
 r=await request("/api/workspace");assert.equal(r.status,200);assert.equal(r.data.development,true);assert.equal(r.data.capabilities.model,false);assert.equal(r.data.capabilities.modelReady,false);assert.equal(r.data.capabilities.modelStatus,"missing_key");assert.equal(r.data.capabilities.autonomy,false);results.push("Local identity + truthful capability flags");
 r=await request("/api/health");assert.equal(r.status,200);assert.deepEqual(r.data,{status:"ok"});results.push("Health route is reachable through the local adapter");
 r=await request("/api/internal/operations-tick","POST",{});assert.equal(r.status,401);results.push("Operations scheduler denies calls without its secret");

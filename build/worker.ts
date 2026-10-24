@@ -2,6 +2,7 @@ import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import { raiseOperationalAlert } from "../lib/operations";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
+import {authenticatedRequest, cleanupAuth, handleAuth} from "../lib/auth-runtime";
 export {BrowserSession} from "../lib/browser-session-do";
 
 const scheduledTasks = [
@@ -21,6 +22,7 @@ async function runScheduledTasks(
     return;
   }
   const slot = Math.floor(scheduledTime / 300_000);
+  try {await cleanupAuth(env);} catch {console.error("Aïra auth housekeeping failed.");}
   for (const task of scheduledTasks) {
     try {
       const request = new Request(`https://aira.internal${task.path}`, {
@@ -53,7 +55,18 @@ async function runScheduledTasks(
 }
 
 export default {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+    // The local-only Vite middleware strips supplied headers before adding its fixture.
+    // Production always reconstructs identity from a private, revocable D1 session.
+    if (!import.meta.env.DEV) {
+      try {
+        const authResponse = await handleAuth(request, env);
+        if (authResponse) return authResponse;
+        request = await authenticatedRequest(request, env);
+      } catch {
+        return Response.json({error:"Connexion temporairement indisponible.",code:"authentication_unavailable"}, {status:503,headers:{"Cache-Control":"no-store"}});
+      }
+    }
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.

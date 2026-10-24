@@ -12,7 +12,7 @@ const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
 for(const f of readdirSync(path.join(project,'drizzle')).filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync(path.join(project,'drizzle',f),'utf8'));
 function statement(query,args=[]){return {bind(...v){return statement(query,v);},async first(column){const r=sql.prepare(query).get(...args);return column?r?.[column]??null:r??null;},async all(){return {results:sql.prepare(query).all(...args)};},async run(){return this._run();},_run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};}};}
 const DB={prepare:q=>statement(q),async batch(ss){sql.exec('BEGIN');try{const rows=ss.map(s=>s._run());sql.exec('COMMIT');return rows;}catch(e){sql.exec('ROLLBACK');throw e;}}};
-globalThis.__billingTest={env:{DB},headers:new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'})};
+globalThis.__billingTest={env:{DB},headers:new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'})};
 const out=path.join(project,'.local-build','billing-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
 const modules={billing:'lib/billing.ts',server:'lib/server.ts',organizations:'lib/organizations.ts',workspace:'app/api/workspace/route.ts',refunds:'lib/refunds.ts',route:'app/api/billing/[...path]/route.ts',webhook:'app/api/webhooks/saspay/route.ts',tick:'app/api/internal/billing-tick/route.ts',admin:'app/api/admin/billing/route.ts',meter:'lib/metering.ts'};
 await build({stdin:{contents:Object.entries(modules).map(([n,f])=>'export * as '+n+' from "'+path.join(project,f).replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__billingTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__billingTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
@@ -81,7 +81,7 @@ await check('Expired reserved credits settle once; released remainder expires wi
  const h=await b.reserve({...who,organization:'expiry-org'},'expiry-test',800);sql.prepare("UPDATE credit_lots SET expires_at=? WHERE id='expires-lot'").run(now-1);await b.expireLots('expiry-org');assert.equal(sql.prepare("SELECT balance FROM credit_lots WHERE id='expires-lot'").get().balance,800);await b.settleHold(h.id,500);await b.settleHold(h.id,500);assert.equal(sql.prepare("SELECT balance FROM credit_lots WHERE id='expires-lot'").get().balance,0);assert.equal(sql.prepare("SELECT SUM(units) n FROM credit_ledger WHERE organization_id='expiry-org' AND kind='expire'").get().n,500);
 });
 await check('Actual upgrade keeps end date and prepayment does not grant another current quota',async()=>{
- globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'upgrade-owner','oai-authenticated-user-email':'upgrade@test.invalid'});const person=await s.identity(request('GET',undefined,'upgrade-owner'));
+ globalThis.__billingTest.headers=new Headers({'x-aira-identity-id':'upgrade-owner','x-aira-identity-email':'upgrade@test.invalid'});const person=await s.identity(request('GET',undefined,'upgrade-owner'));
  await legacySubscriptionPurchase(person);
  const before=await b.currentSubscription(person.organization),upgrade=await b.makeQuote(person,{kind:'upgrade'}),payment=await b.checkout(person,upgrade.id,crypto.randomUUID(),'https://aira.test');await Promise.all([b.reconcileOrder(payment.id),b.reconcileOrder(payment.id)]);
  const after=await b.currentSubscription(person.organization);assert.equal(after.end_at,before.end_at);assert.equal(after.plan,'business');assert.equal(after.version,2);assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE organization_id=? AND source='upgrade'").get(person.organization).n,1);
@@ -93,14 +93,14 @@ await check('Stale subscription quote is rejected before another provider reques
  sql.prepare('UPDATE billing_subscriptions SET version=version+1 WHERE organization_id=?').run(person.organization);await assert.rejects(()=>b.checkout(person,quote.id,crypto.randomUUID(),'https://aira.test'));assert.equal(creates,before);
 });
 await check('Late upgrade payment is held for reconciliation without expired benefits',async()=>{
- globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'late-owner','oai-authenticated-user-email':'late@test.invalid'});const person=await s.identity(request('GET',undefined,'late-owner'));
+ globalThis.__billingTest.headers=new Headers({'x-aira-identity-id':'late-owner','x-aira-identity-email':'late@test.invalid'});const person=await s.identity(request('GET',undefined,'late-owner'));
  const order=await legacySubscriptionPurchase(person);
  const change=await b.makeQuote(person,{kind:'upgrade'}),payment=await b.checkout(person,change.id,crypto.randomUUID(),'https://aira.test'),original=Date.now;
  try{Date.now=()=>change.periodEnd+1000;await b.reconcileOrder(payment.id);}finally{Date.now=original;}
  assert.equal(sql.prepare('SELECT plan FROM billing_subscriptions WHERE order_id=?').get(order.id).plan,'pro');assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(payment.id).status,'needs_reconciliation');assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE source_id=?").get(payment.id).n,0);
 });
 await check('Essential tax total reaches the provider and its immutable receipt survives later tax changes',async()=>{
- const previousHeaders=globalThis.__billingTest.headers;globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'essential-owner','oai-authenticated-user-email':'essential@test.invalid'});
+ const previousHeaders=globalThis.__billingTest.headers;globalThis.__billingTest.headers=new Headers({'x-aira-identity-id':'essential-owner','x-aira-identity-email':'essential@test.invalid'});
  try{
   const person=await s.identity(request('GET',undefined,'essential-owner')),changed={...taxRule,rateBps:1925};env.BILLING_TAX_JSON=JSON.stringify(changed);env.BILLING_ECONOMICS_JSON=JSON.stringify({essential:{...economics,taxBps:1925},pro:economics,business:economics});
   const quote=await b.makeQuote(person,{kind:'subscription',plan:'essential',cycle:'period'}),payment=await b.checkout(person,quote.id,crypto.randomUUID(),'https://aira.test'),row=sql.prepare('SELECT session_id FROM billing_orders WHERE id=?').get(payment.id);assert.equal(sessions.get(row.session_id).amount,'5843.00');
@@ -153,7 +153,7 @@ await check('Shared workspace audit records the actual administrator, never the 
  try{
   sql.prepare("INSERT INTO organization_members(organization_id,user_id,role,active) VALUES ('owner','audit-admin','admin',1),('owner','audit-target','editor',1)").run();
   sql.prepare("INSERT INTO members(id,workspace_id,user_id,role) VALUES ('audit-membership','owner','audit-admin','admin')").run();
-  globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'audit-admin','oai-authenticated-user-email':'audit-admin@test.invalid'});
+  globalThis.__billingTest.headers=new Headers({'x-aira-identity-id':'audit-admin','x-aira-identity-email':'audit-admin@test.invalid'});
   const adminIdentity=await s.identity(request('POST',{}),'manage');
   await o.changeOrganization(adminIdentity,{action:'revoke',userId:'audit-target'});
   const entry=sql.prepare("SELECT actor,workspace_id FROM audit WHERE action='member.revoked' AND target='audit-target'").get();
@@ -171,7 +171,7 @@ await check('Workspace response keeps financial documents private from administr
   const preview=await refunds.previewExternalRefund(finance,requested.id,100);
   await refunds.confirmExternalRefund(finance,{quoteId:preview.id,amount:preview.amount,currency:preview.currency,environment:preview.environment,externalReference:'fixture-privacy-refund',evidenceNote:'Offline sandbox fixture evidence for financial document privacy.',acknowledgement:'EXTERNAL_REFUND_CONFIRMED'});
   assert.ok((await b.summary('owner')).creditNotes.length>0);
-  globalThis.__billingTest.headers=new Headers({'oai-authenticated-user-id':'audit-admin','oai-authenticated-user-email':'audit-admin@test.invalid'});
+  globalThis.__billingTest.headers=new Headers({'x-aira-identity-id':'audit-admin','x-aira-identity-email':'audit-admin@test.invalid'});
   const response=await workspace.GET(request());assert.equal(response.status,200);const data=await response.json();
   assert.deepEqual(data.billing.orders,[]);assert.deepEqual(data.billing.invoices,[]);assert.deepEqual(data.billing.creditNotes,[]);
  }finally{globalThis.__billingTest.headers=oldHeaders;}

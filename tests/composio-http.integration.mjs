@@ -8,7 +8,7 @@ async function request(endpoint,method='GET',body,origin){
 }
 assert.equal((await request('/api/connectors/toolkits')).status,401);
 console.log('PASS Connector catalogue requires a local authenticated session.');
-const login=await request('/signin-with-chatgpt');assert.equal(login.status,302);cookie=login.headers.get('set-cookie').split(';')[0];
+const login=await request('/auth/sign-in');assert.equal(login.status,302);cookie=login.headers.get('set-cookie').split(';')[0];
 const response=await request('/api/connectors/toolkits'),catalogue=await response.json();assert.equal(response.status,200);assert.equal(catalogue.configured,false);assert.deepEqual(catalogue.items,[]);assert.equal(catalogue.nextCursor,null);assert.match(response.headers.get('cache-control'),/private.*no-store/);
 console.log('PASS Actual HTTP route reports missing configuration with no invented toolkits or account.');
 const authorize=await request('/api/connectors/authorize','POST',{toolkit:'metaads'},base);assert.equal(authorize.status,503);assert.equal((await authorize.json()).code,'composio_not_configured');

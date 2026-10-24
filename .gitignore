@@ -49,8 +49,8 @@ next-env.d.ts
 !/build/connector-preview-plugin.mjs
 !/build/connector-preview-worker.mjs
 !/build/sites-vite-plugin.LICENSE
-!/build/sites-vite-plugin.ts
-!/build/sites-worker.ts
+!/build/local-auth-plugin.ts
+!/build/worker.ts
 
 /dist/
 /.wrangler/
@@ -60,3 +60,5 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+/.aira-runtime/

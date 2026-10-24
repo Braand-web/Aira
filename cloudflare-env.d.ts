@@ -1,6 +1,9 @@
 declare namespace Cloudflare {
   interface Env {
     APP_ENV?: string;
+    APP_ORIGIN?: string;
+    AUTH_ENABLED?: string;
+    AUTH_HASH_SECRET?: string;
     DB?: D1Database;
     BROWSER?: Fetcher;
     BROWSER_SESSIONS?: DurableObjectNamespace;

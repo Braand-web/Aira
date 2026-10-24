@@ -11,7 +11,7 @@ const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
 for(const file of readdirSync(path.join(project,'drizzle')).filter(file=>file.endsWith('.sql')).sort())sql.exec(readFileSync(path.join(project,'drizzle',file),'utf8'));
 function statement(query,args=[]){return {bind(...values){return statement(query,values);},async first(column){const row=sql.prepare(query).get(...args);return column?row?.[column]??null:row??null;},async all(){return {results:sql.prepare(query).all(...args)};},async run(){return this._run();},_run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};}};}
 const DB={prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const result=statements.map(item=>item._run());sql.exec('COMMIT');return result;}catch(error){sql.exec('ROLLBACK');throw error;}}};
-globalThis.__productionBilling={env:{DB,BILLING_ADMIN_IDS:'finance-admin'},headers:new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'})};
+globalThis.__productionBilling={env:{DB,BILLING_ADMIN_IDS:'finance-admin'},headers:new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'})};
 const output=path.join(project,'.local-build','production-billing-test.mjs');mkdirSync(path.dirname(output),{recursive:true});
 const modules={billing:'lib/billing.ts',server:'lib/server.ts',refunds:'lib/refunds.ts',admin:'app/api/admin/billing/route.ts',route:'app/api/billing/[...path]/route.ts',notes:'lib/credit-note.ts'};
 await build({stdin:{contents:Object.entries(modules).map(([name,file])=>`export * as ${name} from ${JSON.stringify(path.join(project,file).replaceAll('\\','/'))};`).join('\n'),resolveDir:project,loader:'ts'},outfile:output,bundle:true,platform:'node',format:'esm',plugins:[{name:'bindings',setup(builder){builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='cloudflare:workers'?'export const env=globalThis.__productionBilling.env;':args.path==='next/headers'?'export async function headers(){return globalThis.__productionBilling.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
@@ -101,7 +101,7 @@ await check('Unknown legacy environment and mismatched external environment fail
  assert.equal(sql.prepare('SELECT balance FROM credit_lots WHERE source_id=?').get(another.id).balance,10000);
 });
 await check('Admin HTTP route requires same-origin explicit confirmation and exposes immutable credit notes',async()=>{
- globalThis.__productionBilling.headers=new Headers({'oai-authenticated-user-id':'finance-admin','oai-authenticated-user-email':'finance@test.invalid'});
+ globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'finance-admin','x-aira-identity-email':'finance@test.invalid'});
  const make=(origin,action)=>new Request('https://aira.test/api/admin/billing',{method:'POST',headers:{'content-type':'application/json',...(origin?{origin}:{})},body:JSON.stringify(action)});
  assert.equal((await admin.POST(make(undefined,{action:'refund-preview',refundId:refund.id,amount:1}))).status,403);
  assert.equal((await admin.POST(make('https://evil.test',{action:'refund-preview',refundId:refund.id,amount:1}))).status,403);
@@ -112,9 +112,9 @@ await check('Admin HTTP route requires same-origin explicit confirmation and exp
 await check('Customer credit note downloads are scoped to the paying organization and escape embedded text',async()=>{
  const note=sql.prepare('SELECT id FROM billing_credit_notes LIMIT 1').get();
  const get=()=>route.GET(new Request('https://aira.test/api/billing/credit-notes/'+encodeURIComponent(note.id)),{params:Promise.resolve({path:['credit-notes',note.id]})});
- globalThis.__productionBilling.headers=new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'});
+ globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'});
  const result=await get();assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'private, no-store');assert.match(await result.text(),/Avoir Aïra/);
- globalThis.__productionBilling.headers=new Headers({'oai-authenticated-user-id':'outsider','oai-authenticated-user-email':'outsider@test.invalid'});assert.equal((await get()).status,404);
+ globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'outsider','x-aira-identity-email':'outsider@test.invalid'});assert.equal((await get()).status,404);
  const html=notes.creditNoteHTML('<script>',{invoiceNumber:'<img src=x>',total:2500,currency:'XAF',confirmedAt:Date.now(),environment:'sandbox',externalReference:'external-fixture',originalInvoice:{seller:{name:'<script>alert(1)</script>'}}});
  assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;/);assert.match(html,/DOCUMENT DE TEST/);
 });
@@ -161,6 +161,6 @@ await check('Two partial refunds conserve the exact original invoice tax and rep
  const final=await refunds.previewExternalRefund(finance,refund.id,2922);assert.equal(final.plan.tax,472);await refunds.confirmExternalRefund(finance,body(final));
  const result=sql.prepare('SELECT SUM(t.tax) tax,SUM(t.subtotal) subtotal,COUNT(*) count FROM billing_credit_note_taxes t JOIN billing_credit_notes n ON n.id=t.credit_note_id WHERE n.invoice_id=?').get('tax-invoice:'+id);assert.deepEqual({...result},{tax:943,subtotal:4900,count:2});
  const note=sql.prepare('SELECT n.id,n.document,t.tax,t.subtotal FROM billing_credit_notes n JOIN billing_credit_note_taxes t ON t.credit_note_id=n.id WHERE n.invoice_id=? ORDER BY t.tax').get('tax-invoice:'+id);assert.match(notes.creditNoteHTML('TEST',{...JSON.parse(note.document),tax:note.tax,subtotal:note.subtotal}),/471 FCFA/);assert.throws(()=>sql.prepare('UPDATE billing_credit_note_taxes SET tax=0 WHERE credit_note_id=?').run(note.id),/immutable_credit_note_tax/);
- const previousHeaders=globalThis.__productionBilling.headers;try{globalThis.__productionBilling.headers=new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'});const response=await route.GET(new Request('https://aira.test/api/billing/credit-notes/'+note.id),{params:Promise.resolve({path:['credit-notes',note.id]})});assert.equal(response.status,200);assert.match(await response.text(),/471 FCFA/);}finally{globalThis.__productionBilling.headers=previousHeaders;}
+ const previousHeaders=globalThis.__productionBilling.headers;try{globalThis.__productionBilling.headers=new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'});const response=await route.GET(new Request('https://aira.test/api/billing/credit-notes/'+note.id),{params:Promise.resolve({path:['credit-notes',note.id]})});assert.equal(response.status,200);assert.match(await response.text(),/471 FCFA/);}finally{globalThis.__productionBilling.headers=previousHeaders;}
 });
 console.log(`${checks} production billing checks passed. No external request, payment or refund was made.`);sql.close();

@@ -75,12 +75,12 @@ const server=createServer(async(req,res)=>{
   const origin="http://127.0.0.1:"+port;
   if(req.headers.host!=="127.0.0.1:"+port&&req.headers.host!=="localhost:"+port){sendJSON(res,403,{error:"Local host only."});return;}
   const url=new URL(req.url,origin);
-  if(url.pathname==="/signin-with-chatgpt"){res.writeHead(302,{"Set-Cookie":"aira_local_session="+session+"; HttpOnly; SameSite=Strict; Path=/",Location:"/"});res.end();return;}
-  if(url.pathname==="/signout-with-chatgpt"){res.writeHead(302,{"Set-Cookie":"aira_local_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",Location:"/"});res.end();return;}
+  if(url.pathname==="/auth/sign-in"){res.writeHead(302,{"Set-Cookie":"aira_local_session="+session+"; HttpOnly; SameSite=Strict; Path=/",Location:"/"});res.end();return;}
+  if(url.pathname==="/auth/sign-out"){res.writeHead(302,{"Set-Cookie":"aira_local_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",Location:"/"});res.end();return;}
   if(url.pathname.startsWith("/api/")){
    const signedIn=(req.headers.cookie||"").split(";").some(c=>c.trim()==="aira_local_session="+session);
-   const headers=new Headers();if(signedIn){headers.set("oai-authenticated-user-id","aira_local_preview");headers.set("oai-authenticated-user-email","local@aira.test");headers.set("oai-authenticated-user-full-name","Espace%20local");headers.set("oai-authenticated-user-full-name-encoding","percent-encoded-utf-8");}
-   const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("oai-authenticated-user-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
+   const headers=new Headers();if(signedIn){headers.set("x-aira-identity-id","aira_local_preview");headers.set("x-aira-identity-email","local@aira.test");headers.set("x-aira-identity-name","Espace%20local");headers.set("x-aira-identity-name-encoding","percent-encoded-utf-8");}
+   const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("x-aira-identity-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>24*1024*1024){sendJSON(res,413,{error:"Requête trop volumineuse."});return;}chunks.push(chunk);}
    const request=new Request(url,{method:req.method,headers:requestHeaders,...(!["GET","HEAD"].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
    const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/internal/mission-tick":"missionTick","/api/internal/operations-tick":"operationsTick","/api/health":"health","/api/admin/billing":"billingAdmin","/api/admin/operations":"operationsAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};

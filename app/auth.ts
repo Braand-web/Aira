@@ -1,24 +1,24 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export type ChatGPTUser = {
+export type AiraUser = {
   userId: string;
   displayName: string;
   email: string;
   fullName: string | null;
 };
 
-const USER_ID_HEADER = "oai-authenticated-user-id";
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
+const USER_ID_HEADER = "x-aira-identity-id";
+const USER_EMAIL_HEADER = "x-aira-identity-email";
+const USER_FULL_NAME_HEADER = "x-aira-identity-name";
 const USER_FULL_NAME_ENCODING_HEADER =
-  "oai-authenticated-user-full-name-encoding";
+  "x-aira-identity-name-encoding";
 const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-const SIGN_IN_PATH = "/signin-with-chatgpt";
-const SIGN_OUT_PATH = "/signout-with-chatgpt";
+const SIGN_IN_PATH = "/auth/sign-in";
+const SIGN_OUT_PATH = "/auth/sign-out";
 const CALLBACK_PATH = "/callback";
 
-export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+export async function getAiraUser(): Promise<AiraUser | null> {
   const requestHeaders = await headers();
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
@@ -39,21 +39,21 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   };
 }
 
-export async function requireChatGPTUser(
+export async function requireAiraUser(
   returnTo: string,
-): Promise<ChatGPTUser> {
-  const user = await getChatGPTUser();
+): Promise<AiraUser> {
+  const user = await getAiraUser();
   if (user) return user;
 
-  redirect(chatGPTSignInPath(returnTo));
+  redirect(airaSignInPath(returnTo));
 }
 
-export function chatGPTSignInPath(returnTo: string): string {
+export function airaSignInPath(returnTo: string): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
-export function chatGPTSignOutPath(returnTo = "/"): string {
+export function airaSignOutPath(returnTo = "/"): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }

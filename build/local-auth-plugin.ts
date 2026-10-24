@@ -1,52 +1,32 @@
 // Vendored from @openai/sites-vite-plugin 0.2.0 (openai/sites#9).
 // See sites-vite-plugin.LICENSE for the upstream MIT license.
-import { access, cp, mkdir, rm } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
 const localUserId = "local_seedy";
-const localEmail = "seedy@sites.test";
+const localEmail = "local@aira.test";
 const localFullName = "Seedy";
-const localCookieName = "__sites_local_auth";
+const localCookieName = "__aira_local_auth";
 const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
 const localAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const authPaths = new Set([
-  "/signin-with-chatgpt",
-  "/signout-with-chatgpt",
+  "/auth/sign-in",
+  "/auth/sign-out",
   "/callback",
 ]);
 
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
-    }
-    throw error;
-  }
-}
-
-export function sites({ mockAuth = true } = {}): Plugin {
-  let root = process.cwd();
-  let command: "build" | "serve" = "build";
+export function localAuth({ mockAuth = true } = {}): Plugin {
 
   return {
-    name: "sites",
-    configResolved(config) {
-      root = config.root;
-      command = config.command;
-    },
+    name: "aira-local-auth",
     configureServer(server) {
       if (!mockAuth) return;
       const secure = Boolean(server.config.server.https);
 
-      server.config.logger.info(`Sites local sign-in: ${localEmail}`);
+      server.config.logger.info(`Aïra local sign-in: ${localEmail}`);
       server.middlewares.use((request, response, next) => {
         for (const name of Object.keys(request.headers)) {
-          if (name.startsWith("oai-authenticated-user-")) {
+          if ((name.startsWith("x-aira-identity-") || name.startsWith("oai-authenticated-user-"))) {
             removeHeader(request, name);
           }
         }
@@ -102,20 +82,20 @@ export function sites({ mockAuth = true } = {}): Plugin {
           return;
         }
 
-        const signIn = url.pathname === "/signin-with-chatgpt";
-        const signOut = url.pathname === "/signout-with-chatgpt";
+        const signIn = url.pathname === "/auth/sign-in";
+        const signOut = url.pathname === "/auth/sign-out";
         if (!signIn && !signOut) {
           if (signInCookies.length === 1 && signInCookies[0] === "1") {
-            setHeader(request, "oai-authenticated-user-id", localUserId);
-            setHeader(request, "oai-authenticated-user-email", localEmail);
+            setHeader(request, "x-aira-identity-id", localUserId);
+            setHeader(request, "x-aira-identity-email", localEmail);
             setHeader(
               request,
-              "oai-authenticated-user-full-name",
+              "x-aira-identity-name",
               localFullName,
             );
             setHeader(
               request,
-              "oai-authenticated-user-full-name-encoding",
+              "x-aira-identity-name-encoding",
               "percent-encoded-utf-8",
             );
           }
@@ -170,23 +150,7 @@ export function sites({ mockAuth = true } = {}): Plugin {
         response.end();
       });
     },
-    async closeBundle() {
-      if (command !== "build") return;
 
-      const outputDirectory = resolve(root, "dist", ".openai");
-      const hostingConfig = resolve(root, ".openai", "hosting.json");
-      const drizzleSource = resolve(root, "drizzle");
-
-      await rm(outputDirectory, { recursive: true, force: true });
-      await mkdir(outputDirectory, { recursive: true });
-
-      await cp(hostingConfig, resolve(outputDirectory, "hosting.json"));
-      if (await exists(drizzleSource)) {
-        await cp(drizzleSource, resolve(outputDirectory, "drizzle"), {
-          recursive: true,
-        });
-      }
-    },
   };
 }
 

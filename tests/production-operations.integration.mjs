@@ -58,7 +58,7 @@ function bucket() {
 }
 const source=database(true), media=bucket(), archives=bucket();
 const env={DB:source.binding,BUCKET:media.binding,BACKUP_BUCKET:archives.binding,APP_ENV:'test'};
-globalThis.__operationsTest={env,headers:new Headers({'oai-authenticated-user-id':'ops-owner','oai-authenticated-user-email':'ops@test.invalid'})};
+globalThis.__operationsTest={env,headers:new Headers({'x-aira-identity-id':'ops-owner','x-aira-identity-email':'ops@test.invalid'})};
 const out=path.join(project,'.local-build','production-operations-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
 const modules={operations:'lib/operations.ts',notifications:'lib/notifications.ts',backups:'lib/backups.ts',health:'app/api/health/route.ts',tick:'app/api/internal/operations-tick/route.ts',admin:'app/api/admin/operations/route.ts'};
 await build({stdin:{contents:Object.entries(modules).map(([name,file])=>'export * as '+name+' from "'+path.join(project,file).replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'isolated-operations-bindings',setup(builder){builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='cloudflare:workers'?'export const env=globalThis.__operationsTest.env;':args.path==='next/headers'?'export async function headers(){return globalThis.__operationsTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
@@ -165,6 +165,8 @@ try {
     env.BACKUP_ENCRYPTION_KEY=btoa('short');await assert.rejects(()=>backups.createEncryptedBackup());env.BACKUP_ENCRYPTION_KEY=btoa('k'.repeat(32));
   });
   const now=Date.now();
+  source.sql.prepare("INSERT INTO auth_users(id,email,verified_at,created_at) VALUES ('auth-restore-user','recovery@aira.test',?,?)").run(now,now);
+  source.sql.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,created_at) VALUES ('offline-only-session-hash','auth-restore-user',?,?)").run(now+60000,now);
   source.sql.prepare("INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES ('restore-lot','ops-owner','test','fixture',500,500,?,?)").run(now,now);
   source.sql.prepare("INSERT INTO resources(id,workspace_id,kind,title,data,created_at,updated_at) VALUES ('restore-conversation','ops-owner','conversation','Recovery drill','{}',?,?)").run(now,now);
   source.sql.prepare("INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES ('restore-run','ops-owner','restore-conversation','completed',?,?)").run(now,now);
@@ -180,6 +182,7 @@ try {
     const result=await backups.restoreEncryptedBackup(archive.id,target.binding,targetMedia.binding);
     assert.equal(result.objects,1);assert.equal(result.tables,expectedTables.length);
     for(const name of expectedTables)assert.deepEqual(target.sql.prepare('SELECT * FROM "'+name+'"').all(),expected[name],name+' rows must match exactly');
+    assert.equal(target.sql.prepare("SELECT id FROM auth_users WHERE email='recovery@aira.test'").get().id,'auth-restore-user','Restore preserves the independent identity that owns the workspace');
     assert.equal(target.sql.prepare("SELECT count(*) n FROM credit_ledger WHERE lot_id='restore-lot'").get().n,1);
     assert.equal(target.sql.prepare("SELECT seq FROM sqlite_sequence WHERE name='events'").get().seq,100);
     assert.equal(await (await targetMedia.binding.get('ops-owner/files/fixture.txt')).text(),'sensitive-fixture-content');

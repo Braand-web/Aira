@@ -1,5 +1,5 @@
 import {env} from "cloudflare:workers";
-import {getChatGPTUser} from "@/app/chatgpt-auth";
+import {getAiraUser} from "@/app/auth";
 import {AppError} from "./core.mjs";
 import type {FileRecord,Resource} from "./contracts";
 import {safeResourceDto,safeFileDto} from "./file-policy.mjs";
@@ -9,7 +9,7 @@ export const uid=()=>crypto.randomUUID();
 type StoredResource=Omit<Resource,'data'>&{data:string};
 export async function identity(request?:Request,action?:string){
  if(request&&request.method!=="GET"){const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)throw new AppError("Origine non autorisée.",403);}
- const user=await getChatGPTUser();if(!user)throw new AppError("Connectez-vous pour enregistrer votre travail.",401,"authentication_required");
+ const user=await getAiraUser();if(!user)throw new AppError("Connectez-vous pour enregistrer votre travail.",401,"authentication_required");
  const now=Date.now();await db().batch([
  db().prepare("INSERT OR IGNORE INTO organizations(id,name,owner_id,created_at) VALUES (?,?,?,?)").bind(user.userId,"Mon entreprise",user.userId,now),
  db().prepare("INSERT OR IGNORE INTO organization_members(organization_id,user_id,role) VALUES (?,?,'owner')").bind(user.userId,user.userId),

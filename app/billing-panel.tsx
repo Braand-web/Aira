@@ -39,7 +39,7 @@ function BillingPanelContent({onChange,embedded=false,initialTab,onTeam,onBillin
  const key=useRef(''),returnChecked=useRef(false);
  const teamOnly=embedded&&initialTab==='team';
  const returnTo=embedded?'/?settings='+ (teamOnly?'team':'billing'):'/?view=billing';
- const signInHref='/signin-with-chatgpt?return_to='+encodeURIComponent(returnTo);
+ const signInHref='/auth/sign-in?return_to='+encodeURIComponent(returnTo);
  const load=useCallback(()=>api<Catalog>('/api/billing/catalog').then(async offers=>{setCatalog(offers);setError('');const [s,o,u]=await Promise.all([api<Summary>('/api/billing/summary'),api<Organization>('/api/billing/organization'),api<{entries:Entry[];daily?:CreditDay[];restricted?:boolean;asOf?:number}>('/api/billing/usage')]);setSummary(s);setOrg(o);setEntries(u.entries||[]);setDaily(u.daily||[]);setUsageAsOf(u.asOf);setUsageRestricted(!!u.restricted);setGuest(false);}).catch((e:unknown)=>{if(e instanceof Error&&'status' in e&&e.status===401)setGuest(true);else setError(message(e));}).finally(()=>setRefreshing(false)),[]);
  useEffect(()=>{void load();},[load]);
  useEffect(()=>{if(teamOnly||!summary||returnChecked.current)return;returnChecked.current=true;const id=new URL(location.href).searchParams.get('billingOrder');if(id){void api<Order>('/api/billing/orders/'+encodeURIComponent(id)+'?verify=true').then(o=>{setTab('history');setNotice(o.status==='fulfilled'?'Paiement confirmé. Vos droits sont disponibles.':'Paiement enregistré : '+(statuses[o.status]||o.status)+'.');void load();onChange?.();}).catch(e=>setError(message(e)));}},[summary,load,onChange,teamOnly]);

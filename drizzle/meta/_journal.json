@@ -99,6 +99,13 @@
       "when": 1792627200000,
       "tag": "0013_billing_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1792713600000,
+      "tag": "0014_independent_auth",
+      "breakpoints": true
     }
   ]
 }

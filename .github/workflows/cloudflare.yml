@@ -1,0 +1,48 @@
+name: Prepare private Cloudflare staging
+on:
+  workflow_dispatch:
+    inputs:
+      migrate_staging:
+        description: Apply reviewed SQL migrations to the isolated staging database
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: aira-cloudflare-staging
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 25
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      AIRA_STAGING_D1_ID: ${{ vars.AIRA_STAGING_D1_ID }}
+      AIRA_STAGING_FILES_BUCKET: ${{ vars.AIRA_STAGING_FILES_BUCKET }}
+      AIRA_STAGING_BACKUPS_BUCKET: ${{ vars.AIRA_STAGING_BACKUPS_BUCKET }}
+      AIRA_PRODUCTION_D1_ID: ${{ vars.AIRA_PRODUCTION_D1_ID }}
+      AIRA_PRODUCTION_FILES_BUCKET: ${{ vars.AIRA_PRODUCTION_FILES_BUCKET }}
+      AIRA_PRODUCTION_BACKUPS_BUCKET: ${{ vars.AIRA_PRODUCTION_BACKUPS_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --include=dev --include=optional
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run cloudflare:config -- staging
+      - name: Apply explicitly requested staging migrations
+        if: inputs.migrate_staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --no-install wrangler d1 migrations apply DB --remote --config .wrangler/deploy/staging.json
+      - name: Deploy private staging (no routes or public URL)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --no-install wrangler deploy --config .wrangler/deploy/staging.json

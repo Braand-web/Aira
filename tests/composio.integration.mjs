@@ -47,7 +47,7 @@ function makeSession(id,userId,options){
   return {resultType:executionResult,logId:'log_execution_fixture',data:executionResult==='failed'?{}:{data:[{id:'act_fixture',name:'Fictional test account'}]},error:executionResult==='failed'?'Simulated provider refusal':null,...(executionOptions?.account==='instant_account'&&actualCharge!==null?{instantCharge:{amount:actualCharge,currency:'USD',chargedBy:'composio'}}:{})};
  }};sessions.set(id,session);return session;
 }
-globalThis.__composioTest={NativeInputRequiredError,env:{DB,COMPOSIO_API_KEY:'fixture_project_key_not_a_real_secret'},headers:new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'}),makeClient(options){assert.equal(options.apiKey,'fixture_project_key_not_a_real_secret');return {
+globalThis.__composioTest={NativeInputRequiredError,env:{DB,COMPOSIO_API_KEY:'fixture_project_key_not_a_real_secret'},headers:new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'}),makeClient(options){assert.equal(options.apiKey,'fixture_project_key_not_a_real_secret');return {
  sessions:{async create(userId,config){const id='session_fixture_'+(created.length+1);created.push({id,userId,config});return makeSession(id,userId,config);},async use(id){assert.ok(sessions.has(id),'A session must be persisted before reuse');return sessions.get(id);}},
  tools:{async getRawComposioTools({tools}){return tools.map(slug=>metadata.get(slug)).filter(Boolean);}},
  connectedAccounts:{async list({userIds}){assert.ok(userIds?.length===1,'Account listing must be scoped to one Aïra user');return {items:[...accounts.values()].filter(account=>userIds.includes(account.userId))};},async revoke(id){revoked.push(id);accounts.get(id).status='REVOKED';return {};}}
@@ -66,7 +66,7 @@ const who=await s.identity(request());
 const call=(toolSlug='METAADS_CREATE_CAMPAIGN',arguments_={name:'Fictional test campaign',status:'PAUSED'})=>({toolkit:'metaads',toolSlug,arguments:arguments_});
 const countExecutions=()=>calls.filter(item=>item.kind==='execute').length;
 async function proposal(args=call()){return c.executeConnectorAgentTool(who,'chat-fixture','aira_connector_action',args);}
-async function secondUser(){globalThis.__composioTest.headers=new Headers({'oai-authenticated-user-id':'other','oai-authenticated-user-email':'other@test.invalid'});try{return await s.identity(request('GET',undefined,'other'));}finally{globalThis.__composioTest.headers=new Headers({'oai-authenticated-user-id':'owner','oai-authenticated-user-email':'owner@test.invalid'});}}
+async function secondUser(){globalThis.__composioTest.headers=new Headers({'x-aira-identity-id':'other','x-aira-identity-email':'other@test.invalid'});try{return await s.identity(request('GET',undefined,'other'));}finally{globalThis.__composioTest.headers=new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'});}}
 
 await check('Sessions are tenant-scoped, persist across turns, and explicitly disable Instant, sandbox and proxy',async()=>{
  const first=await c.connectorSession(who,'chat-fixture'),again=await c.connectorSession(who,'chat-fixture');

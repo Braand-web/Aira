@@ -20,7 +20,7 @@ function statement(query,args=[]){return {
  _run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};},
 };}
 const DB={prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const results=statements.map(item=>item._run());sql.exec('COMMIT');return results;}catch(error){sql.exec('ROLLBACK');throw error;}}};
-const fixture={env:{DB},headers:new Headers({'oai-authenticated-user-id':'skills-integration-owner','oai-authenticated-user-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
+const fixture={env:{DB},headers:new Headers({'x-aira-identity-id':'skills-integration-owner','x-aira-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
 globalThis.__skillsAgentTest=fixture;
 const out=path.join(project,'.local-build','skills-agent-test.mjs');
 mkdirSync(path.dirname(out),{recursive:true});

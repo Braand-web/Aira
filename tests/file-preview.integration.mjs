@@ -17,7 +17,7 @@ async function rawRequest(path,method,body,extra={}){
  return {response,status:response.status,data:response.headers.get("content-type")?.includes("json")?await response.json():await response.text()};
 }
 async function binaryRequest(path){const response=await fetch(base+path,{headers:{...(cookie?{Cookie:cookie}:{})},redirect:"manual"});return {response,status:response.status,data:new Uint8Array(await response.arrayBuffer())};}
-let r=await request("/signin-with-chatgpt");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
+let r=await request("/auth/sign-in");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
 const privateText=`texte privé · ${crypto.randomUUID()}`;
 const upload=new FormData();upload.set("file",new File([privateText],"référence-équipe.txt",{type:"text/plain"}));
 r=await request("/api/files","POST",upload);assert.equal(r.status,201);const fileId=r.data.id;

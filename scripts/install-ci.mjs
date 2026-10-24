@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import path from "node:path";
-import { projectRoot } from "./sites-env.mjs";
+import { projectRoot } from "./runtime-env.mjs";
 import { readExecutionProfile } from "./execution-profile.mjs";
 import { runNpmInstall } from "./npm-install.mjs";
 
