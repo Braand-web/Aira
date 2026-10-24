@@ -5,8 +5,9 @@ import {ArrowUpRight, BookOpen, ChevronRight, CircleHelp, CreditCard, FolderClos
 import ConnectorsPanel from "@/app/connectors-panel";
 import {api} from "@/lib/client-api";
 import "./settings-panel.css";
+import {LEGAL_LINKS} from '@/lib/legal-links.mjs';
 
-export type SettingsTab = "general" | "connections" | "skills" | "credits" | "billing" | "team" | "storage" | "permissions" | "help";
+export type SettingsTab = "general" | "connections" | "skills" | "credits" | "billing" | "team" | "storage" | "permissions" | "help" | "legal";
 
 type BillingSummary = {
  wallet?: {available?: number; reserved?: number};
@@ -26,6 +27,7 @@ const sections = [
  {id: "storage", label: "Stockage", icon: HardDrive},
  {id: "permissions", label: "Autorisations", icon: ShieldCheck},
  {id: "help", label: "Aide et raccourcis", icon: CircleHelp},
+ {id: "legal", label: "Informations légales", icon: ShieldCheck},
 ] as const;
 export function isSettingsTab(value: string | null): value is SettingsTab { return sections.some(section => section.id === value); }
 const number = (value: number) => new Intl.NumberFormat("fr-FR", {maximumFractionDigits: 2}).format(value);
@@ -170,6 +172,12 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
     {tab === "help" && <>
      <section className="settings-section" aria-labelledby="settings-shortcuts-title"><h4 id="settings-shortcuts-title">Raccourcis clavier</h4><dl className="settings-card settings-details settings-shortcuts"><div className="settings-row"><dt>Rechercher</dt><dd><kbd>Ctrl</kbd><span className="settings-key-alternative">ou</span><kbd>⌘</kbd><kbd>K</kbd></dd></div><div className="settings-row"><dt>Envoyer un message</dt><dd><kbd>Entrée</kbd></dd></div><div className="settings-row"><dt>Ajouter une ligne</dt><dd><kbd>Maj</kbd><kbd>Entrée</kbd></dd></div><div className="settings-row"><dt>Fermer une fenêtre</dt><dd><kbd>Échap</kbd></dd></div></dl></section>
      <section className="settings-section" aria-labelledby="settings-access-title"><h4 id="settings-access-title">Accès utiles</h4><div className="settings-card"><button type="button" className="settings-row settings-row-link" onClick={onFiles}><span><FolderClosed size={17} aria-hidden="true"/>Mes fichiers</span><ChevronRight size={16} aria-hidden="true"/></button><button type="button" className="settings-row settings-row-link" onClick={() => onTabChange("connections")}><span><Plug size={17} aria-hidden="true"/>Mes connecteurs</span><ChevronRight size={16} aria-hidden="true"/></button><button type="button" className="settings-row settings-row-link" onClick={() => onTabChange("billing")}><span><CreditCard size={17} aria-hidden="true"/>Facturation</span><ChevronRight size={16} aria-hidden="true"/></button></div></section>
+    </>}
+    {tab === "legal" && <>
+     <p className="settings-intro">Documents de Braand et adresse de contact.</p>
+     <div className="settings-card">{LEGAL_LINKS.map(link=><a key={link.href} className="settings-row settings-row-link settings-external-link" href={link.href} target="_blank" rel="noopener noreferrer"><span>{link.label}<span className="settings-sr-only"> — nouvel onglet</span></span><ArrowUpRight size={16} aria-hidden="true"/></a>)}</div>
+     <p className="settings-service-note">Versions provisoires : l’identité complète de l’exploitant et les modalités juridiques restent à compléter.</p>
+     <p className="settings-service-note">Contact : <a href="mailto:novacore629@gmail.com">novacore629@gmail.com</a></p>
     </>}
    </div>
   </section>

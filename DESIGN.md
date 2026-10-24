@@ -10,7 +10,7 @@ Bulles agent #1f1f20 et utilisateur #0074e8, texte 16/22. Compositeur compact de
 
 Le clover de Bot Avatars accompagne l’assistant : 64 px sur l’accueil et 32 px à côté des réponses. Sur l’accueil, les yeux et la tête suivent la souris à proximité avec un amorti progressif, puis retrouvent doucement leur pose au repos quand elle s’éloigne. Seule la réponse en cours utilise l’état « working » ; les avatars des anciens messages restent immobiles. Le composant se charge à la demande et respecte la réduction du mouvement. Le logo Braand de navigation conserve sa forme.
 
-Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Neuf rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations et aide. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
+Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Dix rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations, aide et informations légales. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
 
 Les forfaits de facturation se comparent dans un carrousel horizontal : deux cartes lisibles avec une amorce de la troisième, une seule carte sur les petits conteneurs. Flèches de navigation, défilement tactile et au trackpad, clavier et focus visible ; aucun défilement automatique. La navigation devient immédiate avec la réduction du mouvement.
 
@@ -22,3 +22,4 @@ Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible 
 
 
 Le rendu des réponses utilise des blocs Markdown mémorisés, échappés et stables : titres, listes, code avec retour à la ligne et liens HTTP(S) contrôlés. Le flux peut récupérer les événements persistants manquants d'une réponse active sans relancer sa génération. Arrêt immédiat côté client, conservation du texte partiel et ressources dédupliquées ; aucun changement de dimensions du compositeur ni nouvelle animation.
+Les informations légales sont une rubrique des paramètres. Les trois documents s’ouvrent dans un nouvel onglet, avec une indication explicite, tandis que la fenêtre des paramètres et le brouillon restent en place.

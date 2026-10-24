@@ -8,3 +8,4 @@ Aucune donnée de démonstration présentée comme un résultat. Capacités sans
 
 
 Le harness agentique conserve le modèle comme décideur et ajoute des plans/checkpoints versionnés, des contrats de collaboration et des reçus structurels de livrables. Les checkpoints et données retrouvées restent non fiables et ne créent aucun droit. La langue du travail suit celle demandée, dans les capacités du modèle configuré. Une vérification structurelle ou un avis de spécialiste ne prouve pas une exécution externe. La migration et les limites d'activation sont détaillées dans `docs/AGENT_HARNESS_AUDIT.md`.
+Les documents juridiques de Braand sont accessibles dans la rubrique Informations légales des paramètres. Les liens ouvrent chacun un nouvel onglet. Les textes incomplets sont signalés comme provisoires ; ils ne prétendent pas décrire des informations d’exploitant inconnues.

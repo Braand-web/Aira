@@ -60,6 +60,7 @@
 .settings-row-link > span { display: inline-flex; align-items: center; gap: 12px; }
 .settings-row-link > svg { color: var(--ds-muted); flex: 0 0 auto; }
 .settings-row-link:hover { background: var(--ds-fill); }
+.settings-external-link { color:var(--ds-text); text-decoration:none; }
 .settings-row-link:active { background: var(--ds-hover); }
 .settings-storage { display: grid; gap: 8px; min-width: 0; max-width: 240px; color: var(--ds-muted); font-variant-numeric: tabular-nums; }
 .settings-card > .settings-row > .settings-storage { flex: 1 1 auto; text-align: right; }

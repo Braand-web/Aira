@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./design-tokens.css";
 import "./file-upload.css";
 import "@/components/file-preview/file-preview.css";
 import { FilePreviewProvider } from "@/components/file-preview/file-preview-provider";
@@ -7,6 +8,7 @@ import { FilePreviewProvider } from "@/components/file-preview/file-preview-prov
 export const metadata: Metadata = {
   title: "Braand — Vos idées, vos prochains clients",
   description: "Votre assistant de création, de pages et de croissance. Un espace pour passer de l’idée à l’action.",
+  robots: {index:false,follow:false},
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
