@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-labelledby="title desc">
+  <title id="title">Story Maison Naya — Un instant pour vous</title>
+  <desc id="desc">Story verticale originale de démonstration, marque fictive Maison Naya. Typographie crème sur bordeaux et bouteille d'hibiscus illustrée.</desc>
+  <rect width="1080" height="1920" fill="#612b3b"/>
+  <g fill="#f4ead9" font-family="Manrope, sans-serif">
+    <text x="540" y="174" text-anchor="middle" font-size="32" font-weight="700" letter-spacing="8">MAISON NAYA</text>
+    <text x="90" y="385" font-size="119" font-weight="600" letter-spacing="-7">Un instant.</text>
+    <text x="90" y="509" font-size="119" font-weight="600" letter-spacing="-7">Du goût.</text>
+    <text x="90" y="633" font-size="119" font-weight="600" letter-spacing="-7">Et vous.</text>
+    <text x="95" y="720" font-size="30">La pause prend une autre couleur.</text>
+  </g>
+  <circle cx="725" cy="1199" r="421" fill="#b56067"/>
+  <path d="M0 1438C320 1406 503 1632 1080 1502V1920H0Z" fill="#e2ab94"/>
+  <g transform="translate(481 849) rotate(12 156 383)">
+    <rect x="81" width="149" height="88" rx="14" fill="#f2ddc1"/>
+    <path d="M84 78H228V155C228 215 312 222 312 303V706Q312 756 261 756H51Q0 756 0 706V303C0 222 84 215 84 155Z" fill="#3e1b2c"/>
+    <path d="M30 309C30 247 117 229 117 167V97" fill="none" stroke="#994f61" stroke-width="11" stroke-linecap="round"/>
+    <rect y="338" width="312" height="284" fill="#f4ead9"/>
+    <g fill="#612b3b" text-anchor="middle" font-family="Manrope, sans-serif">
+      <text x="156" y="390" font-size="18" font-weight="700" letter-spacing="2">MAISON NAYA</text>
+      <text x="156" y="462" font-size="45" font-weight="600" letter-spacing="-2">Hibiscus</text>
+      <text x="156" y="503" font-size="17">Boisson d'infusion</text>
+      <text x="156" y="585" font-size="14" letter-spacing="2">COLLECTION DES INSTANTS</text>
+    </g>
+  </g>
+  <g transform="translate(236 1343) rotate(-17)" fill="#e2ab94" stroke="#612b3b" stroke-width="3">
+    <ellipse cy="-74" rx="48" ry="90"/>
+    <ellipse cy="-74" rx="48" ry="90" transform="rotate(72)"/>
+    <ellipse cy="-74" rx="48" ry="90" transform="rotate(144)"/>
+    <ellipse cy="-74" rx="48" ry="90" transform="rotate(216)"/>
+    <ellipse cy="-74" rx="48" ry="90" transform="rotate(288)"/>
+    <circle r="33" fill="#612b3b"/>
+    <path d="M0 0L77 -92" stroke="#f4ead9" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="77" cy="-92" r="13" fill="#f4ead9" stroke="none"/>
+  </g>
+  <g fill="#612b3b" font-family="Manrope, sans-serif" text-anchor="middle">
+    <text x="540" y="1720" font-size="33" font-weight="600">Découvrez la collection.</text>
+    <path d="M506 1776L540 1810L574 1776" stroke="#612b3b" stroke-width="3" fill="none"/>
+  </g>
+</svg>

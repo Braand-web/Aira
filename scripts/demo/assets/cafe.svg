@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Maison Naya — Café, pour les matins qui comptent</title>
+  <desc id="desc">Affiche originale de démonstration. Un sachet de café crème sur fond terracotta et une branche de café dessinée.</desc>
+  <rect width="1200" height="1200" fill="#ba644b"/>
+  <rect x="40" y="40" width="1120" height="1120" rx="560" fill="none" stroke="#efddc3" stroke-width="2"/>
+  <g fill="#f6ebd9" font-family="Manrope, sans-serif">
+    <text x="600" y="128" text-anchor="middle" font-size="32" font-weight="700" letter-spacing="8">MAISON NAYA</text>
+    <text x="600" y="254" text-anchor="middle" font-size="77" font-weight="600" letter-spacing="-4">Les matins ont du goût.</text>
+    <text x="600" y="310" text-anchor="middle" font-size="25">Le café. Le calme. Votre moment.</text>
+  </g>
+  <path d="M0 1010C320 907 883 913 1200 1030V1200H0Z" fill="#934b38"/>
+  <g transform="translate(381 386) rotate(-5 220 320)">
+    <path d="M41 0H401L431 77L445 580Q443 630 401 635H42Q0 631 0 580L11 77Z" fill="#f2e2c7"/>
+    <path d="M41 0H401L431 77H11Z" fill="#d9c2a3"/>
+    <path d="M44 41H398" stroke="#714c36" stroke-width="3"/>
+    <rect x="43" y="130" width="359" height="401" fill="#4e382a"/>
+    <g fill="#f2e2c7" font-family="Manrope, sans-serif" text-anchor="middle">
+      <text x="222" y="191" font-size="21" font-weight="700" letter-spacing="4">MAISON NAYA</text>
+      <text x="222" y="296" font-size="80" font-weight="600" letter-spacing="-3">Café</text>
+      <text x="222" y="337" font-size="18">Collection des instants</text>
+      <text x="222" y="500" font-size="17" letter-spacing="2">LE MATIN PREND SON TEMPS</text>
+    </g>
+    <g transform="translate(175 365) rotate(30 47 48)">
+      <ellipse cx="47" cy="48" rx="39" ry="54" fill="#ba644b"/>
+      <path d="M48 -4C18 27 78 67 47 101" fill="none" stroke="#f2e2c7" stroke-width="5"/>
+    </g>
+  </g>
+  <g fill="none" stroke="#f2e2c7" stroke-width="5" stroke-linecap="round">
+    <path d="M872 997C1054 858 1005 687 1060 468"/>
+    <path d="M1009 790C1063 740 1110 742 1132 756C1102 800 1044 813 1009 790Z"/>
+    <path d="M1012 755C949 721 926 673 936 646C982 655 1014 700 1012 755Z"/>
+    <path d="M1024 652C1073 604 1120 602 1142 618C1111 660 1059 679 1024 652Z"/>
+    <path d="M1036 585C982 552 968 507 980 483C1023 496 1046 540 1036 585Z"/>
+    <path d="M1046 532C1071 482 1105 454 1139 458C1133 509 1094 541 1046 532Z"/>
+  </g>
+  <g fill="#743d31">
+    <circle cx="1006" cy="829" r="19"/><circle cx="1042" cy="814" r="18"/>
+    <circle cx="1025" cy="696" r="18"/><circle cx="1057" cy="681" r="17"/>
+    <circle cx="1045" cy="571" r="16"/>
+  </g>
+  <text x="600" y="1100" text-anchor="middle" fill="#f6ebd9" font-family="Manrope, sans-serif" font-size="22" letter-spacing="4">FAITES UNE PLACE À VOTRE RITUEL.</text>
+</svg>

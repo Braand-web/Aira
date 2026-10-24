@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Maison Naya — La collection des instants</title>
+  <desc id="desc">Bannière originale de démonstration montrant trois emballages fictifs de café, cacao et hibiscus en formes vectorielles.</desc>
+  <rect width="1600" height="1000" fill="#f4ead9"/>
+  <g fill="#39271f" font-family="Manrope, sans-serif">
+    <text x="77" y="103" font-size="28" font-weight="700" letter-spacing="7">MAISON NAYA</text>
+    <text x="77" y="230" font-size="82" font-weight="600" letter-spacing="-5">À chaque instant, sa saveur.</text>
+    <text x="80" y="295" font-size="27">Café, cacao, hibiscus. Composez votre rituel.</text>
+  </g>
+  <path d="M0 640H533V1000H0Z" fill="#74815a"/>
+  <path d="M533 640H1066V1000H533Z" fill="#d38a66"/>
+  <path d="M1066 640H1600V1000H1066Z" fill="#b56067"/>
+  <g transform="translate(135 369) rotate(-5 140 233)">
+    <path d="M27 0H254L275 50L285 426Q285 454 258 457H27Q0 454 0 426L8 50Z" fill="#4e382a"/>
+    <path d="M27 0H254L275 50H8Z" fill="#6b4b35"/>
+    <path d="M30 28H252" stroke="#eddbbd" stroke-width="2"/>
+    <rect x="27" y="99" width="231" height="271" fill="#f4ead9"/>
+    <g text-anchor="middle" fill="#4e382a" font-family="Manrope, sans-serif">
+      <text x="142" y="140" font-size="16" font-weight="700" letter-spacing="2">MAISON NAYA</text>
+      <text x="142" y="208" font-size="58" font-weight="600" letter-spacing="-3">Café</text>
+      <text x="142" y="340" font-size="13" letter-spacing="2">LE RITUEL DU MATIN</text>
+    </g>
+    <g transform="translate(142 269) rotate(25)">
+      <ellipse rx="24" ry="36" fill="#ba644b"/>
+      <path d="M0 -36C-19 -10 19 12 0 36" stroke="#f4ead9" stroke-width="3" fill="none"/>
+    </g>
+  </g>
+  <g transform="translate(659 369) rotate(4 140 230)">
+    <path d="M27 0H254L275 50L285 426Q285 454 258 457H27Q0 454 0 426L8 50Z" fill="#f4ead9"/>
+    <path d="M27 0H254L275 50H8Z" fill="#e0c8a8"/>
+    <path d="M30 28H252" stroke="#69402d" stroke-width="2"/>
+    <rect x="27" y="99" width="231" height="271" fill="#39271f"/>
+    <g text-anchor="middle" fill="#f4ead9" font-family="Manrope, sans-serif">
+      <text x="142" y="140" font-size="16" font-weight="700" letter-spacing="2">MAISON NAYA</text>
+      <text x="142" y="208" font-size="55" font-weight="600" letter-spacing="-3">Cacao</text>
+      <text x="142" y="340" font-size="13" letter-spacing="2">LE GOÛT DES PAUSES</text>
+    </g>
+    <path d="M142 234C204 261 198 296 142 310C85 292 85 256 142 234Z" fill="#d38a66"/>
+    <path d="M142 234L142 310M142 234C114 261 117 293 142 310M142 234C169 261 169 291 142 310" stroke="#39271f" stroke-width="3" fill="none"/>
+  </g>
+  <g transform="translate(1221 355) rotate(-5 94 238)">
+    <rect x="44" y="0" width="101" height="58" rx="9" fill="#f4ead9"/>
+    <path d="M45 51H144V109C144 140 189 145 189 194V435Q189 465 159 465H30Q0 465 0 435V194C0 145 45 140 45 109Z" fill="#612b3b"/>
+    <path d="M20 194C20 158 64 147 64 106V68" stroke="#a65a67" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <rect y="207" width="189" height="165" fill="#f4ead9"/>
+    <g fill="#612b3b" text-anchor="middle" font-family="Manrope, sans-serif">
+      <text x="94" y="240" font-size="12" font-weight="700" letter-spacing="1">MAISON NAYA</text>
+      <text x="94" y="289" font-size="30" font-weight="600" letter-spacing="-1">Hibiscus</text>
+      <text x="94" y="337" font-size="11">L'INSTANT COLORÉ</text>
+    </g>
+  </g>
+  <g fill="#f4ead9" font-family="Manrope, sans-serif" font-size="24" text-anchor="middle">
+    <text x="267" y="908">LE MATIN</text><text x="800" y="908">LA PAUSE</text><text x="1333" y="908">LE PARTAGE</text>
+  </g>
+</svg>

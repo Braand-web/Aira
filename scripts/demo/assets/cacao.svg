@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Maison Naya — Cacao, le goût des pauses</title>
+  <desc id="desc">Affiche originale pour une marque fictive. Composition vectorielle crème et cacao, sachet de cacao et cabosse dessinée.</desc>
+  <rect width="1200" height="1200" fill="#f4ead9"/>
+  <circle cx="1048" cy="416" r="408" fill="#d7805d"/>
+  <path d="M0 1038C256 981 475 1114 1200 1003V1200H0Z" fill="#e3c7aa"/>
+  <g fill="#39271f" font-family="Manrope, sans-serif">
+    <text x="76" y="110" font-size="34" font-weight="700" letter-spacing="8">MAISON NAYA</text>
+    <text x="78" y="274" font-size="84" font-weight="600" letter-spacing="-5">Le goût</text>
+    <text x="78" y="366" font-size="84" font-weight="600" letter-spacing="-5">des pauses.</text>
+    <text x="80" y="437" font-size="25">Cacao • Collection des instants</text>
+  </g>
+  <g transform="translate(595 336) rotate(7 225 350)">
+    <path d="M51 0H397L431 80L450 640Q450 681 408 686H43Q0 680 0 640L19 80Z" fill="#39271f"/>
+    <path d="M51 0H397L431 80H19Z" fill="#50382b"/>
+    <path d="M49 47H400" stroke="#d5b692" stroke-width="3"/>
+    <rect x="44" y="132" width="363" height="441" rx="5" fill="#f4ead9"/>
+    <g fill="#39271f" text-anchor="middle" font-family="Manrope, sans-serif">
+      <text x="225" y="193" font-size="22" font-weight="700" letter-spacing="4">MAISON NAYA</text>
+      <text x="225" y="266" font-size="63" font-weight="600" letter-spacing="-3">Cacao</text>
+      <text x="225" y="303" font-size="18">À savourer à votre façon</text>
+      <text x="225" y="543" font-size="16" letter-spacing="3">COLLECTION DES INSTANTS</text>
+    </g>
+    <g transform="translate(153 335)" fill="none" stroke="#af563f" stroke-width="5">
+      <path d="M68 0C155 40 172 146 70 167C-32 144 -20 37 68 0Z" fill="#d88964"/>
+      <path d="M68 0C28 42 24 126 70 167M68 0C112 43 114 126 70 167M68 0L70 167"/>
+      <path d="M67 1L77 -25L97 -35" stroke="#39271f"/>
+    </g>
+  </g>
+  <g transform="translate(130 713) rotate(-22 135 153)" fill="none" stroke="#6b3d2a" stroke-width="6">
+    <path d="M134 0C297 84 299 262 135 310C-30 256 -25 72 134 0Z" fill="#be6548"/>
+    <path d="M134 0C71 60 63 238 135 310M134 0C208 72 205 239 135 310M134 0L135 310"/>
+    <path d="M134 0L146 -39L184 -58"/>
+    <path d="M146 -39C180 -99 254 -92 263 -63C214 -43 180 -42 146 -39Z" fill="#74815a" stroke="#74815a"/>
+  </g>
+  <path d="M78 1117H1122" stroke="#39271f" stroke-width="2"/>
+  <text x="80" y="1162" fill="#39271f" font-family="Manrope, sans-serif" font-size="22">DES SAVEURS À RETROUVER.</text>
+  <text x="1120" y="1162" text-anchor="end" fill="#39271f" font-family="Manrope, sans-serif" font-size="22">01 / CACAO</text>
+</svg>
