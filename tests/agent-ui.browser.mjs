@@ -126,6 +126,7 @@ try{
   };
   await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Aïra'}).waitFor();
+  await page.locator('.welcome-symbol canvas[data-bot-avatar="clover"][data-state="default"]').waitFor();
   const composer=page.getByRole('textbox',{name:'Votre demande à Aïra'});
   const initial=await page.locator('.composer').boundingBox();
   assert.equal(await page.locator('body').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(24, 24, 25)');
@@ -363,6 +364,8 @@ try{
   await page.getByRole('textbox',{name:'Votre demande à Aïra'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
+  assert.equal(await page.locator('.message.assistant .aira-avatar[data-state="working"]').count(),1);
+  await page.locator('.message.assistant canvas[data-bot-avatar="clover"][data-state="working"]').waitFor();
   await capture({path:path.join(output,'desktop-writing.png'),fullPage:true});
   assert.equal(await page.locator('[data-slot=ai-status][data-state=done]').count(),0);
   assert.equal(await page.locator('[data-slot=streaming-response][data-state=streaming]').getByRole('button').count(),0);
@@ -377,6 +380,9 @@ try{
   await settings.getByRole('button',{name:'Fermer les paramètres',exact:true}).click();await settings.waitFor({state:'hidden'});
   checks.push('An open settings wallet refreshes its real balance when a conversation run settles');
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
+  await page.locator('.message.assistant canvas[data-bot-avatar="clover"][data-state="default"]').first().waitFor();
+  assert.equal(await page.locator('.aira-avatar[data-state="working"]').count(),0);
+  checks.push('Clover avatar works during the current response and returns to its resting state after completion');
   assert.equal(chatCalls,1);checks.push('Chat: real stream states, one request, completion only after done');
   const response=page.locator('[data-slot=streaming-response]').first();
   await response.getByRole('button',{name:'Copier la réponse',exact:true}).click();
@@ -433,6 +439,7 @@ try{
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
   await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).click();
   await page.locator('[data-slot=ai-status][data-state=cancelled]').waitFor();assert.equal(stops,1);checks.push('Stop remains distinct from failure and cancels the existing run');
+  assert.equal(await page.locator('.aira-avatar[data-state="working"]').count(),0);
   await page.getByRole('button',{name:'Rechercher',exact:true}).click();
   await page.getByRole('textbox',{name:'Rechercher dans votre espace'}).fill(proposal.title);
   await page.locator('.search-results button').filter({hasText:proposal.title}).click();

@@ -1,0 +1,36 @@
+"use client";
+
+import {lazy, memo, Suspense} from 'react';
+
+const BotAvatar = lazy(() => import('bot-avatars').then(module => ({default: module.BotAvatar})));
+
+type AiraAvatarProps = {
+  busy?: boolean;
+  size?: number;
+  paused?: boolean;
+  className?: string;
+};
+
+export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, paused = false, className = ''}: AiraAvatarProps) {
+  return (
+    <span
+      className={'aira-avatar ' + className}
+      style={{width: size, height: size}}
+      data-state={busy ? 'working' : 'default'}
+      aria-hidden="true"
+    >
+      <Suspense fallback={<span className="aira-avatar-placeholder"/>}>
+        <BotAvatar
+          type="clover"
+          state={busy ? 'working' : 'default'}
+          size={size}
+          paused={paused}
+          interactive={false}
+          jumpEvery={0}
+          theme="dark"
+          aria-label={busy ? 'Aïra prépare une réponse' : 'Aïra'}
+        />
+      </Suspense>
+    </span>
+  );
+});
