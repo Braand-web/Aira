@@ -7,6 +7,7 @@ import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 import {CATALOG_VERSION,PLANS,PACKS,topupPrice,quoteTax} from '../lib/billing-core.mjs';
+import {demoAnalytics,DEMO_AD_ACCOUNT} from '../scripts/demo/analytics.mjs';
 
 const require=createRequire(import.meta.url);
 const playwright=process.env.AIRA_PLAYWRIGHT_MODULE;
@@ -29,6 +30,7 @@ const workspaceResources=[proposal,conversation],workspaceMutations=[];
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
 let checkoutCalls=0,billingEnabled=false;
+let analyticsConnected=false,analyticsMode='full';const analyticsReads=[];
 const quoteRequests=[],orderVerificationRequests=[];
 const organizationMutations=[];
 const catalogRequests=[],authorizationRequests=[],revocationRequests=[];
@@ -41,7 +43,18 @@ const server=createServer(async(req,res)=>{
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
     const created={id:'fixture-imported-skill',workspace_id:'fixture',kind:body.kind,title:body.title,status:'candidate',version:1,created_at:now,updated_at:now,data:body.data};workspaceResources.push(created);json(res,created);return;
   }
-  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false}});return;}
+  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false,metaConnected:analyticsConnected}});return;}
+  if(url.pathname==='/api/meta'){
+    analyticsReads.push({method:req.method,accountId:url.searchParams.get('accountId'),days:url.searchParams.get('days')});
+    if(!url.searchParams.has('accountId')){json(res,{data:analyticsMode==='empty'?[]:[DEMO_AD_ACCOUNT,{...DEMO_AD_ACCOUNT,id:'act_other_fixture',name:'Autre compte fictif'}]});return;}
+    if(analyticsMode==='failure'){json(res,{error:'Lecture publicitaire indisponible'},502);return;}
+    const report=demoAnalytics(Number(url.searchParams.get('days')||30));
+    if(url.searchParams.get('accountId')==='act_other_fixture')report.account={...report.account,id:'act_other_fixture',name:'Autre compte fictif'};
+    if(analyticsMode==='missing'){report.daily=null;report.comparison=null;}
+    if(analyticsMode==='partial')report.hasMore=true;
+    if(analyticsMode==='race'&&url.searchParams.get('days')==='7'){setTimeout(()=>{if(!res.destroyed)json(res,report);},300);return;}
+    json(res,report);return;
+  }
   if(url.pathname==='/api/connectors/toolkits'){
     catalogRequests.push({connected:url.searchParams.get('connected'),search:url.searchParams.get('search'),cursor:url.searchParams.get('cursor')});
     const query=(url.searchParams.get('search')||'').toLowerCase(),connected=url.searchParams.get('connected')==='true',cursor=url.searchParams.get('cursor');
@@ -504,6 +517,39 @@ try{
   assert.equal(await page.locator('.response-footer').last().evaluate(element=>getComputedStyle(element).animationName),'none');
   assert.ok(await page.locator('.response-action').last().evaluate(element=>element.getBoundingClientRect().height>=44));
   await capture({path:path.join(output,'mobile-reduced-motion.png'),fullPage:true});checks.push('Mobile: no horizontal overflow; reduced-motion animation disabled');
+  const modelCallsBeforeDashboard=chatCalls;
+  await page.setViewportSize({width:1440,height:1000});await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.goto(origin+'/?view=analytics');await page.getByRole('heading',{name:'Tableau de bord',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Reliez vos campagnes à vos décisions',exact:true}).waitFor();
+  analyticsConnected=true;await page.reload();
+  const dashboardMetrics=page.getByRole('region',{name:'Indicateurs de performance',exact:true});await dashboardMetrics.waitFor();
+  assert.equal(await page.getByLabel('Compte publicitaire',{exact:true}).inputValue(),DEMO_AD_ACCOUNT.id,'The account selection matches the displayed data');
+  assert.equal(await dashboardMetrics.locator(':scope > div').count(),6);
+  assert.ok((await dashboardMetrics.innerText()).includes('38'));assert.ok((await dashboardMetrics.innerText()).includes('2,39'));
+  const evolution=page.getByRole('region',{name:'Évolution quotidienne',exact:true});await evolution.getByRole('img').waitFor();
+  await page.getByLabel('Indicateur du graphique',{exact:true}).selectOption('spend');assert.match(await evolution.getByRole('img').getAttribute('aria-labelledby'),/title/);
+  const slider=page.getByRole('slider',{name:'Jour à consulter',exact:true});await slider.focus();await slider.press('Home');assert.match(await slider.getAttribute('aria-valuetext'),/Dépenses/);
+  await page.getByRole('button',{name:'7 jours',exact:true}).click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Jour à consulter"]')?.max==='6');
+  await page.getByRole('button',{name:'90 jours',exact:true}).click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Jour à consulter"]')?.max==='89');
+  await page.getByRole('button',{name:'30 jours',exact:true}).click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Jour à consulter"]')?.max==='29');
+  await capture({path:path.join(output,'dashboard-desktop.png'),fullPage:true});
+  const campaignTable=page.getByRole('region',{name:'Comparaison des campagnes',exact:true});
+  await page.getByRole('textbox',{name:'Rechercher une campagne',exact:true}).fill('hibiscus');assert.equal(await campaignTable.locator('tbody tr').count(),1);
+  const exported=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter CSV',exact:true}).click();const csv=await exported;const csvPath=path.join(output,'dashboard-campaigns.csv');await csv.saveAs(csvPath);assert.match(await readFile(csvPath,'utf8'),/Infusion hibiscus/);assert.ok(!(await readFile(csvPath,'utf8')).includes('Coffret cacao'));
+  await page.getByRole('textbox',{name:'Rechercher une campagne',exact:true}).fill('');await campaignTable.getByRole('button',{name:'Clics',exact:true}).click();assert.equal(await campaignTable.locator('thead th[aria-sort="descending"]').innerText(),'Clics');
+  await campaignTable.getByRole('button',{name:'Coffret cacao · découverte',exact:true}).click();await page.getByRole('button',{name:'Analyser cette campagne',exact:true}).click();
+  await composer.waitFor();assert.match(await composer.inputValue(),/Données observées/);assert.match(await composer.inputValue(),/Coffret cacao/);assert.equal(chatCalls,modelCallsBeforeDashboard,'Dashboard analysis prepares a draft and never runs a model automatically');
+  checks.push('Dashboard keeps its name, matches the active account, compares six real metrics, switches chart periods and exports the filtered campaigns safely');
+  await page.goto(origin+'/?view=analytics');await dashboardMetrics.waitFor();
+  await page.getByLabel('Compte publicitaire',{exact:true}).selectOption('act_other_fixture');await dashboardMetrics.waitFor();await page.waitForFunction(()=>document.querySelector('select[id] option:checked')?.textContent.includes('Autre compte'));
+  analyticsMode='race';await page.getByRole('button',{name:'7 jours',exact:true}).click();await page.getByRole('button',{name:'90 jours',exact:true}).click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Jour à consulter"]')?.max==='89');await page.waitForTimeout(400);assert.equal(await slider.getAttribute('max'),'89');
+  analyticsMode='missing';await page.getByRole('button',{name:'Actualiser le tableau de bord',exact:true}).click();await page.getByText('L’évolution quotidienne n’est pas disponible pour ce compte et cette période. Les totaux restent consultables.',{exact:true}).waitFor();assert.equal(await evolution.getByRole('img').count(),0);await dashboardMetrics.waitFor();
+  analyticsMode='partial';await page.getByRole('button',{name:'Actualiser le tableau de bord',exact:true}).click();await page.getByText(/Données partielles : certaines campagnes/).waitFor();assert.equal(await dashboardMetrics.getByText('Comparaison indisponible',{exact:true}).count(),6);
+  analyticsMode='failure';await page.getByRole('button',{name:'Actualiser le tableau de bord',exact:true}).click();await page.getByRole('alert').getByText('Lecture publicitaire indisponible',{exact:true}).waitFor();assert.equal(await dashboardMetrics.count(),0);
+  analyticsMode='full';await page.getByRole('button',{name:'Réessayer',exact:true}).click();await dashboardMetrics.waitFor();
+  await page.setViewportSize({width:390,height:844});await capture({path:path.join(output,'dashboard-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.setViewportSize({width:970,height:686});await capture({path:path.join(output,'dashboard-medium.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  assert.ok(analyticsReads.every(read=>read.method==='GET'));assert.equal(chatCalls,modelCallsBeforeDashboard);checks.push('Dashboard handles stale requests, missing daily series, partial reports, read failures, recovery and mobile layout without inventing conversions or running paid actions');
   assert.equal(checkoutCalls,0);assert.equal(organizationMutations.length,0);
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
