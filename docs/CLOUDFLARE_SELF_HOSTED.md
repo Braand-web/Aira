@@ -14,28 +14,45 @@ les DNS et les données distantes n'ont pas été supprimés.
 
 ## Vérifications des accès
 
-Les tableaux de bord Cloudflare, SasPay.me, Resend et Composio étaient connectés
-au début de l'intervention. Cette connexion ne fournit pas un accès API au Worker.
-`wrangler whoami` a échoué avec « Not logged in ». Aucun nouveau secret fournisseur
-n'a été créé ou transféré. Le contrôle du panneau est ensuite devenu indisponible
-pendant le changement des outils de la session ; le module navigateur requis
-n'était plus présent. Ne pas confondre cette limite avec une déconnexion du compte.
+Le propriétaire a terminé l'OAuth Cloudflare : `wrangler whoami` réussit. Le
+staging privé et D1 sont déployés sur le compte
+`2ead1748668417f67d184d93a3fd69ec`. Secrets techniques et configuration OpenRouter
+sont stockés côté serveur, sans copie de leur valeur dans le dépôt ou les journaux.
+La clé OpenRouter a passé un test de lecture réel ; aucune génération facturée.
+
+Le contrôle du panneau droit reste indisponible dans cette session. Les tableaux
+de bord SasPay.me, Resend et Composio connectés ne transmettent pas leurs clés au
+Worker. Ces clés restent à transférer par un canal privé. Le jeton OAuth Cloudflare
+ne permet pas d'administrer les autres fournisseurs.
 
 Les ressources Cloudflare visibles concernent d'autres projets. Le propriétaire
 a confirmé FlowPay pour Aïra, avec une nouvelle clé dédiée ; les clés visibles
 concernent d'autres produits : aucune réutilisation implicite de LiveFoot, Sellow
-ou Coden. Il ne dispose pas encore d'un domaine ni d'une adresse de test à fournir.
+ou Coden. Il ne dispose pas encore d'un domaine. Il a fourni l'adresse du compte
+Resend pour les tests ; elle est conservée dans les secrets serveur.
 L'ancien hébergement n'est plus utilisé pour
 les nouvelles publications ; sa suppression exige un inventaire et une sauvegarde.
 
-## 1. Ressources neuves
+## 1. Ressources et reprise du staging existant
+
+D1 `aira-staging` existe déjà : `7a2e1508-922b-4138-97ba-40e61c9be447`,
+15 migrations appliquées. Ne pas la recréer. Le Worker est privé et D1 seule est
+branchée : les deux buckets restent absents, l'API R2 renvoyant le code 10042.
+Voir [le constat distant](production/STAGING_2026-10-24.md).
 
 Sur une machine autorisée, avec le Wrangler installé du dépôt :
 
 ```sh
 npx --no-install wrangler login
 npx --no-install wrangler whoami
-npx --no-install wrangler d1 create aira-staging
+npx --no-install wrangler d1 list
+npx --no-install wrangler r2 bucket list
+```
+
+Terminer l'activation R2 dans le **même compte**, jusqu'à l'accès aux buckets.
+Ne créer les buckets suivants qu'après un inventaire réussi et s'ils sont absents :
+
+```sh
 npx --no-install wrangler r2 bucket create aira-staging-files
 npx --no-install wrangler r2 bucket create aira-staging-backups
 ```
@@ -46,6 +63,20 @@ l'environnement GitHub `staging`, ajouter les variables non secrètes
 `AIRA_STAGING_BACKUPS_BUCKET`. Ajouter un secret `CLOUDFLARE_API_TOKEN` limité au
 compte et aux ressources Aïra (Workers, D1, R2 et lecture du compte si nécessaire).
 Ne pas le transmettre en message ni dans une variable publique.
+
+Pour reproduire le staging partiel en attendant R2, définir seulement
+`CLOUDFLARE_ACCOUNT_ID` et `AIRA_STAGING_D1_ID`, puis :
+
+```sh
+npm run build
+node scripts/cloudflare-config.mjs staging --database-only
+npx --no-install wrangler deploy --config .wrangler/deploy/staging-db-only.json
+```
+
+Ce mode n'existe que pour le staging : routes publiques fermées, aperçus,
+navigateur et sauvegardes désactivés, aucun binding R2 inventé. Il ne rend pas
+les fichiers utilisables. Une fois R2 réellement disponible, revenir au manifeste
+complet ci-dessous, en conservant les secrets techniques existants.
 
 ```sh
 npm run build
@@ -66,6 +97,11 @@ Workers → Aïra staging → Settings → Variables and Secrets, type **Secret*
 `wrangler secret put NOM --config .wrangler/deploy/staging.json`, puis saisie privée.
 Ne jamais placer une valeur secrète en argument de commande.
 
+Les secrets techniques ci-dessous sont déjà présents dans `aira-staging` :
+les conserver, ne pas les régénérer lors d'un redéploiement. Vérifier leur
+**nom seulement** par `wrangler secret list --config .wrangler/deploy/staging-db-only.json`.
+Les valeurs ne sont pas récupérables par une liste de secrets.
+
 - AUTH_HASH_SECRET : secret aléatoire dédié d'au moins 32 caractères.
 - RESEND_API_KEY : clé Aïra avec droit d'envoi limité au domaine choisi.
 - TOKEN_ENCRYPTION_KEY, BACKUP_ENCRYPTION_KEY, BROWSER_PROFILE_KEY : clés distinctes
@@ -76,7 +112,10 @@ Ne jamais placer une valeur secrète en argument de commande.
 
 Définir APP_ORIGIN à l'origine HTTPS exacte ; APP_ENV=staging, RESEND_MODE=sandbox,
 RESEND_FROM à l'adresse d'un domaine vérifié et RESEND_TEST_RECIPIENT à une adresse
-appartenant au responsable. AUTH_ENABLED=true seulement après cette configuration.
+appartenant au responsable. Sans domaine, `Aira <onboarding@resend.dev>` permet
+uniquement le test vers l'adresse du compte Resend ; ces deux réglages sont déjà
+stockés en secrets, avec `RESEND_MODE=disabled` tant que la clé est absente.
+AUTH_ENABLED=true seulement après cette configuration.
 Le sandbox refuse l'envoi des liens à d'autres adresses. SPF, DKIM et DMARC attendent
 le choix du domaine. Un e-mail de test peut consommer un quota réel ; l'acceptation
 API n'est pas une preuve de réception dans la boîte du destinataire.
@@ -97,9 +136,9 @@ Les limites anti-abus sont des choix internes, pas des quotas promis par Resend.
   un secret webhook, avec portée d'encaissement minimale. Vérifier le sandbox,
   Mobile Money/carte en XAF et les frais du contrat ; ne pas reprendre les anciennes
   clés d'autres produits. Les données fiscales et légales restent à valider.
-- IA : clé OpenRouter ou clés natives et tarifs serveur vérifiés, avec frais de change
-  réels. La clé locale présente n'a pas été publiée automatiquement ni utilisée pour
-  une génération facturée pendant cette préparation.
+- IA : configuration OpenRouter existante transférée en secrets serveur. Lecture
+  d'authentification réussie, sans génération ; modèles, tarifs, change et facture
+  réelle restent à valider avant activation du routage.
 - fal.ai : FAL_KEY et FAL_CATALOG_JSON avec modèles et tarifs effectivement vérifiés.
 
 ## 4. Bascule finale
@@ -128,7 +167,7 @@ par adresse et aucune suppression des données historiques.
 ## Preuves locales du 24 octobre 2026
 
 `npm run typecheck`, `npm run lint`, `npm run build` et `npm test` réussissent.
-La suite comprend 156 tests unitaires, 15 suites de services, 4 suites d'artefacts
+La suite comprend 159 tests unitaires, 16 suites de services, 4 suites d'artefacts
 et 2 lanceurs HTTP. Aucun accès réseau externe n'est autorisé dans `npm test`.
 
 Les 18 contrôles d'authentification comprennent le vrai point d'entrée Worker
@@ -141,7 +180,7 @@ Les 14 contrôles de l'interface navigateur et les 9 contrôles de disposition d
 chat passent également avec des services simulés. Les captures de connexion
 ordinateur/mobile ont été examinées ; aucune preuve locale ne vaut recette cloud.
 Après intégration des derniers changements de `main`, types, lint, build et toute
-la suite ont été relancés avec succès, ainsi que les 13 contrôles de l'interface
+la suite ont été relancés avec succès, ainsi que les 14 contrôles de l'interface
 agent. Le lanceur de démonstration utilise aussi la nouvelle route de connexion.
 
 Pour relancer le parcours de connexion, installer Playwright dans l'environnement
@@ -182,4 +221,5 @@ Documentation à utiliser pour la recette et les réglages, relevée le 23 octob
 - https://developers.cloudflare.com/workers/wrangler/configuration/
 - https://resend.com/docs/dashboard/api-keys/introduction
 - https://resend.com/docs/dashboard/domains/introduction
+- https://resend.com/docs/knowledge-base/403-error-resend-dev-domain (revérifié le 24 octobre 2026)
 - https://docs.composio.dev/docs/quickstart

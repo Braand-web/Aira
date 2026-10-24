@@ -2,8 +2,33 @@
 
 Le propriétaire a demandé de quitter Sites. Le code est préparé pour son propre
 compte Cloudflare ; aucun nouveau déploiement Sites n'est effectué. La mise en
-production indépendante n'a pas été exécutée. L'ancien site et ses données n'ont
+production publique n'a pas été exécutée. Un staging privé indépendant est
+maintenant déployé. L'ancien site et ses données n'ont
 pas été supprimés.
+
+## Vérifié sur le compte Cloudflare
+
+- Autorisation OAuth du CLI confirmée par `wrangler whoami` ; compte
+  `2ead1748668417f67d184d93a3fd69ec`. Aucune application existante n'a été modifiée.
+- D1 `aira-staging`, ID `7a2e1508-922b-4138-97ba-40e61c9be447`, créée ; les
+  15 migrations sont appliquées. Requête distante : 64 tables, aucun utilisateur
+  fictif. Les requêtes de constat sont en lecture seule.
+- Worker `aira-staging` déployé, sans route publique ni URL workers.dev ou preview.
+  D1 et les bindings navigateur/DO sont présents ; navigateur, autonomie,
+  paiements, e-mails, Instant et sauvegardes restent désactivés.
+- Secrets techniques créés directement côté Cloudflare, sans fichier en clair ;
+  configuration OpenRouter existante transférée. `wrangler secret list` confirme
+  les noms, jamais les valeurs. La clé OpenRouter a répondu HTTP 200 à
+  `GET /api/v1/key` : authentification seulement, aucune génération facturée.
+- Test du bundle en preview distante Cloudflare avec D1 réelle : `/api/health`
+  200, `/api/workspace` 401, en-têtes d'identité usurpés toujours 401,
+  `/auth/sign-in` 503 tant que la connexion n'est pas configurée. Ce test ne
+  constitue pas une connexion utilisateur ni une ouverture publique.
+- Cron distant observé : tâches `monitor` et `browser_cleanup` terminées avec
+  une tentative. Une fausse alerte sur l'autonomie volontairement désactivée a
+  été reproduite puis corrigée dans le Worker ; 4 tests protègent le routage du
+  cron, le maintien des vraies alertes et l'exigence du secret du planificateur.
+- Détails et commandes : [recette du staging](STAGING_2026-10-24.md).
 
 ## Présent et vérifié localement
 
@@ -12,14 +37,14 @@ pas été supprimés.
 - Connexion Aïra par lien e-mail à usage unique, identité vérifiée par le Worker,
   session privée révocable et migration additive `0014_independent_auth.sql`.
   Tous les en-têtes d'identité fournis par le client sont effacés.
-- Types, lint, build et `npm test` réussis : 156 tests unitaires, 15 suites de
+- Types, lint, build et `npm test` réussis : 159 tests unitaires, 16 suites de
   services, 4 suites d'artefacts et 2 lanceurs HTTP ; réseau externe bloqué.
 - Authentification : 18 contrôles SQLite/Web Crypto et 7 contrôles Chromium/HTTPS
   avec formulaires, cookies, confirmation et déconnexion. Envoi Resend simulé.
 - Interface navigateur : 14 contrôles ; disposition du chat : 9 contrôles,
   notamment mobile et clavier. Services simulés, aucune session cloud facturée.
 - Les derniers changements de `main` sont intégrés ; la suite complète et les
-  13 contrôles de l'interface agent passent après cette intégration.
+  14 contrôles de l'interface agent passent après cette intégration.
 - Catalogue Essentiel/Pro/Business et recharges conservé ; taxes déterminées
   côté serveur et configuration fiscale inconnue bloquante au paiement.
 - Adaptateurs IA, fal.ai, Composio, SasPay.me et Resend ; missions, publications,
@@ -28,23 +53,28 @@ pas été supprimés.
 - Générateur Cloudflare et workflow GitHub manuel pour un staging fermé, avec
   ressources distinctes et fonctions payantes désactivées. Workflow non exécuté.
 - Vrai Worker compilé lancé en local : accueil 200, identité usurpée refusée
-  (401), authentification non configurée fermée (503). Aucun déploiement distant.
+  (401), authentification non configurée fermée (503). Voir aussi les contrôles
+  distants ci-dessus, distincts des tests avec services simulés.
 
 ## Bloqué ou non vérifié à distance
 
-- `wrangler whoami` indique « Not logged in ». Les tableaux de bord étaient
-  connectés, puis le contrôle du navigateur de cette session est devenu
-  indisponible. Ces connexions ne donnent pas automatiquement des droits API
-  au CLI ou au Worker. Aucun nouveau secret n'a été créé ou transféré.
-- Ressources D1/R2 Aïra, secrets et URL de staging à configurer. Le propriétaire
-  n'a pas encore fourni de domaine ni d'adresse e-mail de test. Resend attend
-  un domaine, SPF/DKIM/DMARC, une clé Aïra et la preuve de réception réelle.
+- L'API R2 répond encore « Please enable R2 », code 10042, malgré la confirmation
+  d'activation du propriétaire. Aucun bucket Aïra n'a été créé. Le staging partiel
+  omet explicitement les bindings R2 et ferme les aperçus fichiers ; ni fichiers
+  ni sauvegardes cloud ne sont déclarés opérationnels.
+- Les clés Composio, Resend, fal.ai et SasPay de test restent absentes des secrets
+  du Worker. Le contrôle du panneau droit n'est pas disponible dans cette session.
+  Une connexion aux tableaux de bord ne fournit pas automatiquement ces clés.
+- Pas de domaine. L'adresse du compte Resend a été fournie ; destinataire et
+  expéditeur de test sont configurés en secrets, envoi toujours désactivé faute
+  de clé. `onboarding@resend.dev` permet seulement de tester vers l'adresse du
+  compte Resend. SPF/DKIM/DMARC et les envois clients attendent un domaine vérifié.
 - SasPay.me : FlowPay confirmé par le propriétaire, avec une clé Aïra distincte.
   Sandbox, Mobile Money/carte en XAF, frais, webhooks et remboursements de test
   restent à vérifier. Composio attend le transfert de sa clé existante en secret
   serveur ; OAuth Meta, permissions et parcours publicitaire non vérifiés.
-- Une clé OpenRouter est présente localement, sans appel réel pendant cette
-  préparation. Clés et tarifs du routage à valider dans l'environnement final.
+- La clé OpenRouter est acceptée sur une lecture réelle, sans génération.
+  Modèle, tarifs et coûts de facture du routage à valider dans l'environnement final.
   fal.ai n'a pas exécuté de génération réelle.
 - Instant, navigateur cloud, autonomie, facturation et sauvegardes restent
   fermés par la configuration initiale. Aucune restauration cloud ni alerte
@@ -59,10 +89,11 @@ pas été supprimés.
 
 ## Suite exacte
 
-Suivre [le guide Cloudflare indépendant](../CLOUDFLARE_SELF_HOSTED.md) : authentifier
-Wrangler, créer D1 et deux buckets R2 Aïra, définir variables GitHub et secrets,
-appliquer les migrations puis déployer le staging fermé. Le domaine et l'expéditeur
-de test permettent ensuite la recette réelle. Le générateur initial remet les
+Suivre [le guide Cloudflare indépendant](../CLOUDFLARE_SELF_HOSTED.md) : ne pas
+recréer la base déjà migrée. Terminer l'activation R2 du bon compte, créer les
+deux buckets privés, ajouter les clés fournisseurs dédiées puis déployer le
+staging complet. La clé Resend permettra le premier test vers son propriétaire,
+puis un domaine vérifié permettra les envois clients. Le générateur initial remet les
 flags à l'arrêt : conserver séparément la configuration finale validée avant les
 redéploiements. Ne pas déclarer l'application prête à encaisser sur les tests locaux.
 

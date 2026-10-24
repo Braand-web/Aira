@@ -1,5 +1,24 @@
 # Exploitation, alertes et exercice de restauration
 
+## Mise à jour cloud — 24 octobre 2026
+
+Le Worker `aira-staging` est maintenant déployé sur le compte du propriétaire,
+sans URL publique. Le cron a exécuté les tâches `monitor` et `browser_cleanup`
+aux passages de 04:40 et 04:45 UTC, avec état `completed` et une tentative dans
+D1 distante. Cela prouve la planification et ces tâches sur une base sans clients,
+pas un rapprochement de paiement ni une mission facturée.
+
+Une fausse alerte sur `missions` a été reproduite : l'autonomie désactivée
+retournait 503 au cron. Le Worker omet désormais cette tâche lorsque
+`AUTONOMY_ENABLED` n'est pas `true`, tout en exécutant les autres tâches. Les
+4 contrôles de `tests/worker-scheduler.integration.mjs` couvrent aussi les vraies
+erreurs et le secret absent. Les alertes historiques sont conservées, sans purge.
+
+R2 renvoie encore 10042 ; aucun bucket ni exercice de restauration cloud.
+Resend reste fermé sans clé API : destinataire de test configuré en secret,
+aucun e-mail envoyé ou reçu. Les preuves locales ci-dessous restent valables,
+sans être confondues avec ces vérifications distantes partielles.
+
 ## Ce qui a été exécuté
 
 Le **20 octobre 2026**, `node tests/production-operations.integration.mjs` a exécuté **21 contrôles** avec les vrais services TypeScript, les vraies routes, SQLite en mémoire et Web Crypto AES-GCM. Ils passent : secret du planificateur, verrou concurrent, déduplication, erreur de tâche, outbox, refus d'envoi non configuré, demande de test, timeout incertain, garde de production, sauvegarde chiffrée v2 et compatibilité de restauration v1. La sauvegarde/restauration inclut réellement un fichier de **50 Mio**, **208 objets** (trois pages de métadonnées), les métadonnées HTTP et personnalisées, ainsi que le refus des corruptions, parties manquantes/interverties, limites SQL/médias, changements ETag, écritures interrompues et collisions de destination.

@@ -1,6 +1,35 @@
 # Audit et préparation production — Aïra
 
+## Mise à jour distante — 24 octobre 2026
+
+**VÉRIFIÉ :** OAuth Cloudflare opérationnel ; base `aira-staging` créée et
+15 migrations appliquées (64 tables, aucun faux utilisateur). Worker privé
+déployé sans URL publique, avec secrets techniques et configuration OpenRouter
+transférée directement. La clé OpenRouter est acceptée par une lecture HTTP 200 ;
+aucun appel de génération facturé. Les tests en preview distante retournent
+health 200, accès sans session/usurpation 401, connexion non configurée 503.
+
+Le cron distant termine les tâches de surveillance et de nettoyage. Il a révélé
+un **P2 corrigé** : fausse alerte sur les missions volontairement désactivées.
+`build/worker.ts` omet désormais cette tâche quand `AUTONOMY_ENABLED` est fermé,
+tout en conservant les autres tâches et les alertes sur erreurs réelles.
+`tests/worker-scheduler.integration.mjs` échouait avant correction et passe après
+(4 contrôles). Le mode de déploiement D1 seul est explicite, limité au staging
+privé, avec 3 tests supplémentaires ; la production exige toujours les deux R2.
+Types, lint, build et `npm test` relancés : 159 tests unitaires, 16 suites de
+services, 4 suites d'artefacts et 2 lanceurs HTTP passent, sans retirer de test.
+
+**BLOQUÉ :** R2 renvoie 10042 (« Please enable R2 »), aucun bucket créé ; clés
+Composio/Resend/fal.ai/SasPay de test manquantes ; pas de domaine vérifié. Le
+destinataire Resend a été fourni et préparé en secret, sans envoi. Les parcours
+Meta, paiement XAF, génération, connexion réelle, restauration cloud, marge et
+P1 Zod restent non validés. Aucun changement DNS ni bascule publique ou payante.
+Voir [la preuve de staging et sa reprise](docs/production/STAGING_2026-10-24.md).
+
 ## Mise à jour — 24 octobre 2026 : sortie de Sites
+
+Cette section décrit la préparation locale antérieure au déploiement privé
+ci-dessus ; ses blocages d'accès Cloudflare sont désormais levés.
 
 Le code utilise désormais un Worker Cloudflare indépendant et une connexion Aïra
 par lien e-mail à usage unique. La migration 0014 est additive ; les anciens
