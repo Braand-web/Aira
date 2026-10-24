@@ -1,0 +1,11 @@
+import type {Resource} from './contracts';
+export type CampaignBrief={objective:string;offer:string;audience:string;country:string;currency:string;dailyBudget:number|null;destination:string;message:string;tracking:string;creativeIds:string[];pageId:string};
+export type CampaignCheck={id:string;label:string;value:string;group:string;state:'documented'|'missing'|'review'};
+export type CampaignPreparation={brief:CampaignBrief;checks:CampaignCheck[];missing:CampaignCheck[];review:CampaignCheck[];creatives:Resource[];page:Resource|null;documented:number;total:number;complete:boolean;next:CampaignCheck|null};
+export const CAMPAIGN_FIELDS:string[];
+export function campaignBrief(data?:Record<string,unknown>):CampaignBrief;
+export function campaignDestination(value:unknown):string|null;
+export function prepareCampaign(campaign:Resource,resources?:Resource[]):CampaignPreparation;
+export function campaignProjection(campaigns:Resource[],days:number):{days:number;groups:{currency:string;daily:number;total:number;count:number}[];missing:number};
+export function campaignPrompt(campaign:Resource,resources:Resource[],action?:'audit'|'complete'|'test'):string;
+export function campaignMarkdown(campaign:Resource,resources:Resource[]):string;

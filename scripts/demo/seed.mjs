@@ -155,7 +155,14 @@ export function seedDemo(sql, { now = Date.now() } = {}) {
       ["demo-campaign-coffret", "Coffret Découverte · demandes qualifiées", "Recueillir des demandes d’information sur le coffret.", 2500, "Trois saveurs. Une attention qui reste. Découvrez le Coffret Maison Naya.", 3],
       ["demo-campaign-origines", "Collection Origines · faire découvrir", "Présenter les trois saveurs à une nouvelle audience.", 1500, "Votre matin a sa saveur. Café, cacao ou hibiscus : quel sera votre premier rituel ?", 2],
       ["demo-campaign-fetes", "Petites attentions · sélection de fin d’année", "Tester l’intérêt pour une sélection cadeau de saison.", 2000, "Une petite attention, trois façons de faire plaisir. Préparons vos moments à partager.", 1],
-    ]) resource(id, "campaign", title, { objective, country: "Cameroun · exemple", currency: "FCFA", dailyBudget, destination: "Page de démonstration Maison Naya", tracking: "Simulation uniquement · aucune publicité diffusée", message }, "draft", days);
+    ]) {
+      const preparation = id === 'demo-campaign-coffret' ? {offer:'Coffret fictif de trois saveurs à 18 000 FCFA, avec une carte personnalisée.',audience:'Exemple : personnes à Douala souhaitant offrir un coffret de découverte.',creativeIds:['demo-media-packaging','demo-media-collection'],pageId:'demo-page-coffret'} : id === 'demo-campaign-origines' ? {offer:'Découverte de la collection de cacao, café et hibiscus Maison Naya.',audience:'Exemple : amateurs de nouvelles saveurs à Douala, à confirmer.',creativeIds:['demo-media-cacao','demo-media-cafe','demo-media-hibiscus'],pageId:'demo-page-origines'} : {offer:'Sélection cadeau de fin d’année, conditions et disponibilité à confirmer.'};
+      resource(id, "campaign", title, { objective, country: "Cameroun · exemple", currency: "FCFA", dailyBudget, destination: "Page de démonstration Maison Naya", tracking: "Simulation uniquement · aucune publicité diffusée", message, ...preparation, preparationDemoVersion:1 }, "draft", days);
+      // Enrich only this explicitly marked, read-only fictional preview, once.
+      const stored=sql.prepare("SELECT data FROM resources WHERE id=? AND workspace_id=? AND kind='campaign'").get(id,workspace);
+      const current=JSON.parse(stored.data);
+      if(current.demo?.seed===DEMO_SEED_VERSION&&current.preparationDemoVersion!==1)run("UPDATE resources SET data=? WHERE id=? AND workspace_id=?",JSON.stringify({...preparation,...current,preparationDemoVersion:1}),id,workspace);
+    }
 
     for (const [id, title, objective, steps, successCriteria, days] of [
       ["demo-mission-launch", "Préparer le lancement Collection Origines", "Assembler un lancement cohérent, de l’offre au contenu.", ["Clarifier la promesse et les trois saveurs", "Relire les visuels et la page de vente", "Préparer le calendrier de lancement"], ["Une promesse compréhensible en une phrase", "Une page et trois contenus relus avant toute publication"], 4],

@@ -31,6 +31,7 @@ let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,fail
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
 let checkoutCalls=0,billingEnabled=false;
 let analyticsConnected=false,analyticsMode='full';const analyticsReads=[];
+let workspaceRole='owner',failCampaignSave=false;const campaignWrites=[];
 const quoteRequests=[],orderVerificationRequests=[];
 const organizationMutations=[];
 const catalogRequests=[],authorizationRequests=[],revocationRequests=[];
@@ -43,7 +44,18 @@ const server=createServer(async(req,res)=>{
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
     const created={id:'fixture-imported-skill',workspace_id:'fixture',kind:body.kind,title:body.title,status:'candidate',version:1,created_at:now,updated_at:now,data:body.data};workspaceResources.push(created);json(res,created);return;
   }
-  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false,metaConnected:analyticsConnected}});return;}
+  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{role:workspaceRole,user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false,metaConnected:analyticsConnected}});return;}
+  const campaignIndex=workspaceResources.findIndex(resource=>resource.kind==='campaign'&&url.pathname==='/api/resources/'+resource.id);
+  if(campaignIndex>=0){
+    if(req.method==='GET'){json(res,workspaceResources[campaignIndex]);return;}
+    if(req.method==='PATCH'){
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());campaignWrites.push(body);
+      if(workspaceRole==='reader'){json(res,{error:'Lecture seule'},403);return;}
+      if(failCampaignSave){failCampaignSave=false;json(res,{error:'Échec local de l’enregistrement'},503);return;}
+      const current=workspaceResources[campaignIndex];if(body.version!==current.version){json(res,{error:'La version a changé. Actualisez avant de continuer.'},409);return;}
+      const updated={...current,title:body.title,version:current.version+1,updated_at:Date.now(),data:{...current.data,...body.brief}};workspaceResources[campaignIndex]=updated;json(res,updated);return;
+    }
+  }
   if(url.pathname==='/api/meta'){
     analyticsReads.push({method:req.method,accountId:url.searchParams.get('accountId'),days:url.searchParams.get('days')});
     if(!url.searchParams.has('accountId')){json(res,{data:analyticsMode==='empty'?[]:[DEMO_AD_ACCOUNT,{...DEMO_AD_ACCOUNT,id:'act_other_fixture',name:'Autre compte fictif'}]});return;}
@@ -550,6 +562,40 @@ try{
   await page.setViewportSize({width:390,height:844});await capture({path:path.join(output,'dashboard-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.setViewportSize({width:970,height:686});await capture({path:path.join(output,'dashboard-medium.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.ok(analyticsReads.every(read=>read.method==='GET'));assert.equal(chatCalls,modelCallsBeforeDashboard);checks.push('Dashboard handles stale requests, missing daily series, partial reports, read failures, recovery and mobile layout without inventing conversions or running paid actions');
+  const campaignAsset={...media,id:'campaign-asset',title:'Visuel associé au plan',data:{output:{images:[{url:origin+'/fixture.png',width:512,height:512}]}}};
+  const campaignPage={...conversation,id:'campaign-page',kind:'page',title:'Page associée au plan',status:'draft',data:{}};
+  const campaignPlan={...conversation,id:'campaign-plan',kind:'campaign',title:'Plan de campagne complet',status:'draft',data:{objective:'leads',offer:'Offre de test',audience:'Public de test',country:'Cameroun',currency:'XAF',dailyBudget:1000,destination:'',message:'Message exact du plan',tracking:'Événement à contrôler',creativeIds:[campaignAsset.id],pageId:campaignPage.id}};
+  const missingPlan={...campaignPlan,id:'campaign-missing',title:'Plan à compléter',data:{...campaignPlan.data,audience:'',offer:'',creativeIds:[],pageId:''}};
+  workspaceResources.push(campaignAsset,campaignPage,campaignPlan,missingPlan);
+  const callsBeforeCampaigns=chatCalls,approvalsBeforeCampaigns=approvals;
+  await page.setViewportSize({width:1440,height:1000});await page.goto(origin+'/?view=campaigns');await page.getByRole('heading',{name:'Campagnes',exact:true}).waitFor();
+  const campaignList=page.getByRole('region',{name:'Plans de campagne',exact:true});await campaignList.waitFor();assert.equal(await campaignList.getByRole('article').count(),2);
+  const preparationNav=page.getByRole('navigation',{name:'État de préparation',exact:true});await preparationNav.getByRole('button',{name:/À compléter/}).click();assert.equal(await campaignList.getByRole('article').count(),1);await preparationNav.getByRole('button',{name:/Tous les plans/}).click();
+  await page.getByRole('textbox',{name:'Rechercher un plan de campagne',exact:true}).fill('complet');assert.equal(await campaignList.getByRole('article').count(),1);await page.getByRole('textbox',{name:'Rechercher un plan de campagne',exact:true}).fill('');
+  await capture({path:path.join(output,'campaigns-overview-desktop.png'),fullPage:true});
+  await campaignList.getByRole('article').filter({hasText:'Plan de campagne complet'}).getByRole('button',{name:'Ouvrir l’atelier',exact:true}).click();
+  const workshop=page.getByRole('region',{name:'Atelier de campagne',exact:true});await workshop.waitFor();await workshop.getByText(/9\/9 éléments renseignés/).waitFor();await workshop.getByText('Publication non vérifiée',{exact:true}).waitFor();
+  assert.equal(await workshop.getByRole('button',{name:'Visuel associé au plan',exact:true}).count(),1);assert.equal(await workshop.getByRole('button',{name:'Page associée au plan',exact:true}).count(),1);
+  await capture({path:path.join(output,'campaigns-workshop-desktop.png'),fullPage:true});
+  await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();
+  const campaignEditor=page.getByRole('form',{name:'Modifier le brief de campagne',exact:true});await campaignEditor.waitFor();
+  await campaignEditor.getByLabel('Nom du plan',{exact:true}).fill('Plan affiné et enregistré');await campaignEditor.getByLabel('Public visé',{exact:true}).fill('Public modifié sans perte de focus');
+  assert.equal(await campaignEditor.getByLabel('Public visé',{exact:true}).evaluate(element=>document.activeElement===element),true);
+  await campaignEditor.getByLabel('Budget publicitaire journalier',{exact:true}).fill('1200');
+  await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).evaluate(button=>{button.click();button.click();});await campaignEditor.waitFor({state:'hidden'});await workshop.getByRole('heading',{name:'Plan affiné et enregistré',exact:true}).waitFor();assert.equal(campaignWrites.length,1);assert.equal(campaignWrites[0].version,1);assert.equal(campaignWrites[0].brief.dailyBudget,1200);
+  const briefDownload=page.waitForEvent('download');await workshop.getByRole('button',{name:'Exporter le brief',exact:true}).click();const briefFile=await briefDownload,briefPath=path.join(output,'campaign-brief.md');await briefFile.saveAs(briefPath);assert.match(await readFile(briefPath,'utf8'),/Public modifié sans perte de focus/);
+  await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();await campaignEditor.getByLabel('Offre',{exact:true}).fill('Saisie conservée après échec');failCampaignSave=true;
+  await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).click();await campaignEditor.getByRole('alert').getByText('Échec local de l’enregistrement',{exact:true}).waitFor();assert.equal(await campaignEditor.getByLabel('Offre',{exact:true}).inputValue(),'Saisie conservée après échec');
+  await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).click();await campaignEditor.waitFor({state:'hidden'});assert.equal(campaignWrites.length,3);
+  await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();
+  const currentCampaignIndex=workspaceResources.findIndex(resource=>resource.id==='campaign-plan');workspaceResources[currentCampaignIndex]={...workspaceResources[currentCampaignIndex],version:4,data:{...workspaceResources[currentCampaignIndex].data,offer:'Offre de la version externe'}};
+  await campaignEditor.getByLabel('Offre',{exact:true}).fill('Ma saisie en conflit');await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).click();await campaignEditor.getByRole('alert').getByText('La version a changé. Actualisez avant de continuer.',{exact:true}).waitFor();assert.equal(await campaignEditor.getByLabel('Offre',{exact:true}).inputValue(),'Ma saisie en conflit');
+  await campaignEditor.getByRole('button',{name:'Recharger le plan et remplacer ma saisie',exact:true}).click();await page.waitForFunction(()=>document.querySelector('textarea[name="offer"]')?.value==='Offre de la version externe');assert.equal(await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).isDisabled(),false);await campaignEditor.getByRole('button',{name:'Annuler',exact:true}).click();
+  await workshop.getByRole('button',{name:'Préparer un test créatif',exact:true}).click();await composer.waitFor();assert.match(await composer.inputValue(),/une seule variable/);assert.match(await composer.inputValue(),/Plan affiné et enregistré/);assert.equal(chatCalls,callsBeforeCampaigns);assert.equal(approvals,approvalsBeforeCampaigns);
+  checks.push('Campaign workshop binds actual resources, saves versioned draft briefs once, preserves failed edits, recovers conflicts and exports the saved plan without an ad launch');
+  workspaceRole='reader';await page.goto(origin+'/?view=campaigns');await campaignList.waitFor();await campaignList.getByRole('article').filter({hasText:'Plan affiné et enregistré'}).getByRole('button',{name:'Ouvrir l’atelier',exact:true}).click();await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();await campaignEditor.waitFor();assert.equal(await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).isDisabled(),true);await campaignEditor.getByRole('button',{name:'Annuler',exact:true}).click();
+  await page.setViewportSize({width:390,height:844});await capture({path:path.join(output,'campaigns-workshop-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await workshop.getByRole('button',{name:'Tous les plans',exact:true}).click();await capture({path:path.join(output,'campaigns-overview-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  assert.equal(campaignWrites.length,4);checks.push('Campaign search, preparation filters, keyboard focus, reader permissions and mobile workshop stay usable without inventing live delivery or verified tracking');
   assert.equal(checkoutCalls,0);assert.equal(organizationMutations.length,0);
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
