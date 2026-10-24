@@ -16,7 +16,7 @@ await build({stdin:{contents:`export * as agent from ${JSON.stringify(path.join(
  b.onLoad({filter:/.*/,namespace:'bindings'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__agentRoutingTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__agentRoutingTest.headers;}':'export function redirect(){throw Error("Unexpected redirect");}'}));
  b.onResolve({filter:/^\.\/(metering|composio|browser|browser-agent|providers)$/},a=>({path:a.path,namespace:'fixture'}));
  b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:{
-  './metering':`export async function meteredMessage(budget,role,body,signal,routing){const f=globalThis.__agentRoutingTest;f.requests.push({budget,role,body:structuredClone(body),routing:structuredClone(routing)});if(signal.aborted)throw Error('Aborted');const response=f.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(response,{headers:{'content-type':'text/event-stream'}});}`,
+  './metering':`export async function meteredMessage(budget,role,body,signal,routing){const f=globalThis.__agentRoutingTest;f.requests.push({budget,role,body:structuredClone(body),routing:structuredClone(routing)});if(signal.aborted)throw Error('Aborted');const response=f.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(typeof response==='function'?response():response,{headers:{'content-type':'text/event-stream'}});}`,
   './composio':`export async function connectorAgentTools(){return [];}export async function executeConnectorAgentTool(){globalThis.__agentRoutingTest.external.push('connector');throw Error('External connectors forbidden in routing tests');}`,
   './providers':`export function falCatalog(){return [];}export function mediaRoute(){throw Error('Media generation forbidden in routing tests');}export async function metaGet(){globalThis.__agentRoutingTest.external.push('meta_read');return {data:[]};}`,
   './browser':`export const browserService={async create(){globalThis.__agentRoutingTest.external.push('browser');throw Error('Browser forbidden in routing tests');}};`,
@@ -58,5 +58,64 @@ await check('specialists cannot publish, create pages, spend or delegate even if
 });
 await check('a run stopped before execution makes no model call and unknown specialist roles are rejected',async()=>{
  const execution=await setup();sql.prepare("UPDATE runs SET status='cancelled' WHERE id=?").run(execution.runId);await assert.rejects(()=>run(execution),error=>error.code==='cancelled');assert.equal(fixture.requests.length,0);await assert.rejects(()=>specialist(execution,'user-controlled-provider'));assert.equal(fixture.requests.length,0);assert.equal(fixture.external.length,0);
+});
+const call=(id,name,input)=>stream([{type:'tool_use',id,name,input}]);
+const resultFor=(request,id)=>JSON.parse(request.body.messages.flatMap(message=>Array.isArray(message.content)?message.content:[]).find(block=>block.type==='tool_result'&&block.tool_use_id===id).content);
+await check('the global work contract preserves discussion and requires delivery and verification without granting permissions',async()=>{
+ const execution=await setup();fixture.responses=[text('Discutons de votre besoin.')];await run(execution);
+ const instructions=fixture.requests[0].body.system[0].text;
+ for(const wording of ['Prise en charge globale','Une conversation peut rester un échange','information indispensable',"jusqu'au livrable",'get_workspace_resource','Ne répète pas une mutation','restent en attente','résultat partiel'])assert.ok(instructions.includes(wording),wording);
+ assert.match(instructions,/Aucun outil brut, batch, sandbox ou proxy/);assert.match(instructions,/aucun plan n'active l'autonomie/);assert.equal(fixture.requests.length,1);
+});
+await check('a request reads context, creates, verifies, revises and delivers one saved artifact with a shared budget',async()=>{
+ const execution=await setup(),title='Page de livraison vérifiée';
+ const page={title,description:'Coffret Maison Naya',sections:[{type:'hero',heading:'Découvrez notre coffret',body:'Trois chocolats de notre collection.'}],cta:{label:'Découvrir',url:'https://boutique.example/coffret'},noindex:true};
+ const current=()=>sql.prepare("SELECT id,version FROM resources WHERE workspace_id=? AND kind='page' AND title=?").get(who.tenant,title);
+ fixture.responses=[call('context','search_workspace',{kind:'knowledge'}),call('create','create_page',page),()=>call('verify-created','get_workspace_resource',{id:current().id}),()=>call('revise','revise_page',{id:current().id,version:current().version,page:{...page,description:'Le coffret découverte Maison Naya'}}),()=>call('verify-final','get_workspace_resource',{id:current().id}),text('Votre page est enregistrée et vérifiée. Elle reste privée et prête à être relue.')];
+ await run(execution);
+ const saved=current();assert.equal(saved.version,2);assert.equal(resultFor(fixture.requests[3],'verify-created').resource.version,1);
+ const verified=resultFor(fixture.requests[5],'verify-final').resource;assert.equal(verified.id,saved.id);assert.equal(verified.version,2);assert.equal(verified.status,'draft');assert.equal(verified.data.current.description,'Le coffret découverte Maison Naya');assert.equal(verified.data.history.length,1);
+ assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE workspace_id=? AND kind='page' AND title=?").get(who.tenant,title).n,1);
+ assert.equal(fixture.beforeTools,5);assert.ok(fixture.requests.every(request=>request.budget===execution.budget));assert.deepEqual(fixture.external,[]);
+ const persisted=sql.prepare("SELECT content FROM messages WHERE conversation_id=? AND role='assistant' ORDER BY rowid DESC LIMIT 1").get(execution.conversationId);assert.match(JSON.parse(persisted.content)[0].text,/enregistrée et vérifiée/);
+});
+await check('resource verification is tenant scoped, hides deleted and internal records and cannot approve anything',async()=>{
+ const resource=await server.createResource(who.tenant,'proposal','Validation requise',{maxCredits:12},'awaiting_approval');
+ const before=sql.prepare('SELECT COUNT(*) n FROM resources').get().n;
+ const read=await agent.executeTool(who.tenant,'get_workspace_resource',{id:resource.id});assert.equal(read.resource.status,'awaiting_approval');assert.equal(read.resource.version,1);assert.equal(read.kind,undefined);
+ await assert.rejects(()=>agent.executeTool('another-workspace','get_workspace_resource',{id:resource.id}),error=>error.status===404);
+ const removed=await server.createResource(who.tenant,'page','Supprimé',{},'deleted');await assert.rejects(()=>agent.executeTool(who.tenant,'get_workspace_resource',{id:removed.id}),error=>error.status===404);
+ const internal=await server.createResource(who.tenant,'conversation','Privé',{},'saved');await assert.rejects(()=>agent.executeTool(who.tenant,'get_workspace_resource',{id:internal.id}),error=>error.status===404);
+ await assert.rejects(()=>agent.executeTool(who.tenant,'get_workspace_resource',{id:resource.id,approve:true}));
+ assert.equal((await server.getResource(who.tenant,resource.id)).status,'awaiting_approval');assert.equal(sql.prepare('SELECT COUNT(*) n FROM resources').get().n,before+2);
+});
+await check('resuming after a decision reads the actual latest approval status without recreating its proposal',async()=>{
+ const proposal=await server.createResource(who.tenant,'proposal','Création à examiner',{maxCredits:12},'awaiting_approval');
+ const before=sql.prepare("SELECT COUNT(*) n FROM resources WHERE kind='proposal'").get().n;
+ for(const status of ['awaiting_approval','rejected','completed']){
+  if(status!==proposal.status){const latest=await server.getResource(who.tenant,proposal.id);await server.updateResource(who.tenant,proposal.id,latest.version,{status});}
+  const execution=await setup();fixture.responses=[call('read-decision','get_workspace_resource',{id:proposal.id}),text('État vérifié : '+status)];await run(execution);
+  const actual=resultFor(fixture.requests[1],'read-decision').resource;assert.equal(actual.status,status);assert.equal(actual.id,proposal.id);assert.deepEqual(fixture.external,[]);
+ }
+ assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE kind='proposal'").get().n,before);
+});
+await check('a recoverable tool error returns to the orchestrator, which can correct inputs and verify the result',async()=>{
+ const execution=await setup(),title='Fait corrigé';const known=()=>sql.prepare("SELECT id FROM resources WHERE workspace_id=? AND kind='knowledge' AND title=?").get(who.tenant,title);
+ fixture.responses=[call('invalid','save_knowledge',{title,content:'Fait fourni par le client'}),call('corrected','save_knowledge',{title,content:'Fait fourni par le client',source:'Message utilisateur'}),()=>call('verify-corrected','get_workspace_resource',{id:known().id}),text('Le fait fourni est enregistré avec sa source.')];
+ await run(execution);const failed=fixture.requests[1].body.messages.at(-1).content[0];assert.equal(failed.is_error,true);assert.equal(resultFor(fixture.requests[3],'verify-corrected').resource.data.source,'Message utilisateur');assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE workspace_id=? AND title=?").get(who.tenant,title).n,1);assert.deepEqual(fixture.external,[]);
+});
+await check('eight tool rounds receive a bounded tool-free handoff and remain partial with confirmed results saved',async()=>{
+ const execution=await setup();fixture.responses=[...Array.from({length:8},(_,i)=>call('read-'+i,'search_workspace',{kind:'project'})),text('Bilan partiel : les ressources sont consultées. La rédaction reste à réaliser.')];
+ await assert.rejects(()=>run(execution),error=>error.code==='step_limit');
+ assert.equal(fixture.requests.length,9);assert.equal(fixture.beforeTools,8);const handoff=fixture.requests.at(-1);assert.deepEqual(handoff.body.tools,[]);assert.equal(handoff.body.max_tokens,1536);assert.match(handoff.body.system.at(-1).text,/bilan partiel/);assert.ok(fixture.requests.every(request=>request.budget===execution.budget));
+ assert.equal(JSON.parse(sql.prepare("SELECT content FROM messages WHERE conversation_id=? AND role='assistant' ORDER BY rowid DESC LIMIT 1").get(execution.conversationId).content)[0].text,'Bilan partiel : les ressources sont consultées. La rédaction reste à réaliser.');assert.deepEqual(fixture.external,[]);
+});
+await check('a forged tool call in the final handoff cannot mutate resources or create a ninth tool round',async()=>{
+ const execution=await setup(),before=sql.prepare('SELECT COUNT(*) n FROM resources').get().n;
+ fixture.responses=[...Array.from({length:8},(_,i)=>call('read-'+i,'search_workspace',{kind:'project'})),call('forged-save','save_knowledge',{title:'Interdit au bilan',content:'Do not execute',source:'fixture'})];
+ await assert.rejects(()=>run(execution),error=>error.code==='step_limit');assert.equal(fixture.requests.length,9);assert.equal(fixture.beforeTools,8);assert.equal(sql.prepare('SELECT COUNT(*) n FROM resources').get().n,before);assert.equal(fixture.events.some(event=>event.type==='tool_result'&&event.data.id==='forged-save'),false);
+});
+await check('an empty model response cannot be recorded as a successfully delivered answer',async()=>{
+ const execution=await setup();fixture.responses=[text('')];await assert.rejects(()=>run(execution),error=>error.code==='empty_result');assert.equal(fixture.requests.length,1);assert.equal(sql.prepare("SELECT COUNT(*) n FROM messages WHERE conversation_id=? AND role='assistant'").get(execution.conversationId).n,0);
 });
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');

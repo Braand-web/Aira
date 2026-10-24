@@ -13,6 +13,9 @@ test('Working labels follow actual stream events and keep the original start tim
   assert.equal(status.detail,'Lecture des données Meta');
   status=agentStatusEvent(status,'tool_result',{},5000);
   assert.equal(status.state,'thinking');
+  status=agentStatusEvent(status,'tool_start',{name:'get_workspace_resource'},5500);
+  assert.equal(status.detail,'Vérification du résultat enregistré');
+  assert.equal(status.endedAt,undefined);
   status=agentStatusEvent(status,'text_delta',{text:'Voici'},6000);
   assert.equal(status.state,'writing');
   assert.equal(status.startedAt,1000);

@@ -6,6 +6,7 @@ const standardTools = [
   { name: "search_skills" },
   { name: "read_skill" },
   { name: "search_workspace" },
+  { name: "get_workspace_resource" },
   { name: "read_meta" },
   { name: "plan_mission" },
   { name: "create_page" },
@@ -24,9 +25,10 @@ test("accompanied mode retains normal and connected tools", () => {
 test("autonomous mode exposes only safe reads and draft mission planning", () => {
   assert.deepEqual(
     agentToolsForMode("autonomous", standardTools, connectorTools).map((tool) => tool.name),
-    ["search_skills", "read_skill", "search_workspace", "read_meta", "plan_mission"],
+    ["search_skills", "read_skill", "search_workspace", "get_workspace_resource", "read_meta", "plan_mission"],
   );
   assert.equal(agentToolAllowedForMode("autonomous", "plan_mission"), true);
+  assert.equal(agentToolAllowedForMode("autonomous", "get_workspace_resource"), true);
   assert.equal(agentToolAllowedForMode("autonomous", "create_page"), false);
   assert.equal(agentToolAllowedForMode("autonomous", "aira_connector_action"), false);
 });
