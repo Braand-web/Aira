@@ -2,6 +2,18 @@
 
 Le propriétaire a choisi **Braand**, `braand.fun` et un compte Resend dédié. L’adresse Gmail fournie sert de contact technique et de destinataire de test ; elle n’est pas utilisée comme expéditeur du domaine. Ce relevé décrit les opérations terminées à 15:17 UTC et les limites restantes.
 
+## Actualisation : domaine actif et nouvelle clé e-mail
+
+Vérifications ultérieures du 24 octobre, vers 15:28 UTC :
+
+- Le propriétaire confirme Hostinger comme vendeur du domaine. La zone `braand.fun` existe désormais dans le bon compte Cloudflare, avec statut `active`. Google DNS et Cloudflare DNS répondent tous deux avec `martha.ns.cloudflare.com` et `stanley.ns.cloudflare.com`. La délégation DNS est donc constatée ; le raccordement du domaine au Worker reste distinct.
+- La nouvelle clé Resend fournie est acceptée : `GET /domains` répond 200. Elle voit encore les trois domaines `notifications.sellow.fun`, `auth.coden.fun` et `auth.relayit.fun`. L’ajout de `braand.fun` répond 403, limite de domaines du forfait. Le compte ou l’équipe de cette clé ne permet donc pas encore l’ajout ; aucune déduction sur le compte affiché dans le panneau droit n’est présentée comme observation de cet écran.
+- Cette nouvelle clé remplace le secret `RESEND_API_KEY` du staging et est ajoutée à la production. Relecture des bindings : type `secret_text`, autres secrets conservés, origine inchangée et envoi toujours désactivé. Les copies locales de configuration restent chiffrées et ignorées par Git.
+- Versions actives après cet ajout : staging `fc21e3c5-82e3-4684-9fa1-67030f3c8346`, production `feb028cb-997f-450b-b6cb-a4e5b0e7abee`. Les deux Workers restent sans route publique.
+- Aucun domaine supprimé, aucune augmentation payante du forfait et aucun e-mail envoyé. Les versions actives changent lors de l’ajout des secrets ; les versions de la section suivante correspondent au déploiement initial décrit à 15:17 UTC.
+
+Prochaine étape : utiliser le compte ou l’équipe Resend dédié avec une place disponible pour `braand.fun`, ou faire augmenter sa limite. Obtenir ensuite les enregistrements de vérification réels et vérifier le domaine avant d’activer l’authentification et les e-mails publics. Les sections ci-dessous conservent le relevé initial et ne doivent pas être utilisées pour conclure que la délégation DNS manque encore.
+
 ## Produit et compatibilité
 
 Le nom visible est remplacé dans l’application, ses métadonnées, les pages de connexion, les messages e-mail, les factures, les avoirs, les consignes des agents et les compétences originales. Le catalogue de 25 compétences est régénéré depuis les sources ; les empreintes correspondent au contenu. Les textes importés d’autres auteurs ne sont pas réécrits.

@@ -9,15 +9,15 @@ Le [relevé Braand](BRAAND_ROLLOUT_2026-10-24.md) contient les versions actives,
 - Interface, connexion, documents, agents et compétences originales renommés ; contrats, cookies et identifiants techniques conservés.
 - Deux D1 distinctes, migrations 0000–0015 appliquées ; deux Workers privés ; quatre buckets R2 séparés. Écriture, relecture et suppression de contrôle réussies sur chacun ; accès publics désactivés.
 - OpenRouter, Composio et SasPay authentifiés par lectures réelles puis liés en secrets aux Workers. Modèle et prix de tokens existants conservés. Secrets techniques de production distincts.
-- Clé Resend existante reconnue ; aucun envoi. Le propriétaire choisit un autre compte dédié à Braand : sa clé reste attendue en production.
+- Nouvelle clé Resend reconnue et stockée en secret dans les deux Workers ; aucun envoi. Elle voit encore trois domaines existants et l’ajout de braand.fun est refusé par la limite du forfait.
+- Domaine braand.fun actif dans le bon compte Cloudflare ; délégation publique vérifiée vers martha.ns.cloudflare.com et stanley.ns.cloudflare.com. Le propriétaire confirme Hostinger comme vendeur.
 - Types, lint, compilation et suite complète réussis : 176 tests unitaires, 18 suites d’intégration, 4 suites d’artefacts, 2 lanceurs HTTP. Tests locaux sans fournisseur externe.
 - Chromium : 41 contrôles interface et 7 connexion, services simulés ; captures ordinateur/mobile examinées.
 - Huit contrôles réels du bundle en preview Cloudflare avec ressources de production : santé D1 et accueil 200, accès anonymes/usurpés 401, connexion volontairement fermée 503. Ni accès public ni parcours connecté complet.
 
 ## À terminer avant ouverture publique
 
-- Ajouter braand.fun dans Cloudflare et configurer sa délégation chez le vendeur du domaine. La création via OAuth CLI est refusée, permission de création de zone manquante. DNS actuel : aster.dns-parking.com et helios.dns-parking.com.
-- Créer le compte Resend dédié, ajouter et vérifier le domaine, stocker sa clé côté serveur. L’ancien compte refuse un quatrième domaine ; aucun domaine existant supprimé ni achat réalisé.
+- Dans le compte ou l’équipe Resend dédié, disposer d’une place pour braand.fun et vérifier le domaine. La nouvelle clé est installée, mais son compte refuse encore l’ajout au-delà des trois domaines existants ; aucun domaine supprimé ni achat réalisé.
 - Raccorder l’origine HTTPS, tester les liens e-mail et l’isolation des vraies sessions avant d’activer l’authentification publique.
 - Valider séparément OAuth métier, générations et coûts réels, webhook SasPay, fiscalité, textes légaux, économie et restauration avant les fonctions payantes. Aucun paiement, e-mail ou appel de génération réel effectué.
 - Les fonctions sensibles restent désactivées. Les anciennes identités Sites demandent une preuve de propriété avant rapprochement ; pas de fusion automatique.
