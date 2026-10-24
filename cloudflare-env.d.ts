@@ -30,6 +30,7 @@ declare namespace Cloudflare {
     ANTHROPIC_RATE_JSON?: string;
     OPENAI_API_KEY?: string;
     MODEL_ROUTING_ENABLED?: string;
+    MODEL_ROUTING_POLICY?: string;
     MODEL_ROUTING_CATALOG_JSON?: string;
     LLM_PROVIDER?: string;
     OPENROUTER_API_KEY?: string;

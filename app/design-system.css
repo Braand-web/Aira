@@ -319,9 +319,26 @@ html[data-design-system="muse"] .skills-marketplace-embedded .skill-card h2 { fo
 html[data-design-system="muse"] .skills-marketplace-embedded .skills-upload { min-height: 44px; }
 .settings-import-error { margin-top: 16px; color: var(--ds-error); }
 .settings-import-status { margin-top: 16px; color: var(--ds-muted); }
+html[data-design-system="muse"] .toast.toast-error {
+ position: fixed;
+ top: 76px;
+ right: 20px;
+ bottom: auto;
+ left: auto;
+ width: min(520px, calc(100vw - 40px));
+ transform: none;
+ align-items: flex-start;
+ background: #352a29;
+ border-color: #62413b;
+ color: #f0c5bc;
+}
+html[data-design-system="muse"] .toast.toast-error > svg { flex: 0 0 auto; margin-top: 2px; color: #f0a79a; }
+html[data-design-system="muse"] .toast.toast-error > span { flex: 1; line-height: 1.6; }
+html[data-design-system="muse"] .toast.toast-error .icon-button { flex: 0 0 auto; width: 28px; height: 28px; margin: -5px -8px 0 0; }
 @media (max-width: 640px) {
  html[data-design-system="muse"] .skills-marketplace-embedded .skills-grid { grid-template-columns: minmax(0,1fr); }
  html[data-design-system="muse"] .auth-content { padding: 14px 22px 28px; }
  html[data-design-system="muse"] .auth-content h3 { font-size: 23px; line-height: 30px; }
  html[data-design-system="muse"] .auth-content > p { font-size: 13px; line-height: 20px; }
+ html[data-design-system="muse"] .toast.toast-error { top: 74px; right: 12px; width: calc(100vw - 24px); }
 }

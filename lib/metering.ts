@@ -10,20 +10,40 @@ export type {ModelRate} from './model-protocol';
 export type RunBudget={who:BillingIdentity;holdId:string;limit:number;runId:string;rate:ModelRate;beforeTool?:()=>Promise<void>;beforeModel?:()=>Promise<void>};
 export type RunSettlementBudget=Pick<RunBudget,'runId'|'holdId'>&{rate?:ModelRate};
 type ReconciliationUsage=ModelCostRow&{id:string;rate:string;request_id:string;run_id:string;hold_id:string};
+type ModelRateIssue='missing_rate'|'invalid_rate'|'invalid_verified_at'|'future_rate'|'stale_rate'|'model_mismatch'|'funding_fee_unverified';
+const rateIssueMessages:Record<ModelRateIssue,string>={
+ missing_rate:'La configuration des coûts de Braand est incomplète. Votre demande est conservée ; réessayez après sa vérification.',
+ invalid_rate:'La configuration des coûts de Braand est invalide. Votre demande est conservée ; réessayez après sa correction.',
+ invalid_verified_at:'La date de vérification des coûts est invalide. Votre demande est conservée ; une nouvelle vérification est nécessaire.',
+ future_rate:'La date de vérification des coûts est incohérente. Votre demande est conservée ; une nouvelle vérification est nécessaire.',
+ stale_rate:'La vérification des tarifs et du taux de change a expiré. Votre demande est conservée ; réessayez après leur actualisation.',
+ model_mismatch:'La configuration des coûts ne correspond pas au modèle actif. Votre demande est conservée ; une vérification est nécessaire.',
+ funding_fee_unverified:'Les frais liés au modèle ne sont pas vérifiés. Votre demande est conservée ; une vérification est nécessaire.'
+};
+function inspectConfiguredRate(connection:ReturnType<typeof modelConnection>):{rate?:ModelRate;issue?:ModelRateIssue}{
+ const raw=config()[connection.rateKey];if(!raw)return {issue:'missing_rate'};
+ let value:unknown;try{value=JSON.parse(raw);}catch{return {issue:'invalid_rate'};}
+ const parsed=modelRateSchema.safeParse(value);if(!parsed.success)return {issue:'invalid_rate'};
+ const rate=parsed.data,verifiedAt=Date.parse(rate.verifiedAt),age=Date.now()-verifiedAt;
+ if(!Number.isFinite(verifiedAt))return {issue:'invalid_verified_at'};
+ if(age<0)return {issue:'future_rate'};
+ if(age>86400000)return {issue:'stale_rate'};
+ if(rate.model!==connection.model)return {issue:'model_mismatch'};
+ if(connection.provider==='openrouter'&&(typeof rate.fundingFeeBps!=='number'||!Number.isFinite(rate.fundingFeeBps)||rate.fundingFeeBps<0||rate.fundingFeeBps>10000))return {issue:'funding_fee_unverified'};
+ return {rate:{...rate,provider:connection.provider}};
+}
 export function modelRate(routing:RoutingRequest={task:'conversation'}){
  if(routingEnabled(config()))return routedModel(config(),routing).rate;
- const connection=modelConnection();let raw:unknown;try{raw=JSON.parse(config()[connection.rateKey]||'{}');}catch{throw new AppError('Tarif du modèle invalide.',503);}
- const parsed=modelRateSchema.safeParse(raw);if(!parsed.success)throw new AppError('Le tarif du modèle et le taux de change doivent être vérifiés avant utilisation.',503,'rate_unverified');const rate=parsed.data;
- const age=Date.now()-Date.parse(rate.verifiedAt);
- if(!Number.isFinite(age)||age<0||age>86400000||rate.model!==connection.model||(connection.provider==='openrouter'&&(typeof rate.fundingFeeBps!=='number'||!Number.isFinite(rate.fundingFeeBps)||rate.fundingFeeBps<0||rate.fundingFeeBps>10000)))throw new AppError('Le tarif du modèle et le taux de change doivent être vérifiés avant utilisation.',503,'rate_unverified');
- return {...rate,provider:connection.provider};
+ const result=inspectConfiguredRate(modelConnection());
+ if(result.issue)throw new AppError(rateIssueMessages[result.issue],503,'rate_unverified');
+ return result.rate!;
 }
 export function modelReadiness(){
- if(routingEnabled(config())){try{modelRate();return {ready:true,reason:null};}catch(error){return {ready:false,reason:error instanceof AppError&&error.code==='model_not_configured'?'missing_key':'rate_unverified'};}}
+ if(routingEnabled(config())){try{modelRate();return {ready:true,reason:null,detail:null};}catch(error){return {ready:false,reason:error instanceof AppError&&error.code==='model_not_configured'?'missing_key':'rate_unverified',detail:'routing_catalog'};}}
  const connection=modelConnection();
- if(!connection.key)return {ready:false,reason:'missing_key'};
- try{modelRate();return {ready:true,reason:null};}
- catch(error){return {ready:false,reason:error instanceof AppError&&error.code==='rate_unverified'?'rate_unverified':'rate_invalid'};}
+ if(!connection.key)return {ready:false,reason:'missing_key',detail:null};
+ const result=inspectConfiguredRate(connection);
+ return result.issue?{ready:false,reason:result.issue==='invalid_rate'?'rate_invalid':'rate_unverified',detail:result.issue}:{ready:true,reason:null,detail:null};
 }
 export async function startRunBudget(who:BillingIdentity,runId:string,credits:number):Promise<RunBudget>{
  await reconcileOpenRouterUsage(who.organization,5);
@@ -58,7 +78,7 @@ export async function reconcileOpenRouterUsage(organization?:string,limit=10){
 }
 export async function meteredModel(b:RunBudget,role:string,url:string,init:RequestInit,selected?:RoutedModel,originalBody?:Record<string,unknown>){
  await authorize(b.who.tenant,b.who.user.userId,'write');
- const connection=selected||modelConnection(),rate=selected?.rate||b.rate,body=selected?(selected.provider==='anthropic'?anthropicBody(originalBody||{},selected):{...originalBody,model:selected.model,stream:true}):modelRecordSchema.parse(JSON.parse(String(init.body))),countBody={model:body.model,messages:body.messages,system:body.system,tools:body.tools};
+ const connection=selected||modelConnection(),rate=selected?.rate||b.rate,body=selected?{...originalBody,model:selected.model,stream:true}:modelRecordSchema.parse(JSON.parse(String(init.body))),countSource=selected&&selected.provider!=='openai'?anthropicBody(body,selected):body,countBody={model:countSource.model,messages:countSource.messages,system:countSource.system,tools:countSource.tools};
  if(url!==connection.url||body.model!==connection.model||!selected&&rate.provider&&rate.provider!==connection.provider)throw new AppError('Le fournisseur ou le modèle a changé. Relancez la demande.',409);
  let inputTokens:number;
  if(connection.provider==='openrouter'||connection.provider==='openai')inputTokens=estimateInputTokens(body);
@@ -85,7 +105,7 @@ export async function meteredModel(b:RunBudget,role:string,url:string,init:Reque
  body.max_tokens=low;
  const controller=new AbortController(),signal=init.signal?AbortSignal.any([init.signal,controller.signal,AbortSignal.timeout(120000)]):AbortSignal.any([controller.signal,AbortSignal.timeout(120000)]);
  init=selected?routedRequest(selected,body,signal).init:{...init,body:JSON.stringify(body),signal};
- const id=uid(),claimed=await db().prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM provider_usage WHERE hold_id=? AND status IN ('pending','unknown')) AND (SELECT COUNT(*) FROM provider_usage WHERE hold_id=?)=?").bind(id,b.who.organization,b.who.tenant,b.runId,b.holdId,connection.provider,role,JSON.stringify({...rate,inputEstimate:inputTokens,inputMethod:connection.provider==='anthropic'?'anthropic_count_tokens':'conservative_estimate',...(selected?{routingTask:selected.routing.task,escalation:selected.routing.escalation}:{} )}),Date.now(),b.holdId,b.holdId,used.results.length).run();
+ const id=uid(),claimed=await db().prepare("INSERT INTO provider_usage(id,organization_id,workspace_id,run_id,hold_id,provider,role,rate,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM provider_usage WHERE hold_id=? AND status IN ('pending','unknown')) AND (SELECT COUNT(*) FROM provider_usage WHERE hold_id=?)=?").bind(id,b.who.organization,b.who.tenant,b.runId,b.holdId,connection.provider,role,JSON.stringify({...rate,inputEstimate:inputTokens,inputMethod:connection.provider==='anthropic'?'anthropic_count_tokens':'conservative_estimate',...(selected?{routingTask:selected.routing.task,routingTier:selected.routing.tier,escalation:selected.routing.escalation}:{} )}),Date.now(),b.holdId,b.holdId,used.results.length).run();
  if(!claimed.meta.changes)throw new AppError('Le budget est utilisé par un autre appel ou attend un rapprochement.',409,'model_budget_busy');
  let response:Response;try{response=await fetch(url,init);}catch(error){await db().prepare("UPDATE provider_usage SET status='unknown' WHERE id=?").bind(id).run();throw error;}
  if(!response.ok||!response.body){await db().prepare("UPDATE provider_usage SET status=? WHERE id=?").bind(response.status>=500?'unknown':'rejected',id).run();return response;}

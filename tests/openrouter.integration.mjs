@@ -82,15 +82,22 @@ await check('OpenRouter key selects native Messages endpoint and explicit provid
 });
 await check('Readiness distinguishes a configured key from verified billing rates',async()=>{
  env.LLM_PROVIDER='openrouter';env.OPENROUTER_API_KEY=secret;delete env.OPENROUTER_RATE_JSON;
- assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'rate_unverified'});
+ assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'rate_unverified',detail:'missing_rate'});
  env.OPENROUTER_RATE_JSON=JSON.stringify(rate);
- assert.deepEqual(meter.modelReadiness(),{ready:true,reason:null});
+ assert.deepEqual(meter.modelReadiness(),{ready:true,reason:null,detail:null});
  env.OPENROUTER_API_KEY='';
- assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'missing_key'});
+ assert.deepEqual(meter.modelReadiness(),{ready:false,reason:'missing_key',detail:null});
  env.OPENROUTER_API_KEY=secret;env.OPENROUTER_RATE_JSON=JSON.stringify(rate);delete env.LLM_PROVIDER;
 });
 await check('Unverified OpenRouter rates and wrong model are rejected',async()=>{
  for(const patch of [{model:'another-model'},{fundingFeeBps:-1},{verifiedAt:'invalid'},{verifiedAt:new Date(Date.now()-90000000).toISOString()}]){env.OPENROUTER_RATE_JSON=JSON.stringify({...rate,...patch});assert.throws(()=>meter.modelRate());}
+ env.OPENROUTER_RATE_JSON=JSON.stringify({...rate,verifiedAt:new Date(Date.now()-90000000).toISOString()});
+ assert.equal(meter.modelReadiness().detail,'stale_rate');
+ assert.throws(()=>meter.modelRate(),/expiré/i);
+ env.OPENROUTER_RATE_JSON=JSON.stringify({...rate,model:'another-model'});
+ assert.equal(meter.modelReadiness().detail,'model_mismatch');
+ env.OPENROUTER_RATE_JSON=JSON.stringify({...rate,fundingFeeBps:undefined});
+ assert.equal(meter.modelReadiness().detail,'funding_fee_unverified');
  env.OPENROUTER_RATE_JSON=JSON.stringify(rate);
 });
 await check('Native streaming preserves text, Unicode and tool input deltas with actual generation cost',async()=>{
