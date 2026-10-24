@@ -45,7 +45,7 @@ function Value({value, loading}: {value?: string; loading: boolean}) {
  return value !== undefined ? <>{value}</> : loading ? <><span className="settings-value-skeleton" aria-hidden="true"/><span className="settings-sr-only">Chargement…</span></> : <>Indisponible</>;
 }
 
-export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, skillsContent, billingContent, teamContent, onClose, onFiles, onRefresh}: {
+export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, skillsContent, billingContent, teamContent, onClose, onFiles, onRefresh, onSignIn}: {
  tab: SettingsTab;
  onTabChange: (tab: SettingsTab) => void;
  user?: {id?: string; name: string; email: string};
@@ -59,6 +59,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
  onBilling?: () => void;
  onFiles: () => void;
  onRefresh?: () => void;
+ onSignIn: () => void;
 }) {
  const identity = user?.id?.trim() || user?.email?.trim() || "";
  const signedIn = Boolean(identity);
@@ -110,7 +111,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
  const visibleSummaryError = summaryError && (tab === "general" || tab === "credits" || tab === "storage");
  const visibleOrganizationError = organizationError && (tab === "general" || tab === "storage" || tab === "permissions");
  const modelState = capabilities?.modelReady ? "Disponible" : "Indisponible";
- const signIn = <a className="settings-button settings-primary" href="/auth/sign-in?return_to=/" target="_top">Se connecter<ArrowUpRight size={15} aria-hidden="true"/></a>;
+ const signIn = <button type="button" className="settings-button settings-primary" onClick={onSignIn}>Se connecter<ArrowUpRight size={15} aria-hidden="true"/></button>;
  const privateTab = tab === "skills" || tab === "credits" || tab === "billing" || tab === "team" || tab === "storage" || tab === "permissions";
  const slots: Partial<Record<SettingsTab, ReactNode>> = {skills: skillsContent, billing: billingContent, team: teamContent};
 
@@ -125,7 +126,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
    <nav ref={navigation} className="settings-navigation" aria-label="Catégories des paramètres">
     {sections.map(({id, label, icon: Icon}) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => onTabChange(id)}><Icon size={18} aria-hidden="true"/><span>{label}</span></button>)}
    </nav>
-   <a className="settings-signout" href={signedIn ? "/auth/sign-out?return_to=/" : "/auth/sign-in?return_to=/"} target="_top"><LogOut size={18} aria-hidden="true"/><span>{signedIn ? "Se déconnecter" : "Se connecter"}</span></a>
+   {signedIn?<a className="settings-signout" href="/auth/sign-out?return_to=/" target="_top"><LogOut size={18} aria-hidden="true"/><span>Se déconnecter</span></a>:<button type="button" className="settings-signout" onClick={onSignIn}><LogOut size={18} aria-hidden="true"/><span>Se connecter</span></button>}
   </aside>
   <section className="settings-main" aria-labelledby="settings-section-title">
    <header className="settings-header"><h3 id="settings-section-title">{heading}</h3><button className="settings-close" type="button" onClick={onClose} aria-label="Fermer les paramètres" title="Fermer les paramètres"><X size={18} aria-hidden="true"/></button></header>
