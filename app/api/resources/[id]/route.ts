@@ -3,7 +3,7 @@ import {identity,getResource,getClientResource,updateResource,failure,auditLog,d
 import {AppError} from "@/lib/core.mjs";
 import {pageSchema} from "@/lib/contracts";
 import {campaignBriefSchema,reviseCampaignBrief} from '@/lib/campaign-brief';
-export async function GET(request:Request,context:{params:Promise<{id:string}>}){try{const {tenant}=await identity(request);return Response.json(await getClientResource(tenant,(await context.params).id));}catch(error){return failure(error);}}
+export async function GET(request:Request,context:{params:Promise<{id:string}>}){try{const {tenant,user}=await identity(request);const resource=await getClientResource(tenant,(await context.params).id);if(resource.kind==="connector_action"&&resource.data.requester!==user.userId)throw new AppError("Élément introuvable.",404);return Response.json(resource);}catch(error){return failure(error);}}
 export async function PATCH(request:Request,context:{params:Promise<{id:string}>}){try{
  const {tenant,user}=await identity(request),{id}=await context.params,resource=await getResource(tenant,id);
  const p=z.object({version:z.number().int(),action:z.enum(["rename","restore","suspend","cancel","campaign_brief"]),title:z.string().trim().min(1).max(160).optional(),historyVersion:z.number().int().optional(),brief:campaignBriefSchema.optional()}).parse(await request.json());

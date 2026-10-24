@@ -7,7 +7,7 @@ import {modelRateSchema,modelRecordSchema,modelEventSchema,type ModelRate,type M
 import {routingEnabled,routedModel,type RoutingRequest,type RoutedModel} from './model-router';
 import {routedRequest,normalizedResponses,anthropicBody} from './model-client';
 export type {ModelRate} from './model-protocol';
-export type RunBudget={who:BillingIdentity;holdId:string;limit:number;runId:string;rate:ModelRate;beforeTool?:()=>Promise<void>};
+export type RunBudget={who:BillingIdentity;holdId:string;limit:number;runId:string;rate:ModelRate;beforeTool?:()=>Promise<void>;beforeModel?:()=>Promise<void>};
 export type RunSettlementBudget=Pick<RunBudget,'runId'|'holdId'>&{rate?:ModelRate};
 type ReconciliationUsage=ModelCostRow&{id:string;rate:string;request_id:string;run_id:string;hold_id:string};
 export function modelRate(routing:RoutingRequest={task:'conversation'}){
@@ -42,6 +42,7 @@ export async function finishRunBudget(b:RunSettlementBudget){
  await settleHold(b.holdId,units);
 }
 export async function meteredMessage(b:RunBudget,role:string,body:Record<string,unknown>,signal:AbortSignal,routing:RoutingRequest={task:'conversation'}){
+ await b.beforeModel?.();
  if(routingEnabled(config())){const selected=routedModel(config(),routing),request=routedRequest(selected,body,signal);return meteredModel(b,role,request.url,request.init,selected,body);}
  const request=modelRequest(body,signal);return meteredModel(b,role,request.url,request.init);
 }

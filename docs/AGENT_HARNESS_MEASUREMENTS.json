@@ -1,0 +1,52 @@
+{
+  "observedAt": "2026-10-24T10:09:16.9824763+01:00",
+  "baselineCommit": "ad41c5f",
+  "baselineTargetedChecks": 72,
+  "baselineSuiteProcessMs": 1422,
+  "environment": "Local Node/SQLite and Chromium; model/provider responses scripted; external provider network blocked",
+  "eventBuffer": {
+    "environment": "isolated local Node/SQLite; not Cloudflare or real model latency",
+    "chunks": 256,
+    "baseline": {
+      "writes": 256,
+      "totalMs": 0.3797999999999888,
+      "firstPersistedTextMs": 0.021099999999989905
+    },
+    "after": {
+      "writes": 4,
+      "totalMs": 0.9648000000000252,
+      "firstPersistedTextMs": 0.10320000000001528
+    },
+    "textIdentical": true,
+    "providerCalls": 0,
+    "productionLatency": null,
+    "productionCost": null
+  },
+  "complexScenario": {
+    "environment": "scripted model responses; real local SQLite runtime",
+    "requests": 10,
+    "specialists": 3,
+    "artifacts": 1,
+    "structuralChecks": 2,
+    "externalActions": 0,
+    "elapsedMs": 7.710499999999968,
+    "semanticQualityInProduction": null,
+    "realProviderCost": null
+  },
+  "validation": {
+    "unitTests": 176,
+    "integrationFiles": 18,
+    "artifactFiles": 4,
+    "httpLaunchers": 2,
+    "agentRoutingChecks": 40,
+    "browserChecks": 40,
+    "typecheck": "passed",
+    "lint": "passed",
+    "build": "passed"
+  },
+  "realProviderCalls": 0,
+  "productionLatency": null,
+  "productionCost": null,
+  "productionVerifiedBusinessCompletionRate": null,
+  "productionDelegationRelevance": null
+}

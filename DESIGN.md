@@ -20,3 +20,5 @@ Campagnes devient un atelier de préparation : plans filtrables, prochaine infor
 
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 
+
+Le rendu des réponses utilise des blocs Markdown mémorisés, échappés et stables : titres, listes, code avec retour à la ligne et liens HTTP(S) contrôlés. Le flux peut récupérer les événements persistants manquants d'une réponse active sans relancer sa génération. Arrêt immédiat côté client, conservation du texte partiel et ressources dédupliquées ; aucun changement de dimensions du compositeur ni nouvelle animation.

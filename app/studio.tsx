@@ -3,7 +3,7 @@ import "./design-system.css";
 import {useState,useEffect,useRef,useCallback,useSyncExternalStore,lazy,Suspense,type FormEvent} from "react";
 import Image from "next/image";
 import {Plus,Search,PanelLeftClose,ArrowUp,ArrowDown,ChevronDown,ChevronRight,ChevronsUpDown,Image as ImageIcon,Video,Globe,ChartNoAxesCombined,Megaphone,Folder,Clock3,ArrowUpRight,X,Check,LoaderCircle,Square,Paperclip,FileText,ExternalLink,Download,Maximize2,Minimize2,PanelRight,Monitor,Smartphone,ShieldCheck,Link2,MoreHorizontal,CheckCircle2,AlertCircle,Menu,LogOut,MessageSquare,CreditCard,ArrowLeftRight,CircleHelp,SlidersVertical,Sparkle,type LucideIcon} from "lucide-react";
-import {parseSSE} from "../lib/core.mjs";
+import {recoverChatEvents} from "@/lib/chat-recovery";
 import BillingPanel,{type BillingTab} from "./billing-panel";
 import {PagePublicationControls,DurableMissionControls} from "../components/runtime-controls";
 import {ConnectorApproval} from "./connectors-panel";
@@ -20,6 +20,7 @@ import {AiStatus} from "@/components/ui/ai-status";
 import {AiraAvatar} from "@/components/aira-avatar";
 import {MediaGenerationPreview,GeneratedImage} from "@/components/media-generation-preview";
 import {startAgentStatus,agentStatusEvent} from "@/lib/agent-status.mjs";
+import {StreamingMarkdown} from "@/components/agents/streaming-markdown";
 import {StreamingResponse,type StreamingResponseStatus,type StreamingResponseFeedback} from "@/components/agents/streaming-response";
 import type {CitationItem} from "@/components/agents/citations";
 const CampaignHub=lazy(()=>import("@/components/campaign-hub"));
@@ -115,7 +116,7 @@ function AnimatedPlaceholder({home}:{home:boolean}){
  },[reducedMotion,home]);
  return <span className="composer-placeholder" aria-hidden="true">{displayed}<span className="composer-placeholder-caret"/></span>;
 }
-function Text({text}:{text:string}){return <div className="message-text">{text.split("\n").map((line,i)=>{const clean=line.replace(/^#{1,4}\s/,"");return <p key={i} className={/^#{1,4}\s/.test(line)?"text-heading":""}>{clean.split(/(\*\*[^*]+\*\*)/g).map((part,j)=>part.startsWith("**")?<strong key={j}>{part.slice(2,-2)}</strong>:part)||<br/>}</p>;})}</div>;}
+function Text({text}:{text:string}){return <StreamingMarkdown text={text}/>;}
 export default function Studio(){
  useEffect(()=>{const open=()=>{setPanel(true);setPanelTab('browser');};window.addEventListener('aira:open-browser',open);return()=>window.removeEventListener('aira:open-browser',open);},[]);
  const {registerAddToConversation}=useFilePreview();
@@ -184,21 +185,21 @@ export default function Studio(){
    if(!response.ok){const data=record(await response.json());throw new Error(textValue(data.error)||"Le flux de réponse est indisponible.");}
    if(!response.body)throw new Error("Le flux de réponse est indisponible.");
     setDraft("");setAttachments([]);setMessages(m=>[...m,{id:crypto.randomUUID(),role:"user",text,attachments:sentAttachments},{id:assistantId,role:"assistant",text:"",status:"streaming",feedback:null,resources:[]}]);started=true;
-   for await(const event of parseSSE(response.body)){const data=record(event.data);setResponseStatus(current=>agentStatusEvent(current,event.event,data));
+   for await(const event of recoverChatEvents(response.body,(id,after)=>api("/api/chat?runId="+encodeURIComponent(id)+"&after="+after,{signal:controller.current!.signal}),controller.current.signal)){const data=record(event.data);setResponseStatus(current=>agentStatusEvent(current,event.event,data));
     if(event.event==="run"){if(typeof data.conversationId!=="string"||typeof data.runId!=="string")throw new Error("Identifiant de réponse invalide.");setConversationId(data.conversationId);setRunId(data.runId);setActivity("");sessionStorage.setItem("aira.lastRun",data.runId);}
     if(event.event==="assistant_message"&&typeof data.messageId==="string"){const sources=messageSources(data.sources);setMessages(current=>current.map(message=>message.id===assistantId?{...message,persistedId:data.messageId as string,sources:[...new Map([...(message.sources||[]),...sources].map(source=>[source.id,source])).values()]}:message));}
     if(event.event==="text_delta")queueStreamText(assistantId,textValue(data.text));
-    if(event.event==="specialist_start")setActivity(data.role==="creative"?"Analyse du spécialiste créatif":"Analyse du spécialiste campagnes");
+    if(event.event==="specialist_start")setActivity(data.role==="review"?"Vérification du livrable":"Analyse spécialisée en cours");
     if(event.event==="specialist_done"){setActivity("");void refresh();}
     if(event.event==="tool_start"){const toolLabels:Record<string,string>={create_page:"création de la page",revise_page:"modification de la page",search_workspace:"lecture du projet",media_catalog:"catalogue média",read_meta:"lecture Meta",plan_mission:"préparation de la mission"};setActivity("Outil en cours · "+(toolLabels[textValue(data.name)]||"action dans une application"));}
-    if(event.event==="tool_result"){setActivity("");if(record(data.result).kind==="browser_session"){setPanel(true);setPanelTab("browser");}if(isResource(data.result)){const r=data.result;setMessages(m=>m.map(msg=>msg.id===assistantId?{...msg,resources:[...(msg.resources||[]),r]}:msg));void openResource(r,true);}void refresh();}
+    if(event.event==="tool_result"){setActivity("");if(record(data.result).kind==="browser_session"){setPanel(true);setPanelTab("browser");}if(isResource(data.result)){const r=data.result;setMessages(m=>m.map(msg=>msg.id===assistantId?{...msg,resources:[...new Map([...(msg.resources||[]),r].map(item=>[item.id,item])).values()]}:msg));void openResource(r,true);setSnapshot(previous=>previous?{...previous,resources:[r,...previous.resources.filter(item=>item.id!==r.id)]}:previous);}}
     if(event.event==="error")throw new Error(textValue(data.message)||"Le flux a été interrompu.");
     if(event.event==="done"){confirmedDone=true;flushStreamText();setMessages(current=>current.map(message=>message.id===assistantId?{...message,status:"complete"}:message));sessionStorage.removeItem("aira.lastRun");}
    }
    if(!confirmedDone)throw new Error("La connexion a été interrompue avant confirmation. Les résultats reçus sont conservés.");
   }catch(e:unknown){flushStreamText();const cancelled=e instanceof Error&&e.name==="AbortError";if(!confirmedDone)setMessages(current=>current.map(message=>message.id===assistantId?{...message,status:cancelled?"cancelled":"error"}:message));setResponseStatus(current=>agentStatusEvent(current,cancelled?"cancelled":"error"));if(!cancelled)setError(errorMessage(e));if(!started)setDraft(text);}finally{responseInFlight.current=false;flushStreamText();setBusy(false);setActivity("");setRunId("");void refresh();}
  };
- const stop=async()=>{flushStreamText();if(runId)try{await api("/api/chat",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({runId})});}catch(e:unknown){setError(errorMessage(e));}controller.current?.abort();setBusy(false);};
+ const stop=async()=>{flushStreamText();controller.current?.abort();setBusy(false);if(runId)try{await api("/api/chat",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({runId})});}catch(e:unknown){setError(errorMessage(e));}};
   const upload=async(files:FileList|null,resumeOnly=false,resumeUploadId?:string|null)=>{
    if(!files?.length)return;if(authRequired){setModal("auth");return;}if(uploadInFlight.current||uploading){setToast("Un envoi est déjà en cours.");return;}uploadInFlight.current=true;
    const selectedFiles=Array.from(files);if(attachments.length+selectedFiles.length>FILE_POLICY.currentComposerMaxFiles){uploadInFlight.current=false;setError(`Vous pouvez joindre jusqu’à ${FILE_POLICY.currentComposerMaxFiles} fichiers.`);return;}

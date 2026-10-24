@@ -9,7 +9,7 @@ import {modelRateSchema} from './model-protocol';
 
 type DurableMission={id:string;workspace_id:string;organization_id:string;actor_id:string;approved_version:number;mandate:string;status:string;cursor:number;budget_units:number;spent_units:number;reserved_units:number;expires_at:number;next_at:number;lease_token:string|null;lease_until:number};
 type DurableStep={id:string;mission_id:string;ordinal:number;status:string;run_id:string;conversation_id:string;reserved_units:number;result:string|null;error:string|null};
-export type MissionRunner=(tenant:string,conversationId:string,runId:string,emit:(type:string,data:unknown)=>Promise<void>,signal:AbortSignal,budget:RunBudget)=>Promise<void>;
+export type MissionRunner=(tenant:string,conversationId:string,runId:string,emit:(type:string,data:unknown)=>Promise<void>,signal:AbortSignal,budget:RunBudget,workMode?:'accompanied'|'autonomous'|'approved_mission')=>Promise<void>;
 async function browserMission(who:BillingIdentity,id:string){const row=await db().prepare('SELECT user_id FROM browser_sessions WHERE id=? AND workspace_id=?').bind(id,who.tenant).first<{user_id:string}>();if(row&&row.user_id!==who.user.userId)throw new AppError('Mission privée introuvable.',404);return row;}
 async function rejectBrowserMission(who:BillingIdentity,id:string){if(await browserMission(who,id))throw new AppError('Gérez cette mission dans le panneau Navigateur privé.',409,'browser_use_private_panel');}
 const q=(sql:string,...args:(string|number|null)[])=>db().prepare(sql).bind(...args);
@@ -171,7 +171,7 @@ export async function runDurableTick(runner?:MissionRunner){
      if(!current||current.expires_at<=Date.now()||latest.version!==m.approved_version){abort.abort();throw new AppError('Le mandat a expiré ou le plan a changé. Aucune nouvelle étape ne sera exécutée.',409,'mandate_expired');}
      await authorize(m.workspace_id,m.actor_id,'write');await requireMissionPlan(m.organization_id);
     };
-    budget.beforeTool=assertMandate;
+    budget.beforeTool=assertMandate;budget.beforeModel=assertMandate;
     const emit=async(type:string,data:unknown)=>{
      if(Date.now()-lastHeartbeat>1000||type==='tool_start'){
       await assertMandate();lastHeartbeat=Date.now();await db().batch([q('UPDATE durable_missions SET lease_until=? WHERE id=? AND lease_token=?',Date.now()+240000,m.id,token),q('UPDATE runs SET updated_at=? WHERE id=?',Date.now(),runId)]);
@@ -180,7 +180,7 @@ export async function runDurableTick(runner?:MissionRunner){
      if(type==='text_delta'&&data&&typeof data==='object'&&'text' in data&&typeof data.text==='string'&&data.text.trim()||result&&typeof result.id==='string'&&typeof result.kind==='string')delivered=true;
      await q('INSERT INTO events(run_id,type,data,created_at) VALUES (?,?,?,?)',runId,type,JSON.stringify(data),Date.now()).run();
     };
-    const execute=runner||(await import('./agent')).runAgent;await execute(m.workspace_id,conversation.id,runId,emit,AbortSignal.any([abort.signal,AbortSignal.timeout(180000)]),budget);await assertMandate();
+    const execute=runner||(await import('./agent')).runAgent;await execute(m.workspace_id,conversation.id,runId,emit,AbortSignal.any([abort.signal,AbortSignal.timeout(180000)]),budget,'approved_mission');await assertMandate();
     if(!delivered)throw new AppError('Aucun résultat vérifiable n’a été enregistré pour cette étape.',502,'mission_result_missing');
     await q("UPDATE runs SET status='completed',updated_at=? WHERE id=? AND status='streaming'",Date.now(),runId).run();await finishRunBudget(budget);
     const hold=await q('SELECT status,actual FROM credit_holds WHERE id=?',budget.holdId).first<{status:string;actual:number}>();

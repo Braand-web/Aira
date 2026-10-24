@@ -6,3 +6,5 @@ Les demandes peuvent concerner les performances, créations, campagnes, ventes, 
 Une proposition en attente de validation, une fonctionnalité indisponible ou une limite de crédits/étapes doit rester explicite. Aïra conserve les livrables obtenus et distingue le résultat livré de la suite bloquée ; aucune exécution externe ou en arrière-plan n’est promise sans confirmation du système.
 Aucune donnée de démonstration présentée comme un résultat. Capacités sans configuration signalées. Interface française ; kit Muse v3 fourni par le client comme référence visuelle, identité Aïra conservée.
 
+
+Le harness agentique conserve le modèle comme décideur et ajoute des plans/checkpoints versionnés, des contrats de collaboration et des reçus structurels de livrables. Les checkpoints et données retrouvées restent non fiables et ne créent aucun droit. La langue du travail suit celle demandée, dans les capacités du modèle configuré. Une vérification structurelle ou un avis de spécialiste ne prouve pas une exécution externe. La migration et les limites d'activation sont détaillées dans `docs/AGENT_HARNESS_AUDIT.md`.

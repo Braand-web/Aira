@@ -9,6 +9,10 @@ test('Working labels follow actual stream events and keep the original start tim
   status=agentStatusEvent(status,'specialist_start',{role:'creative'},3000);
   assert.equal(status.state,'analyzing');
   assert.equal(status.detail,'Spécialiste créatif');
+  status=agentStatusEvent(status,'specialist_start',{role:'review'},3100);
+  assert.equal(status.detail,'Vérification du livrable');
+  status=agentStatusEvent(status,'specialist_start',{role:'analysis'},3200);
+  assert.equal(status.detail,'Analyse spécialisée');
   status=agentStatusEvent(status,'tool_start',{name:'read_meta'},4000);
   assert.equal(status.detail,'Lecture des données Meta');
   status=agentStatusEvent(status,'tool_result',{},5000);

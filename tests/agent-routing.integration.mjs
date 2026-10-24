@@ -189,4 +189,88 @@ await check('automatic business memory cannot load the facts of another tenant',
  try{fixture.headers=new Headers({'x-aira-identity-id':'another-memory-owner','x-aira-identity-email':'other@test.invalid'});const owner=await server.identity(new Request('https://aira.test/api/chat'));foreign=await server.createResource(owner.tenant,'knowledge','Mémoire privée étrangère',{content:'FOREIGN_MEMORY_MARKER',source:'Autre entreprise'},'saved');}finally{fixture.headers=originalHeaders;}
  const execution=await setup();fixture.responses=[text('Votre contexte uniquement est disponible.')];await run(execution);assert.ok(!memoryOf(fixture.requests[0]).items.some(item=>item.id===foreign.id));assert.doesNotMatch(JSON.stringify(fixture.requests[0].body),/FOREIGN_MEMORY_MARKER/);
 });
+
+const scopeFor=execution=>({tenant:who.tenant,conversationId:execution.conversationId,runId:execution.runId,coveredRowid:sql.prepare('SELECT MAX(rowid) seq FROM messages WHERE conversation_id=?').get(execution.conversationId).seq});
+const scoped=(execution,name,input)=>agent.executeTool(who.tenant,name,input,undefined,scopeFor(execution));
+await check('complex work can persist a dynamic plan but cycles, stale versions and unverified completion are rejected',async()=>{
+ const execution=await setup(),step={id:'research',title:'Rechercher les faits',dependsOn:[],criteria:['Sources disponibles'],state:'pending',resourceIds:[]};
+ const plan=await scoped(execution,'update_work_plan',{version:0,objective:'Préparer un contenu',steps:[step,{...step,id:'write',title:'Rédiger',dependsOn:['research']}]});assert.equal(plan.version,1);
+ await assert.rejects(()=>scoped(execution,'update_work_plan',{id:plan.id,version:0,objective:'Périmé',steps:[step]}),error=>error.code==='stale_plan');
+ await assert.rejects(()=>scoped(execution,'update_work_plan',{version:0,objective:'Cycle',steps:[{...step,dependsOn:['write']},{...step,id:'write',dependsOn:['research']}]}),/cyclique/);
+ await assert.rejects(()=>scoped(execution,'update_work_plan',{version:0,objective:'Fausse réussite',steps:[{...step,state:'verified'}]}),/livrable/);
+ fixture.responses=[text('Le travail reprend son plan enregistré.')];await run(execution);assert.match(fixture.requests[0].body.system.find(block=>block.text.startsWith('Persistent context')).text,/Préparer un contenu/);
+});
+await check('independent deterministic verification reads real artifacts and invalidates proof after a revision',async()=>{
+ const execution=await setup(),artifact=await agent.executeTool(who.tenant,'save_deliverable',{title:'Rapport vérifiable',content:'Analyse des faits fournis.',summary:'Bilan',category:'management',sources:['Message client']});
+ const result=await scoped(execution,'verify_deliverable',{id:artifact.id,version:1,criteria:['Rapport présent'],requiredSources:true,requiredResourceIds:[]});assert.equal(result.status,'structurally_verified');assert.equal(result.semanticReview,'required');assert.equal(result.executionConfirmed,false);
+ const step={id:'report',title:'Rapport',dependsOn:[],criteria:['Rapport présent'],state:'verified',resourceIds:[artifact.id]};await scoped(execution,'update_work_plan',{version:0,objective:'Bilan structurel',steps:[step]});
+ await server.updateResource(who.tenant,artifact.id,1,{data:{...artifact.data,content:'Version corrigée'}});
+ await assert.rejects(()=>scoped(execution,'update_work_plan',{version:0,objective:'Ancienne preuve',steps:[step]}),error=>error.code==='verification_required');
+ const old=await scoped(execution,'verify_deliverable',{id:artifact.id,version:1,criteria:['Version exacte'],requiredSources:true,requiredResourceIds:[]});assert.equal(old.status,'partial');
+ const empty=await server.createResource(who.tenant,'media','Sans image',{output:{images:[]}},'ready');assert.equal((await scoped(execution,'verify_deliverable',{id:empty.id,version:1,criteria:['Média'],requiredSources:false,requiredResourceIds:[]})).status,'partial');
+});
+await check('long conversations compact into persistent decisions and preserve recent multilingual context without a model summarization call',async()=>{
+ const execution=await setup();for(let i=0;i<70;i++)for(const role of ['user','assistant'])sql.prepare('INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,?,?,?)').run(crypto.randomUUID(),who.tenant,execution.conversationId,role,JSON.stringify([{type:'text',text:'Échange ancien '+i+' '.repeat(50)}]),Date.now());
+ const checkpoint=await scoped(execution,'save_work_checkpoint',{version:0,summary:'Le budget approuvé par le client est 50000 XAF.',decisions:['Conserver les noms de marque'],pending:['Rapport à terminer'],resourceIds:[],language:'fr'});assert.equal(checkpoint.version,1);
+ fixture.responses=[text('سأحافظ على أسماء العلامات والعملات.')];await run(execution);const request=fixture.requests[0];assert.equal(fixture.requests.length,1);const context=request.body.system.find(block=>block.text.startsWith('Persistent context')).text;assert.match(context,/50000 XAF/);assert.match(context,/Rapport à terminer/);assert.ok(request.body.messages.length<40);
+ const archive=await scoped(execution,'search_conversation',{query:'Échange ancien 0'});assert.ok(archive.messages.length>0);
+ await assert.rejects(()=>scoped(execution,'save_work_checkpoint',{version:0,summary:'Périmé',decisions:[],pending:[],resourceIds:[],language:'en'}),error=>error.code==='stale_checkpoint');
+});
+await check('unresolved durable tool receipts block replay even after the in-memory cache is gone',async()=>{
+ const execution=await setup();sql.prepare("INSERT INTO agent_tool_receipts(workspace_id,run_id,fingerprint,tool,status,updated_at) VALUES (?,?,?,'save_knowledge','pending',?)").run(who.tenant,execution.runId,'existing',Date.now());
+ // Force a transport-unknown local write, then ask the same tool with the same arguments.
+ const input={title:'Unknown local result',content:'Fact',source:'User'};
+ const digest=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('save_knowledge:'+JSON.stringify({content:input.content,source:input.source,title:input.title})))).toString('hex');
+ sql.prepare("INSERT INTO agent_tool_receipts(workspace_id,run_id,fingerprint,tool,status,updated_at) VALUES (?,?,?,'save_knowledge','uncertain',?)").run(who.tenant,execution.runId,digest,Date.now());
+ fixture.responses=[call('uncertain-replay','save_knowledge',input),text('Le résultat doit être rapproché.')];await run(execution);assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE title=?").get(input.title).n,0);assert.equal(fixture.requests[1].body.messages.at(-1).content[0].is_error,true);
+});
+await check('approved mission execution exposes internal work only while the client planning mode stays restricted',async()=>{
+ const execution=await setup();fixture.responses=[text('Étape du mandat examinée.')];await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emit,signal(),execution.budget,'approved_mission');const names=fixture.requests[0].body.tools.map(tool=>tool.name);for(const name of ['save_deliverable','verify_deliverable','update_work_plan'])assert.ok(names.includes(name));for(const name of ['aira_connector_action','browser_plan','save_campaign_plan','save_knowledge'])assert.ok(!names.includes(name));assert.equal(fixture.external.length,0);
+});
+await check('structured specialist contracts constrain profile, tools, budget and output without confirming execution',async()=>{
+ const execution=await setup(),contract={references:[],allowedTools:['search_skills'],maxCredits:3,expectedDeliverable:'A concise source-grounded outline',successCriteria:['One useful outline']};
+ const output={status:'ready_for_review',deliverable:'Outline from supplied facts.',sources:['User context'],checks:[{criterion:'One useful outline',finding:'Outline included',status:'supported'}],limitations:['Not independently fact-checked']};fixture.responses=[text(JSON.stringify(output))];
+ const result=await agent.runSpecialist(who.tenant,execution.runId,{role:'creative',specialty:'community_manager',task:'Préparer une publication',context:'Facts provided by this workspace',contract},emit,signal(),execution.budget);assert.equal(result.contractResult.status,'ready_for_review');assert.equal(result.executionConfirmed,false);assert.ok(fixture.requests[0].budget.limit<=300);assert.deepEqual(fixture.requests[0].body.tools.map(tool=>tool.name),['search_skills']);
+ await assert.rejects(()=>agent.runSpecialist(who.tenant,execution.runId,{role:'extraction',specialty:'quality_reviewer',task:'Invalid profile',context:'',contract},emit,signal(),execution.budget),error=>error.code==='specialist_profile_invalid');
+});
+await check('multilingual skill selection uses the principal model selected catalog IDs without granting tools',async()=>{
+ for(const query of ['اكتب إعلانًا لمنتجي','为产品撰写广告文案','Write ad copy','Rédige une annonce']){const selected=await agent.executeTool(who.tenant,'search_skills',{query,semanticIds:['copywriting']});assert.equal(selected.skills[0].id,'copywriting');assert.equal(selected.strategy,'model_selected_and_lexical');assert.equal('content' in selected.skills[0],false);}
+});
+
+
+await check('large private image blocks survive bounded conversational context unchanged',async()=>{
+ const execution=await setup(),image=Buffer.alloc(60000,65).toString('base64');sql.prepare('INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,\'user\',?,?)').run(crypto.randomUUID(),who.tenant,execution.conversationId,JSON.stringify([{type:'image',source:{type:'base64',media_type:'image/png',data:image}}]),Date.now());fixture.responses=[text('Image reçue.')];await run(execution);assert.equal(fixture.requests[0].body.messages.flatMap(message=>message.content).find(block=>block.type==='image').source.data,image);
+});
+await check('a confirmed local receipt restores a missing historical result without executing the write again',async()=>{
+ const execution=await setup(),input={title:'Recovered existing fact',content:'Confirmed fact',source:'User'},resource=await agent.executeTool(who.tenant,'save_knowledge',input);
+ sql.prepare('INSERT INTO messages(id,workspace_id,conversation_id,role,content,run_id,created_at) VALUES (?,?,?,\'assistant\',?,?,?)').run(crypto.randomUUID(),who.tenant,execution.conversationId,JSON.stringify([{type:'tool_use',id:'interrupted-local',name:'save_knowledge',input}]),execution.runId,Date.now());
+ const key='save_knowledge:'+JSON.stringify({content:input.content,source:input.source,title:input.title}),fingerprint=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key))).toString('hex');sql.prepare("INSERT INTO agent_tool_receipts(workspace_id,run_id,fingerprint,tool,status,result,updated_at) VALUES (?,?,?,'save_knowledge','confirmed',?,?)").run(who.tenant,execution.runId,fingerprint,JSON.stringify(resource),Date.now());fixture.responses=[text('Le fait déjà enregistré est conservé.')];await run(execution);
+ const recovered=fixture.requests[0].body.messages.flatMap(message=>message.content).find(block=>block.tool_use_id==='interrupted-local');assert.equal(JSON.parse(recovered.content).recoveredWithoutExecution,true);assert.equal(fixture.beforeTools,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM resources WHERE title=?').get(input.title).n,1);
+});
+await check('an unresolved historical action blocks model continuation instead of disappearing from context',async()=>{
+ for(const linkedRun of [true,false]){
+ const execution=await setup();sql.prepare('INSERT INTO messages(id,workspace_id,conversation_id,role,content,run_id,created_at) VALUES (?,?,?,\'assistant\',?,?,?)').run(crypto.randomUUID(),who.tenant,execution.conversationId,JSON.stringify([{type:'tool_use',id:'unknown-action',name:'aira_connector_action',input:{}}]),linkedRun?execution.runId:null,Date.now());await assert.rejects(()=>run(execution),error=>error.code==='history_needs_reconciliation');assert.equal(fixture.requests.length,0);assert.equal(fixture.external.length,0);
+ }
+});
+await check('generic agent resource access cannot bypass private connector receipt authorization',async()=>{
+ const action=await server.createResource(who.tenant,'connector_action','Private connector receipt',{requester:'another-user',result:'PRIVATE_RESULT'},'completed');await assert.rejects(()=>agent.executeTool(who.tenant,'get_workspace_resource',{id:action.id}),error=>error.status===404);
+});
+
+
+await check('end-to-end complex work combines a plan, two specialists, saved artifact, deterministic verification and independent review',async()=>{
+ const execution=await setup(),title='Integrated growth deliverable',step={id:'deliver',title:'Deliver integrated content',dependsOn:[],criteria:['Sources and useful content'],state:'pending',resourceIds:[]};
+ const contract={references:[],allowedTools:[],maxCredits:3,expectedDeliverable:'Useful bounded contribution',successCriteria:['Sources and useful content']};
+ const output={status:'ready_for_review',deliverable:'Use supplied facts and prepare a reviewable draft.',sources:['User context'],checks:[{criterion:'Sources and useful content',finding:'Draft grounded in supplied facts',status:'supported'}],limitations:['No external execution']};
+ const plan=()=>sql.prepare('SELECT id,version FROM agent_plans WHERE run_id=? ORDER BY rowid DESC LIMIT 1').get(execution.runId),artifact=()=>sql.prepare("SELECT id,version FROM resources WHERE workspace_id=? AND kind='deliverable' AND title=?").get(who.tenant,title);
+ fixture.responses=[call('complex-plan','update_work_plan',{version:0,objective:'Produce integrated growth content',steps:[step]}),stream([{type:'tool_use',id:'creative-input',name:'delegate_specialist',input:{role:'creative',specialty:'creative_director',task:'Prepare creative direction',context:'User supplied business facts',contract}},{type:'tool_use',id:'growth-input',name:'delegate_specialist',input:{role:'campaigns',specialty:'growth_strategist',task:'Prepare growth recommendation',context:'User supplied business facts',contract}}]),text(JSON.stringify(output)),text(JSON.stringify(output)),call('integrated-save','save_deliverable',{title,content:'# Integrated draft\nUse the supplied business facts.',summary:'Integrated reviewable content',category:'marketing',sources:['User context']}),()=>call('independent-verification','verify_deliverable',{...artifact(),criteria:['Sources and useful content'],requiredSources:true,requiredResourceIds:[]}),()=>call('quality-review','delegate_specialist',{role:'review',specialty:'quality_reviewer',task:'Review the saved deliverable against the criteria',context:'Check actual saved reference; no execution is claimed',contract:{...contract,references:[artifact().id]}}),text(JSON.stringify(output)),()=>call('verified-plan','update_work_plan',{...plan(),objective:'Produce integrated growth content',steps:[{...step,state:'verified',resourceIds:[artifact().id]}]}),text('The private deliverable is saved, structurally checked and reviewed; publication remains unexecuted.')];
+ const started=performance.now();await run(execution);const elapsedMs=performance.now()-started;assert.equal(fixture.requests.length,10);assert.equal(fixture.requests.filter(request=>request.role==='specialist').length,3);assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE workspace_id=? AND kind='deliverable' AND title=?").get(who.tenant,title).n,1);assert.equal(sql.prepare('SELECT COUNT(*) n FROM agent_verifications WHERE resource_id=?').get(artifact().id).n,2);assert.deepEqual(fixture.external,[]);assert.equal(fixture.responses.length,0);
+ mkdirSync(path.join(project,'.tmp'),{recursive:true});const {writeFileSync}=await import('node:fs');writeFileSync(path.join(project,'.tmp','agent-complex-eval.json'),JSON.stringify({environment:'scripted model responses; real local SQLite runtime',requests:fixture.requests.length,specialists:3,artifacts:1,structuralChecks:2,externalActions:0,elapsedMs,semanticQualityInProduction:null,realProviderCost:null},null,2));
+});
+
+await check('parallel independent reads preserve one ordered result per call even when notification delivery fails',async()=>{
+ const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'parallel-first',name:'search_workspace',input:{kind:'knowledge'}},{type:'tool_use',id:'parallel-second',name:'search_skills',input:{query:'copywriting'}}]),text('The available context has been read.')];
+ let notifySecond;const secondNotified=new Promise(resolve=>{notifySecond=resolve;});const emitter=async(type,data)=>{await emit(type,data);if(type==='tool_result'&&data.id==='parallel-first'&&!data.error){await secondNotified;throw Error('Notification unavailable');}if(type==='tool_result'&&data.id==='parallel-second')notifySecond();};
+ await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emitter,signal(),execution.budget);const results=fixture.requests[1].body.messages.at(-1).content;assert.deepEqual(results.map(result=>result.tool_use_id),['parallel-first','parallel-second']);assert.equal(results[0].is_error,true);assert.equal(results[1].is_error,undefined);assert.equal(fixture.requests.length,2);assert.equal(fixture.external.length,0);
+});
+
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');

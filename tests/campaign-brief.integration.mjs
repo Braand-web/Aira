@@ -21,7 +21,7 @@ await build({entryPoints:[path.join(root,'app/api/resources/[id]/route.ts')],out
  export function failure(error){return Response.json({error:error.message},{status:error.status||400});}
  `}));
 }}]});
-const {PATCH}=await import(pathToFileURL(output).href);
+const {PATCH,GET}=await import(pathToFileURL(output).href);
 const brief={...campaignBrief(base.data),offer:'Offre',audience:'Public',dailyBudget:100,currency:'XAF',creativeIds:['media'],pageId:'page'};
 const patch=(body,id='campaign')=>PATCH(new Request('http://localhost/api/resources/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),{params:Promise.resolve({id})});
 let response=await patch({action:'campaign_brief',version:1,title:'Plan affiné',brief});assert.equal(response.status,200);let saved=await response.json();assert.equal(saved.version,2);assert.equal(saved.status,'draft');assert.equal(saved.title,'Plan affiné');assert.equal(saved.data.privateContext,'keep');assert.equal(saved.data.briefHistory[0].version,1);assert.equal(fixture.audit.length,1);assert.equal(fixture.updates.length,1);
@@ -35,3 +35,5 @@ assert.equal((await patch({action:'campaign_brief',version:1,brief},'page')).sta
 fixture.role='reader';assert.equal((await patch({action:'campaign_brief',version:2,brief})).status,403);assert.equal(fixture.updates.length,1);
 fixture.role='editor';fixture.resources.get('campaign').status='active';assert.equal((await patch({action:'campaign_brief',version:2,brief})).status,409);assert.equal(fixture.updates.length,1);
 console.log('PASS campaign brief PATCH: versioned draft-only updates, preserved context/history, tenant-owned references, role denial and no advertising execution');
+
+fixture.role='editor';fixture.resources.set('private-action',{...base,id:'private-action',kind:'connector_action',data:{requester:'another-user'}});fixture.resources.set('own-action',{...base,id:'own-action',kind:'connector_action',data:{requester:'editor'}});const get=id=>GET(new Request('http://localhost/api/resources/'+id),{params:Promise.resolve({id})});assert.equal((await get('private-action')).status,404);assert.equal((await get('own-action')).status,200);console.log('PASS generic resource HTTP reads enforce private connector ownership');

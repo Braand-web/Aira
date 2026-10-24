@@ -3,6 +3,7 @@ import {routingEnabled,routedModel} from '@/lib/model-router';
 import {z} from "zod";
 import {identity,db,uid,getResource,createResource,failure,config} from "@/lib/server";
 import {runAgent} from "@/lib/agent";
+import {bufferedAgentEvents} from "@/lib/agent-events";
 import {AppError} from "@/lib/core.mjs";
 import {startRunBudget,finishRunBudget,type RunBudget} from '@/lib/metering';
 import {FILE_POLICY,safeFileDto} from '@/lib/file-policy.mjs';
@@ -26,10 +27,10 @@ export async function POST(request:Request){
   const encoder=new TextEncoder(),abort=new AbortController();let clientClosed=false,lastHeartbeat=Date.now();
   const stream=new ReadableStream({
    async start(controller){
-    const emit=async(type:string,data:unknown)=>{if(Date.now()-lastHeartbeat>30000){lastHeartbeat=Date.now();await db().prepare("UPDATE runs SET updated_at=? WHERE id=? AND status='streaming'").bind(lastHeartbeat,runId).run();}const saved=await db().prepare("INSERT INTO events (run_id,type,data,created_at) VALUES (?,?,?,?)").bind(runId,type,JSON.stringify(data),Date.now()).run();if(!clientClosed)controller.enqueue(encoder.encode("id: "+saved.meta.last_row_id+"\nevent: "+type+"\ndata: "+JSON.stringify(data)+"\n\n"));};
-    try{await emit("run",{runId,conversationId});await runAgent(tenant,conversationId,runId,emit,abort.signal,budget!,body.workMode);await db().prepare("UPDATE runs SET status='completed',updated_at=? WHERE id=?").bind(Date.now(),runId).run();await emit("done",{runId});}
-    catch(error){const message=error instanceof AppError?error.message:"Le flux a été interrompu. Les étapes terminées restent enregistrées.";await db().prepare("UPDATE runs SET status=CASE WHEN status='cancelled' THEN status WHEN ? IN ('budget_exhausted','step_limit') THEN 'partial' ELSE 'failed' END,error=?,updated_at=? WHERE id=?").bind(error instanceof AppError?error.code:"technical_failure",message,Date.now(),runId).run();if(!clientClosed)await emit("error",{message});}
-    finally{try{await finishRunBudget(budget!);}finally{await db().prepare("UPDATE resources SET status='saved',updated_at=? WHERE id=? AND workspace_id=?").bind(Date.now(),conversationId,tenant).run();if(!clientClosed)controller.close();}}
+    const buffered=bufferedAgentEvents(async(type:string,data:unknown)=>{if(Date.now()-lastHeartbeat>30000){lastHeartbeat=Date.now();await db().prepare("UPDATE runs SET updated_at=? WHERE id=? AND status='streaming'").bind(lastHeartbeat,runId).run();await db().prepare("UPDATE resources SET updated_at=? WHERE id=? AND workspace_id=? AND status='streaming'").bind(lastHeartbeat,conversationId,tenant).run();}const saved=await db().prepare("INSERT INTO events (run_id,type,data,created_at) VALUES (?,?,?,?)").bind(runId,type,JSON.stringify(data),Date.now()).run();if(!clientClosed)controller.enqueue(encoder.encode("id: "+saved.meta.last_row_id+"\nevent: "+type+"\ndata: "+JSON.stringify(data)+"\n\n"));});const emit=buffered.emit;
+    try{await emit("run",{runId,conversationId});await runAgent(tenant,conversationId,runId,emit,abort.signal,budget!,body.workMode);const completed=await db().prepare("UPDATE runs SET status='completed',updated_at=? WHERE id=? AND workspace_id=? AND status='streaming'").bind(Date.now(),runId,tenant).run();if(!completed.meta.changes)throw new AppError('Réponse arrêtée.',499,'cancelled');await emit("done",{runId});}
+    catch(error){await buffered.flush().catch(()=>undefined);await persistPartialText(tenant,conversationId,runId);const message=error instanceof AppError?error.message:"Le flux a été interrompu. Les étapes terminées restent enregistrées.";await db().prepare("UPDATE runs SET status=CASE WHEN status='cancelled' THEN status WHEN ? IN ('budget_exhausted','step_limit') THEN 'partial' ELSE 'failed' END,error=?,updated_at=? WHERE id=?").bind(error instanceof AppError?error.code:"technical_failure",message,Date.now(),runId).run();if(!clientClosed)await emit("error",{message});}
+    finally{try{await buffered.flush().catch(()=>undefined);await finishRunBudget(budget!);}finally{await db().prepare("UPDATE resources SET status='saved',updated_at=? WHERE id=? AND workspace_id=?").bind(Date.now(),conversationId,tenant).run();if(!clientClosed)controller.close();}}
    },cancel(){clientClosed=true;abort.abort();}
   });
   return new Response(stream,{headers:{"Content-Type":"text/event-stream","Cache-Control":"no-cache, no-transform","X-Accel-Buffering":"no"}});
@@ -37,7 +38,7 @@ export async function POST(request:Request){
 }
 export async function GET(request:Request){try{
  const {tenant,user}=await identity(request),url=new URL(request.url),runId=url.searchParams.get("runId"),conversationId=url.searchParams.get("conversationId");
- if(runId){const run=await db().prepare("SELECT * FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first();if(!run)throw new AppError("Réponse introuvable.",404);const cursor=Math.max(0,Number(url.searchParams.get("after"))||0);const events=await db().prepare("SELECT seq,type,data FROM events WHERE run_id=? AND seq>? ORDER BY seq LIMIT 2000").bind(runId,cursor).all<{seq:number;type:string;data:string}>();return Response.json({run,events:events.results.map(r=>({...r,data:JSON.parse(r.data)}))});}
+ if(runId){const run=await db().prepare("SELECT id,workspace_id,conversation_id,status,error,created_at,updated_at FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first();if(!run)throw new AppError("Réponse introuvable.",404);const rawCursor=Number(url.searchParams.get("after")||0);if(!Number.isSafeInteger(rawCursor)||rawCursor<0)throw new AppError("Curseur invalide.");const cursor=rawCursor;const events=await db().prepare("SELECT seq,type,data FROM events WHERE run_id=? AND seq>? ORDER BY seq LIMIT 2000").bind(runId,cursor).all<{seq:number;type:string;data:string}>();return Response.json({run,events:events.results.map(r=>({...r,data:JSON.parse(r.data)})),nextAfter:events.results.at(-1)?.seq??cursor,hasMore:events.results.length===2000});}
  if(!conversationId)throw new AppError("Discussion requise.");await getResource(tenant,conversationId);
  type StoredMessage={id:string;role:string;content:string;attachments:string;created_at:number;run_id:string|null;run_status:string|null;feedback:'up'|'down'|null};
  type MessageBlock={type:string;text?:string};
@@ -58,3 +59,9 @@ export async function PATCH(request:Request){try{
 export async function DELETE(request:Request){try{const {tenant}=await identity(request);const {runId}=z.object({runId:z.string()}).parse(await request.json());await db().prepare("UPDATE runs SET status='cancelled',updated_at=? WHERE id=? AND workspace_id=? AND status='streaming'").bind(Date.now(),runId,tenant).run();return Response.json({stopped:true});}catch(error){return failure(error);}}
 
 
+
+async function persistPartialText(tenant:string,conversationId:string,runId:string){
+ const events=await db().prepare("SELECT data FROM events WHERE run_id=? AND type='text_delta' AND seq>COALESCE((SELECT MAX(seq) FROM events WHERE run_id=? AND type='assistant_message'),0) ORDER BY seq").bind(runId,runId).all<{data:string}>();
+ const text=events.results.map(event=>{try{return String(JSON.parse(event.data).text||'');}catch{return '';}}).join('');
+ if(text.trim())await db().prepare("INSERT INTO messages(id,workspace_id,conversation_id,role,content,run_id,created_at) VALUES (?,?,?,'assistant',?,?,?)").bind(uid(),tenant,conversationId,JSON.stringify([{type:'text',text}]),runId,Date.now()).run();
+}

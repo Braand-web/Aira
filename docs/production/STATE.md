@@ -148,3 +148,7 @@ Branche locale : `audit/2026-10-18`, remote `origin` vers `https://github.com/Br
 La documentation publique de prix est datée du 18 octobre 2026 dans `COST_SOURCES.md`. Les prix publics ne remplacent pas les tarifs/factures du compte réel. Le seuil de marge de 75 % n'est pas démontré : coûts fournisseur, frais de paiement, taxes, change, support et consommation réelle restent à mesurer.
 
 Le manifeste de build contient `DB`, `BUCKET` et le cron de cinq minutes ; cela prouve uniquement la configuration générée localement. Les ressources Cloudflare, secrets, domaine, déclencheur distant, e-mails, comptes Meta et SasPay demeurent à valider en staging avant toute bascule live.
+
+## Évolution agentique préparée localement — non déployée
+
+La migration additive `0015_agent_harness.sql` ajoute plans, checkpoints, vérifications et reçus locaux. Elle doit être appliquée avant un déploiement du nouveau runtime et n'est pas incluse dans les 15 migrations distantes constatées plus haut. Aucun drapeau fournisseur n'a été activé. Le rapport `../AGENT_HARNESS_AUDIT.md` et ses mesures distinguent les validations locales des validations restant à faire avec les comptes réels.
