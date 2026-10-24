@@ -1,5 +1,7 @@
 # Audit et renforcement du harness agentique — 24 octobre 2026
 
+> Mise à jour après l'audit : à la demande du propriétaire, la migration `0015_agent_harness.sql` a été appliquée et vérifiée sur D1 distante `aira-staging` le 24 octobre 2026 à 09:16:34 UTC : 16 migrations, quatre tables et deux index présents, aucune anomalie de clé étrangère ni migration en attente. Les mentions de migration distante non effectuée ci-dessous décrivent l'état initial de l'audit. Le nouveau runtime reste non déployé. Voir `production/STATE.md`.
+
 ## Portée et référence
 
 Référence auditée : `ad41c5f` sur `feat/global-workflow`, dépôt Braand-web/Aira. Le code réel est la référence, et non les captures de démonstration. L'audit préalable et les priorités ont été présentés dans la conversation avant les modifications. Le SaaS, la stack Workers/D1/R2, les offres, les routes métier et les droits sont conservés. Aucun déploiement, migration distante, paiement ni appel fournisseur facturé n'a été effectué pour cette évolution.
