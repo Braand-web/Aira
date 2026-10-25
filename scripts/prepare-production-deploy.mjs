@@ -19,7 +19,14 @@ const config={name:script,account_id:account,main:path.join(root,'dist/server/in
  d1_databases:[{binding:'DB',database_id:database.id,database_name:'aira-production',migrations_dir:path.join(root,'drizzle')}],
  r2_buckets:[{binding:'BUCKET',bucket_name:files.bucket_name},{binding:'BACKUP_BUCKET',bucket_name:backups.bucket_name}],
  durable_objects:{bindings:[{name:'BROWSER_SESSIONS',class_name:browserSessions.class_name||'BrowserSession'}]},
- migrations:built.migrations,browser:built.browser,triggers:{crons:['*/5 * * * *']},observability:{enabled:false}};
+ migrations:built.migrations,browser:built.browser,triggers:{crons:['*/5 * * * *','* * * * *']},observability:{enabled:false}};
+const workQueue=bindings.find(item=>item.name==='WORK_QUEUE'&&item.type==='queue')?.queue_name||process.env.BRAAND_PRODUCTION_WORK_QUEUE;
+if(workQueue){
+ if(!/^[a-z0-9][a-z0-9-]{2,62}$/.test(workQueue))throw new Error('Invalid production work queue.');
+ const deadLetter=process.env.BRAAND_PRODUCTION_WORK_DEAD_LETTER_QUEUE||workQueue+'-failed';
+ if(!/^[a-z0-9][a-z0-9-]{2,62}$/.test(deadLetter))throw new Error('Invalid production dead-letter queue.');
+ config.queues={producers:[{binding:'WORK_QUEUE',queue:workQueue}],consumers:[{queue:workQueue,max_batch_size:1,max_retries:3,dead_letter_queue:deadLetter}]};
+}
 // In particular, never replace live vars with the closed defaults from the base generator.
 await mkdir(path.join(root,'.wrangler/deploy'),{recursive:true});
 await writeFile(path.join(root,'.wrangler/deploy/production-live.json'),JSON.stringify(config,null,2)+'\n');

@@ -49,7 +49,7 @@ const allowed=new Set(["SOCIAL_PUBLISHING_ENABLED","SOCIAL_SCHEDULING_ENABLED","
 const configFile=process.env.BRAAND_CONFIG_FILE?path.resolve(process.env.BRAAND_CONFIG_FILE):path.join(project,".dev.vars");
 if(existsSync(configFile))for(const line of readFileSync(configFile,"utf8").split(/\r?\n/)){const match=line.match(/^([A-Z0-9_]+)=(.*)$/);if(match&&allowed.has(match[1]))settings[match[1]]=match[2].trim().replace(/^["']|["']$/g,"");}
 for(const [k,v] of Object.entries(process.env))if(/^(WORK_|RESEARCH_|TAVILY_|SOCIAL_|MEDIA_|APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|COMPOSIO_|RESEND_|OPS_|SASPAY_|BILLING_|OPENROUTER_|FILE_PREVIEW_V1$|FILE_URL_SIGNING_SECRET$|LLM_PROVIDER$|ANTHROPIC_|FAL_|META_|TOKEN_ENCRYPTION_KEY$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$|PAGES_ORIGIN$|PAGE_FORM_SECRET$)/.test(k))settings[k]=v;
-const context=new AsyncLocalStorage();globalThis.__airaLocal={env:{DB,BUCKET,...settings},context};
+const context=new AsyncLocalStorage();globalThis.__braandLocal={env:{DB,BUCKET,...settings},context};
 const routeFiles={
  brief:"app/api/brief/[id]/route.ts",capabilities:"app/api/capabilities/route.ts",drafts:"app/api/drafts/route.ts",memory:"app/api/memory/route.ts",skills:"app/api/skills/route.ts",work:"app/api/work/route.ts",workAction:"app/api/work/[...path]/route.ts",workTick:"app/api/internal/work-tick/route.ts",platformTick:"app/api/internal/platform-tick/route.ts",social:"app/api/social/[...path]/route.ts",socialAsset:"app/api/social-assets/[id]/route.ts",media:"app/api/media/[...path]/route.ts",
  browser:"app/api/browser/[...path]/route.ts",
