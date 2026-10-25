@@ -2,11 +2,12 @@
 
 ## Publication vérifiée
 
-- Le dépôt GitHub s’appelle `Braand-web/Braand`. Le commit `a48ad99` est publié sur `main`.
-- Le code de l’application et du centre d’aide a été publié sur le Worker qui dessert déjà `braand.fun`. Version Cloudflare : `6a12aeea-dd5e-4aad-8ac3-e4a3b63c8ee1`.
+- Le dépôt GitHub s’appelle `Braand-web/Braand`. Le commit applicatif `74d8434` est publié sur `main`.
+- Le code de l’application et du centre d’aide a été publié sur le Worker qui dessert déjà `braand.fun`. Version Cloudflare : `a0c2d6f9-c048-4723-93ec-7d98ccfc43aa`.
 - Les routes `/aide` et ses sept articles renvoient HTTP 200, avec titres, canoniques et `index, follow`. Le sitemap contient les huit URL d’aide.
 - L’accueil privé renvoie HTTP 200 et conserve `noindex, nofollow`. Les API workspace et chat restent protégées sans session (401). `/api/health` renvoie `ok`. Un slug d’article inconnu renvoie 404 et propose le retour au centre.
 - La feuille de style publique répond HTTP 200. Les pages légales gardent leurs métadonnées et leur indexation existantes.
+- Les filtres et boutons d’effacement de l’aide ont des cibles tactiles minimales de 44 px.
 
 ## Données et périmètre de cette mise en ligne
 
