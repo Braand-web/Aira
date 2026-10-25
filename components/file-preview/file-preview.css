@@ -125,6 +125,21 @@
 .file-card-open:focus-visible,.file-card-remove:focus-visible { outline: 2px solid #91a9ff; outline-offset: 2px; }
 .attachments-file-cards { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .attachments-file-cards .file-card { width: min(100%, 290px); }
+.composer .attachments-file-cards .file-card-attachment { width: 200px; max-width: 100%; height: 150px; flex: 0 0 auto; overflow: hidden; border-radius: 10px; background: #101011; }
+.composer .attachments-file-cards .file-card-attachment[data-kind="image"] { width: 150px; }
+.file-card-attachment .file-card-open { width: 100%; height: 100%; flex-direction: column; gap: 0; padding: 0; }
+.file-card-attachment-visual { position: relative; display: grid; width: 100%; min-height: 0; flex: 1; place-items: center; overflow: hidden; color: #a9a9b3; }
+.file-card-attachment-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.file-card-attachment-caption { display: flex; width: 100%; min-width: 0; height: 38px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 10px; background: #171719; color: #eeeef1; font-size: 12px; }
+.file-card-attachment-caption > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-card-attachment-caption .file-card-icon-pdf { color: #ff6268; }
+.file-card-attachment .file-card-open:disabled { cursor: not-allowed; opacity: .65; }
+.file-card-attachment .file-card-open:focus-visible { outline-offset: -3px; }
+.file-card-attachment .file-card-remove { top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; background: #171719e6; color: #eeeef1; opacity: 0; }
+.file-card-attachment:hover .file-card-remove,.file-card-attachment:focus-within .file-card-remove { opacity: 1; }
+@media (hover: none) {
+  .file-card-attachment .file-card-remove { width: 44px; height: 44px; opacity: 1; }
+}
 .message-attachments { display: flex; flex-wrap: wrap; gap: 9px; margin: 12px 0 4px; }
 .message-attachments .file-card { width: min(100%, 320px); }
 .panel-files-preview { display: grid; gap: 9px; }
