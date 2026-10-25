@@ -1,0 +1,71 @@
+{
+  "source": {
+    "repository": "User-provided social-media-manager.skill",
+    "commit": "c28fd89edc6fcfbafccf3e3cb1dac6c471f0eca80bd982d2d61983e111700bd9"
+  },
+  "license": "User-provided; no redistribution license supplied",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "bytes": 13574,
+      "sha256": "19407c8ac8566fe35aa1e86f4ace28a8e77bc311b2cb28343815bb07e4e47cf3"
+    },
+    {
+      "path": "references/content-creation.md",
+      "bytes": 7249,
+      "sha256": "43239c8a822bb5887a80a4649377f0c2ef0485ddee2aae5023804bddc3114bcb"
+    },
+    {
+      "path": "references/networks.md",
+      "bytes": 6122,
+      "sha256": "5ff162353f0bdb1b7dbba83f24001bb7f840eeacd514ae18086a7c719695f70f"
+    },
+    {
+      "path": "references/safety-compliance.md",
+      "bytes": 5652,
+      "sha256": "77ece621d1c9bb797e95805b21a8441f77191a015b33078cc8139448ba23a878"
+    },
+    {
+      "path": "references/community-management.md",
+      "bytes": 5062,
+      "sha256": "fa35364a16dfe32fdaf5187d9716460bde8110ec77d091142e43e6a6331c16f0"
+    },
+    {
+      "path": "references/planning-analytics.md",
+      "bytes": 6906,
+      "sha256": "b958343be3edfdae63ce787b2ec111f85c8d713db8d7a75d73c1069044a9e782"
+    },
+    {
+      "path": "references/africa-francophone.md",
+      "bytes": 6524,
+      "sha256": "efc51abd5f181752f252cbbd829ceff97452f81eac95880b19f26864dd27a590"
+    },
+    {
+      "path": "assets/platform_limits.json",
+      "bytes": 3507,
+      "sha256": "54fa7ec9efbbd4c56b4e5c67d1d5ee4a9c91c75810115854a13896201dff8923"
+    },
+    {
+      "path": "assets/brand_profile_template.md",
+      "bytes": 2287,
+      "sha256": "badf5c373492152215a167e85ee6ef9ec79c5cd2d895513fe71d2e43fbee0549"
+    },
+    {
+      "path": "assets/weekly_report_template.md",
+      "bytes": 1302,
+      "sha256": "84c9f1accb7abfa919b52d65d9dec962269acd1e549ee220158c0fad8ecf259c"
+    },
+    {
+      "path": "assets/post_pack_example.json",
+      "bytes": 6396,
+      "sha256": "b89edab818779e986642d656e697e9b43b23e05c340cb6029a8834398491b08f"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "scripts/validate_posts.py",
+      "bytes": 21920,
+      "sha256": "964bd00e3b3c60441d5fb10ba1f45eb1ef07ff0a90ed4e9b6feb08c8fca252d3"
+    }
+  ]
+}

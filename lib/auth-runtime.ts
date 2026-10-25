@@ -95,6 +95,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     if (token) await env.DB!.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await hash('session:' + token, env)).run();
     const response = redirect('/', setCookie(SESSION_COOKIE, '', 0));
     response.headers.append('Set-Cookie', setCookie(SESSION_COOKIE.replace('braand', LEGACY_PREFIX), '', 0));
+    response.headers.set('Clear-Site-Data','"storage"');
     return response;
   }
   // Bound bodies before parsing; never log addresses, links or provider payloads.

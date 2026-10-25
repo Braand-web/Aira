@@ -15,10 +15,17 @@ async function runScheduledTasks(
   scheduledTime: number,
   env: Cloudflare.Env,
   ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>,
+  cron?: string,
 ) {
   const secret = env.SCHEDULER_SECRET;
   if (!secret || secret.length < 32) {
     console.error("Braand scheduled tasks are not configured.");
+    return;
+  }
+  if(cron==='* * * * *'){
+    if(!['WORK_ENABLED','SOCIAL_ENABLED','MEDIA_PERSIST_ENABLED','MEDIA_RENDER_ENABLED'].some(key=>(env as unknown as Record<string,string>)[key]==='true'))return;
+    const response=await runWithConnectorBinding(undefined,()=>handler.fetch(new Request('https://aira.internal/api/internal/platform-tick',{method:'POST',headers:{authorization:'Bearer '+secret}}),env,ctx));
+    if(!response.ok)await raiseOperationalAlert('platform:'+Math.floor(scheduledTime/60000),'scheduled_task_failed','platform');
     return;
   }
   const slot = Math.floor(scheduledTime / 300_000);
@@ -96,6 +103,13 @@ export default {
     env: Cloudflare.Env,
     ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>,
   ) {
-    ctx.waitUntil(runScheduledTasks(controller.scheduledTime, env, ctx));
+    ctx.waitUntil(runScheduledTasks(controller.scheduledTime, env, ctx,controller.cron));
+  },
+  async queue(batch:MessageBatch<{workId:string}>,env:Cloudflare.Env,ctx:ExecutionContext<{CONNECTORS?:ConnectorBinding}>){
+    if(env.WORK_ENABLED!=='true'||env.WORK_STAGING_VERIFIED!=='true'){batch.retryAll({delaySeconds:60});return;}
+    for(const message of batch.messages){if(!message.body||typeof message.body.workId!=='string'||message.body.workId.length>160){message.ack();continue;}
+      try{const secret=env.SCHEDULER_SECRET;if(!secret||secret.length<32)throw Error('scheduler_configuration_missing');const response=await runWithConnectorBinding(undefined,()=>handler.fetch(new Request('https://aira.internal/api/internal/work-tick?workId='+encodeURIComponent(message.body.workId),{method:'POST',headers:{authorization:'Bearer '+secret}}),env,ctx));if(response.ok)message.ack();else message.retry({delaySeconds:60});}
+      catch{message.retry({delaySeconds:60});}
+    }
   },
 };

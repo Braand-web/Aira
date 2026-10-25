@@ -1,0 +1,124 @@
+{
+  "_note": "Exemple fictif (Boulangerie Soleil). Le pack est le format d'échange entre l'agent, le validateur et le calendrier. Champs : id, network, format, caption, hashtags, scheduled_at (ISO 8601 avec décalage), status, pillar, group, cta, link, visual {file | brief | prompt, alt_text}, approval {approved_by, approved_at, content_hash}, notes.",
+  "brand": "Boulangerie Soleil",
+  "timezone": "Africa/Douala",
+  "posts": [
+    {
+      "id": "p1",
+      "group": "lancement-pain-manioc",
+      "network": "instagram",
+      "format": "carousel",
+      "status": "pending_approval",
+      "pillar": "offre",
+      "scheduled_at": "2026-11-06T18:00:00+01:00",
+      "caption": "Le pain au manioc arrive samedi. 🥖\n\nMoelleux dedans, croustillant dehors, sorti du four le matin même.\n\nPrix : 500 FCFA la pièce.\nRéservez la vôtre sur WhatsApp (numéro en bio).",
+      "hashtags": ["#painaumanioc", "#boulangerie", "#douala"],
+      "cta": "Réserver sur WhatsApp",
+      "visual": {
+        "brief": "5 slides 1080x1350 : 1) pain doré sur planche en bois + texte « Samedi : pain au manioc » ; 2) pâte au manioc en gros plan ; 3) sortie du four ; 4) prix 500 FCFA et horaire 7 h ; 5) « Réservez sur WhatsApp ». Couleurs #F2A900 / #3B2314, texte gros et contrasté.",
+        "alt_text": "Pain au manioc doré posé sur une planche en bois, vu de dessus"
+      }
+    },
+    {
+      "id": "p2",
+      "group": "lancement-pain-manioc",
+      "network": "facebook",
+      "format": "image",
+      "status": "pending_approval",
+      "pillar": "offre",
+      "scheduled_at": "2026-11-06T18:20:00+01:00",
+      "caption": "Samedi 7 novembre dès 7 h : notre nouveau pain au manioc est en vente, 500 FCFA la pièce.\n\n📍 Boulangerie Soleil, quartier Akwa\n🕖 Ouvert dès 7 h, jusqu'à épuisement\n\nVous voulez être sûr d'en avoir ? Réservez par WhatsApp, on vous le garde. Et vous, vous le mangez comment : nature ou avec du beurre ?",
+      "hashtags": ["#painaumanioc"],
+      "cta": "Réserver sur WhatsApp",
+      "link": "https://wa.me/237600000000?text=Bonjour%2C%20je%20veux%20r%C3%A9server%20du%20pain%20au%20manioc",
+      "visual": {
+        "brief": "Photo réelle du pain au manioc, format 1080x1350, texte incrusté « Samedi 7 h · 500 FCFA »",
+        "alt_text": "Pain au manioc doré posé sur une planche en bois"
+      }
+    },
+    {
+      "id": "p3",
+      "group": "lancement-pain-manioc",
+      "network": "linkedin",
+      "format": "text",
+      "status": "draft",
+      "pillar": "coulisses",
+      "scheduled_at": "2026-11-05T08:00:00+01:00",
+      "caption": "Pourquoi une boulangerie de quartier travaille le manioc.\n\nParce que nos clients nous le demandaient. Pas dans un sondage : au comptoir, chaque semaine.\n\nCe que ça nous a appris :\n1. Écouter le comptoir vaut mieux qu'une étude de marché.\n2. Tester en petite quantité avant de produire en grand.\n3. Dire le prix tout de suite : la confiance commence là.\n\nLe pain au manioc sort samedi. Et vous, quelle demande de client avez-vous longtemps ignorée ?",
+      "hashtags": ["#entrepreneuriat", "#boulangerie"],
+      "cta": "Répondre en commentaire"
+    },
+    {
+      "id": "p4",
+      "group": "lancement-pain-manioc",
+      "network": "tiktok",
+      "format": "video",
+      "status": "draft",
+      "pillar": "coulisses",
+      "scheduled_at": "2026-11-06T19:00:00+01:00",
+      "caption": "20 secondes de pétrissage avant le pain au manioc de samedi",
+      "hashtags": ["#boulangerie", "#painaumanioc", "#douala"],
+      "cta": "Réserver sur WhatsApp",
+      "visual": {
+        "brief": "Vidéo 9:16 de 20 s : 0-2 s mains dans la pâte + texte « Samedi, il sort du four » ; 2-15 s pétrissage et façonnage ; 15-20 s pain doré + « Réservez sur WhatsApp ». Sous-titres incrustés, son d'ambiance de la boulangerie (sans musique protégée)."
+      }
+    },
+    {
+      "id": "p5",
+      "network": "instagram",
+      "format": "carousel",
+      "status": "draft",
+      "pillar": "éducation",
+      "scheduled_at": "2026-11-03T12:30:00+01:00",
+      "caption": "3 astuces pour garder votre pain croustillant 🥖\n\nOn les applique tous les matins à la boulangerie. Enregistrez ce post pour ce soir.",
+      "hashtags": ["#astucecuisine", "#boulangerie"],
+      "cta": "Enregistrer le post",
+      "visual": {
+        "brief": "4 slides 1080x1350 : couverture « 3 astuces pain croustillant » ; astuce 1 : ne jamais le mettre au frigo ; astuce 2 : le conserver dans un linge propre ; astuce 3 : 5 minutes au four avant de servir ; slide finale : « Enregistrez ».",
+        "alt_text": "Pain croustillant enveloppé dans un linge propre sur une table de cuisine"
+      }
+    },
+    {
+      "id": "p6",
+      "network": "facebook",
+      "format": "poll",
+      "status": "approved",
+      "pillar": "communauté",
+      "scheduled_at": "2026-11-04T12:00:00+01:00",
+      "caption": "Question du jour : pour votre prochain pain, vous préférez nature ou aux graines ?",
+      "hashtags": [],
+      "approval": {
+        "approved_by": "Awa (gérante)",
+        "approved_at": "2026-10-24T10:30:00+01:00",
+        "content_hash": "b99cbecfdab7ea75"
+      }
+    },
+    {
+      "id": "p7",
+      "network": "instagram",
+      "format": "image",
+      "status": "draft",
+      "pillar": "preuve sociale",
+      "scheduled_at": "2026-11-08T11:00:00+01:00",
+      "caption": "Samedi dernier, la file démarrait avant l'ouverture. Merci à vous. 🙏\n\nOn prépare davantage de pain pour cette semaine.",
+      "hashtags": ["#merci", "#boulangerie"],
+      "visual": {
+        "brief": "Photo réelle prise samedi dernier de la file devant la boulangerie (accord des personnes visibles requis ou photo de dos), 1080x1350",
+        "alt_text": "File de clients devant la boulangerie le matin"
+      }
+    },
+    {
+      "id": "p8",
+      "network": "tiktok",
+      "format": "video",
+      "status": "draft",
+      "pillar": "éducation",
+      "scheduled_at": "2026-11-07T19:00:00+01:00",
+      "caption": "Pourquoi la pâte doit reposer, en 25 secondes",
+      "hashtags": ["#boulangerie", "#astucecuisine"],
+      "visual": {
+        "brief": "Vidéo 9:16 de 25 s : question à l'écran « Pourquoi laisser reposer la pâte ? », démonstration avant/après du repos (pâte réelle), conclusion en une phrase. Sous-titres incrustés."
+      }
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "verified_on": "2026-10-25",
+    "how_to_update": "Les plateformes changent ces valeurs sans préavis. Avant un gros lot, vérifier sur le web, corriger les chiffres ci-dessous et mettre à jour verified_on. Les réseaux avec verified=false n'ont pas été re-contrôlés.",
+    "sources": [
+      "TikTok : typecount.com/blog/tiktok-caption-character-limit (légende 4 000, visible ~80-100, mise à jour 30 août 2026)",
+      "Instagram : growthscribe.com/instagram-caption-character-limit (2 200, visible ~125, hashtags 30) ; annonce d'un plafond à 5 hashtags, déploiement progressif (déc. 2025)",
+      "LinkedIn : authoredup.com/blog/linkedin-character-limit (post 3 000, visible ~140 mobile / ~210 ordinateur)"
+    ],
+    "keys": {
+      "caption_max": "limite technique : au-delà = erreur",
+      "caption_soft_max": "seuil prudent : au-delà = avertissement (les sources divergent ou la limite a changé)",
+      "recommended_max": "longueur conseillée par convention : au-delà = info",
+      "visible_chars": "caractères visibles avant la coupure 'voir plus' (approximation)",
+      "hashtags_soft_max": "au-delà = avertissement",
+      "hashtags_hard_max": "au-delà = erreur",
+      "links_clickable_in_caption": "false = avertir si une URL figure dans la légende",
+      "requires_media": "true = un format sans média est invalide",
+      "alt_text_supported": "true = texte alternatif attendu pour image et carrousel",
+      "formats": "formats autorisés sur le réseau",
+      "verified": "true = chiffres contrôlés à la date verified_on"
+    }
+  },
+  "networks": {
+    "instagram": {
+      "caption_max": 2200,
+      "visible_chars": 125,
+      "hashtags_soft_max": 5,
+      "hashtags_hard_max": 30,
+      "links_clickable_in_caption": false,
+      "requires_media": true,
+      "alt_text_supported": true,
+      "formats": ["image", "carousel", "reel", "story"],
+      "verified": true
+    },
+    "facebook": {
+      "caption_max": 63206,
+      "recommended_max": 500,
+      "hashtags_soft_max": 3,
+      "links_clickable_in_caption": true,
+      "requires_media": false,
+      "alt_text_supported": true,
+      "formats": ["text", "image", "carousel", "video", "reel", "story", "link", "poll"],
+      "verified": false
+    },
+    "linkedin": {
+      "caption_max": 3000,
+      "recommended_max": 1500,
+      "visible_chars": 140,
+      "hashtags_soft_max": 5,
+      "links_clickable_in_caption": true,
+      "requires_media": false,
+      "alt_text_supported": true,
+      "formats": ["text", "image", "carousel", "video", "link", "poll"],
+      "verified": true
+    },
+    "tiktok": {
+      "caption_max": 4000,
+      "caption_soft_max": 2200,
+      "recommended_max": 300,
+      "visible_chars": 80,
+      "hashtags_soft_max": 5,
+      "links_clickable_in_caption": false,
+      "requires_media": true,
+      "alt_text_supported": false,
+      "formats": ["video", "carousel"],
+      "verified": true
+    },
+    "x": {
+      "caption_max": 280,
+      "hashtags_soft_max": 2,
+      "links_clickable_in_caption": true,
+      "requires_media": false,
+      "alt_text_supported": true,
+      "formats": ["text", "image", "video", "link", "poll"],
+      "verified": false
+    },
+    "threads": {
+      "caption_max": 500,
+      "hashtags_soft_max": 1,
+      "links_clickable_in_caption": true,
+      "requires_media": false,
+      "alt_text_supported": true,
+      "formats": ["text", "image", "carousel", "video", "poll"],
+      "verified": false
+    }
+  }
+}
