@@ -20,6 +20,8 @@ Campagnes devient un atelier de préparation : plans filtrables, prochaine infor
 
 Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible ; erreurs techniques distinctes de l’assistant. La fermeture manuelle du panneau, les budgets, les autorisations et tous les flux métier sont conservés. Les extraits de documents dans les lecteurs gardent leur propre mise en forme.
 
+Apparence dans Paramètres → Général : modes clair, sombre et système (par défaut), choix de palette par défaut, bleu, bleu ciel, violet, rose, orange, vert, brun ou monochrome. Pastilles adaptées au mode, nom au survol et au focus, sélection avec contour et coche ; groupes radio natifs utilisables au clavier. La préférence est conservée sur l’appareil, partagée entre ses onglets et appliquée avant le premier rendu. La sidebar, les conversations, les actions, menus, lecteurs et paramètres réutilisent les mêmes couleurs sémantiques ; les documents conservent leurs couleurs d’origine.
+
 
 Le rendu des réponses utilise des blocs Markdown mémorisés, échappés et stables : titres, listes, code avec retour à la ligne et liens HTTP(S) contrôlés. Le flux peut récupérer les événements persistants manquants d'une réponse active sans relancer sa génération. Arrêt immédiat côté client, conservation du texte partiel et ressources dédupliquées ; aucun changement de dimensions du compositeur ni nouvelle animation.
 Les informations légales sont une rubrique des paramètres. Les trois documents s’ouvrent dans un nouvel onglet, avec une indication explicite, tandis que la fenêtre des paramètres et le brouillon restent en place.

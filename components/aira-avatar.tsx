@@ -1,6 +1,7 @@
 "use client";
 
 import {lazy, memo, Suspense} from 'react';
+import {useTheme} from 'next-themes';
 
 const BotAvatar = lazy(() => import('bot-avatars').then(module => ({default: module.BotAvatar})));
 
@@ -13,6 +14,7 @@ type AiraAvatarProps = {
 };
 
 export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, paused = false, followPointer = false, className = ''}: AiraAvatarProps) {
+  const {resolvedTheme} = useTheme();
   return (
     <span
       className={'aira-avatar ' + className}
@@ -30,7 +32,7 @@ export const AiraAvatar = memo(function AiraAvatar({busy = false, size = 40, pau
           // Keep pointer-events disabled on the wrapper: the avatar has no click action.
           interactive={followPointer}
           jumpEvery={0}
-          theme="dark"
+          theme={resolvedTheme === 'light' ? 'light' : 'dark'}
           aria-label={busy ? 'Braand prépare une réponse' : 'Braand'}
         />
       </Suspense>

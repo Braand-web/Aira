@@ -7,9 +7,9 @@ html[data-design-system="muse"] body {
   font-family: var(--ds-font);
   font-size: 14px;
   line-height: 1.5;
-  scrollbar-color: #ffffff40 transparent;
+  scrollbar-color: var(--ds-scrollbar) transparent;
 }
-html[data-design-system="muse"] ::selection { background: #4b93ff55; color: var(--ds-text); }
+html[data-design-system="muse"] ::selection { background: color-mix(in srgb,var(--ds-accent),transparent 65%); color: var(--ds-text); }
 html[data-design-system="muse"] :is(input,textarea) { caret-color: var(--ds-accent); }
 html[data-design-system="muse"] :is(button,a,input,textarea,select,[tabindex]):focus-visible { outline: 2px solid var(--ds-focus); outline-offset: 3px; }
 html[data-design-system="muse"] :is(button,a) { transition-duration: var(--ds-fast); transition-timing-function: var(--ds-ease); }
@@ -90,7 +90,7 @@ html[data-design-system="muse"] .composer-entry[data-expanded] .composer-input {
 html[data-design-system="muse"] .composer-entry[data-expanded] .composer-tools { display: flex; align-items: center; gap: 12px; margin: 0; min-width: 0; }
 html[data-design-system="muse"] .composer-entry[data-expanded] .composer-right { margin-left: auto; }
 html[data-design-system="muse"] .send-button { width: 32px; height: 32px; background: var(--ds-action); color: var(--ds-action-text); }
-html[data-design-system="muse"] .send-button:hover:not(:disabled) { background: #44a8ff; }
+html[data-design-system="muse"] .send-button:hover:not(:disabled) { background: color-mix(in srgb,var(--ds-action),var(--ds-text) 8%); }
 html[data-design-system="muse"] .send-button:disabled { background: var(--ds-fill); color: var(--ds-muted); opacity: .65; }
 html[data-design-system="muse"] .mode-button { min-height: 32px; padding: 5px 9px; border: 0; color: var(--ds-muted); background: transparent; font-size: 11px; }
 html[data-design-system="muse"] .mode-button:hover { background: var(--ds-fill); color: var(--ds-text); }
@@ -111,7 +111,8 @@ html[data-design-system="muse"] .message-text p:last-child { margin-bottom: 0; }
 html[data-design-system="muse"] .message-text strong { font-weight: 650; }
 html[data-design-system="muse"] .message.assistant > .brand-mark { width: 24px; height: 24px; margin-top: 11px; }
 html[data-design-system="muse"] .message.assistant .streaming-response-content { padding: 11px 15px; min-height: 44px; background: var(--ds-agent); border-radius: var(--ds-radius-message); }
-html[data-design-system="muse"] .message.user .message-content { max-width: min(520px,88%); min-height: 44px; padding: 11px 15px; border-radius: var(--ds-radius-message); background: var(--ds-user); color: white; }
+html[data-design-system="muse"] .message.user .message-content { max-width: min(520px,88%); min-height: 44px; padding: 11px 15px; border-radius: var(--ds-radius-message); background: var(--ds-user); color: var(--ds-user-text); }
+html[data-design-system="muse"] .message.user .message-text { color: var(--ds-user-text); }
 html[data-design-system="muse"] .message-agent-status { padding: 0 4px 8px; }
 html[data-design-system="muse"] .response-footer { margin: 6px 0 0 6px; }
 html[data-design-system="muse"] :is(.response-action,.response-sources-toggle) { color: var(--ds-muted); }
@@ -126,7 +127,7 @@ html[data-design-system="muse"] .section-heading h1 { font-size: 34px; line-heig
 html[data-design-system="muse"] .section-heading p { color: var(--ds-muted); font-size: 14px; line-height: 20px; }
 html[data-design-system="muse"] .button { min-height: 36px; padding: 8px 16px; border-radius: var(--ds-radius-pill); font-size: 13px; font-weight: 600; line-height: 20px; }
 html[data-design-system="muse"] .button.primary { color: var(--ds-action-text); background: var(--ds-action); border-color: transparent; }
-html[data-design-system="muse"] .button.primary:hover { background: #44a8ff; }
+html[data-design-system="muse"] .button.primary:hover { background: color-mix(in srgb,var(--ds-action),var(--ds-text) 8%); }
 html[data-design-system="muse"] .button.secondary { color: var(--ds-text); background: var(--ds-fill); border-color: transparent; }
 html[data-design-system="muse"] .button.secondary:hover { background: var(--ds-hover); }
 html[data-design-system="muse"] .empty-state { min-height: 360px; padding: 40px 24px; }
@@ -193,11 +194,11 @@ html[data-design-system="muse"] .connector-logo { border-radius: var(--ds-radius
 html[data-design-system="muse"] .connector-button { min-height: 36px; border: 0; border-radius: var(--ds-radius-pill); background: var(--ds-fill); color: var(--ds-text); font-size: 12px; }
 html[data-design-system="muse"] .connector-button:hover:not(:disabled) { background: var(--ds-hover); }
 html[data-design-system="muse"] .connector-primary { background: var(--ds-action); color: var(--ds-action-text); }
-html[data-design-system="muse"] .connector-primary:hover:not(:disabled) { background: #44a8ff; }
+html[data-design-system="muse"] .connector-primary:hover:not(:disabled) { background: color-mix(in srgb,var(--ds-action),var(--ds-text) 8%); }
 html[data-design-system="muse"] :is(.connector-note,.connector-notice,.connector-error,.connectors-instant dl) { border: 0; border-radius: var(--ds-radius-md); background: var(--ds-fill); }
 html[data-design-system="muse"] .connector-error { color: var(--ds-error); }
 html[data-design-system="muse"] .connector-notice { color: var(--ds-success); }
-html[data-design-system="muse"] .skills-marketplace { padding: 32px 40px 56px; background: var(--ds-bg); color: var(--ds-text); scrollbar-color: #ffffff40 transparent; }
+html[data-design-system="muse"] .skills-marketplace { padding: 32px 40px 56px; background: var(--ds-bg); color: var(--ds-text); scrollbar-color: var(--ds-scrollbar) transparent; }
 html[data-design-system="muse"] .skills-heading h1 { font-family: var(--ds-font); font-size: 34px; font-weight: 600; line-height: 40px; letter-spacing: -.03em; color: var(--ds-text); }
 html[data-design-system="muse"] :is(.skills-heading p,.filter-caption,.skills-results-heading,.skill-description,.skill-meta,.skill-author,.skill-version,.skill-installed) { color: var(--ds-muted); }
 html[data-design-system="muse"] :is(.skills-search,.skills-upload) { border: 0; border-radius: var(--ds-radius-pill); background: var(--ds-fill); color: var(--ds-text); box-shadow: none; }

@@ -54,7 +54,7 @@
 .settings-button:active:not(:disabled) { background: var(--ds-pressed); transform: translateY(1px); }
 .settings-button:disabled { cursor: wait; opacity: .55; }
 .settings-primary { color: var(--ds-action-text); background: var(--ds-action); }
-.settings-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ds-action), white 12%); }
+.settings-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ds-action), var(--ds-text) 8%); }
 .settings-primary:active:not(:disabled) { background: var(--ds-action); }
 .settings-row-link { width: 100%; border: 0; background: transparent; color: var(--ds-text); text-align: left; transition: background-color var(--ds-fast) var(--ds-ease); }
 .settings-row-link > span { display: inline-flex; align-items: center; gap: 12px; }

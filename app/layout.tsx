@@ -4,6 +4,9 @@ import "./design-tokens.css";
 import "./file-upload.css";
 import "@/components/file-preview/file-preview.css";
 import { FilePreviewProvider } from "@/components/file-preview/file-preview-provider";
+import {AppearanceProvider} from "@/components/appearance-provider";
+import {ACCENT_INIT_SCRIPT} from "@/lib/appearance";
+import "./appearance.css";
 
 export const metadata: Metadata = {
   title: "Braand — Vos idées, vos prochains clients",
@@ -21,12 +24,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" data-design-system="muse">
+    <html lang="fr" data-design-system="muse" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{__html: ACCENT_INIT_SCRIPT}}/>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="antialiased"><FilePreviewProvider>{children}</FilePreviewProvider></body>
+      <body className="antialiased"><AppearanceProvider><FilePreviewProvider>{children}</FilePreviewProvider></AppearanceProvider></body>
     </html>
   );
 }
