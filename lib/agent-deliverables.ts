@@ -1,12 +1,13 @@
 import {z} from 'zod';
 import {AppError} from './core.mjs';
 import {createResource,getResource,updateResource} from './server';
+import {linkResearchSources} from './research';
 
 export const deliverableInput=z.object({title:z.string().trim().min(1).max(160),content:z.string().trim().min(1).max(18000),summary:z.string().trim().min(1).max(600),category:z.enum(['marketing','sales','commerce','content','management']),sources:z.array(z.string().trim().min(1).max(500)).max(12)}).strict();
 
 export async function saveDeliverable(tenant:string,input:unknown){
  const data=deliverableInput.parse(input);
- return createResource(tenant,'deliverable',data.title,{...data,format:'markdown',executionConfirmed:false},'draft');
+ const resource=await createResource(tenant,'deliverable',data.title,{...data,format:'markdown',executionConfirmed:false},'draft');await linkResearchSources(tenant,resource.id,data.sources);return resource;
 }
 
 export async function reviseDeliverable(tenant:string,input:unknown){

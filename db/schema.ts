@@ -39,3 +39,5 @@ export * from "./browser-schema";
 export * from "./auth-schema";
 
 export const responseFeedback=sqliteTable("response_feedback",{workspaceId:text("workspace_id").notNull(),userId:text("user_id").notNull(),messageId:text("message_id").notNull(),feedback:text("feedback",{enum:["up","down"]}),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull()},t=>[primaryKey({columns:[t.workspaceId,t.userId,t.messageId]}),foreignKey({columns:[t.messageId,t.workspaceId],foreignColumns:[messages.id,messages.workspaceId]}).onDelete("cascade"),check("response_feedback_value",sql`${t.feedback} IN ('up','down') OR ${t.feedback} IS NULL`)]);
+
+export * from "./platform-schema";

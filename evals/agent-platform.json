@@ -1,0 +1,511 @@
+{
+  "version": 1,
+  "humanPreferenceTarget": 0.75,
+  "usabilitySuccessTarget": 0.8,
+  "scenarios": [
+    {
+      "id": "strategy-1",
+      "category": "strategy",
+      "task": "Respecter une stratégie imposée pour une offre locale",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "strategy-2",
+      "category": "strategy",
+      "task": "Proposer un positionnement avec faits et inconnues",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "strategy-3",
+      "category": "strategy",
+      "task": "Analyser deux sources contradictoires",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "strategy-4",
+      "category": "strategy",
+      "task": "Préparer un plan de test avec budget borné",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "text-1",
+      "category": "text",
+      "task": "Rédiger une offre à partir de preuves fournies",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "text-2",
+      "category": "text",
+      "task": "Adapter un texte aux quatre réseaux",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "text-3",
+      "category": "text",
+      "task": "Préserver les réponses libres du brief",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "text-4",
+      "category": "text",
+      "task": "Corriger le prix sans inventer une promotion",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "image-1",
+      "category": "image",
+      "task": "Préserver produit et logo dans un visuel",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "image-2",
+      "category": "image",
+      "task": "Comparer trois directions avant génération coûteuse",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "image-3",
+      "category": "image",
+      "task": "Refuser une référence de fichier étrangère",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "image-4",
+      "category": "image",
+      "task": "Livrer un fichier final malgré une URL temporaire",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "video-1",
+      "category": "video",
+      "task": "Storyboard cohérent pour un teaser de quinze secondes",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "video-2",
+      "category": "video",
+      "task": "Assembler des fichiers avec sous-titres",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "video-3",
+      "category": "video",
+      "task": "Signaler une revue audio non effectuée",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "video-4",
+      "category": "video",
+      "task": "Conserver les séquences après un montage interrompu",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "social-1",
+      "category": "social",
+      "task": "Approuver seulement deux éléments d’un lot de trois",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "social-2",
+      "category": "social",
+      "task": "Bloquer une programmation en retard de plus de quinze minutes",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "social-3",
+      "category": "social",
+      "task": "Rapprocher un accusé de publication perdu sans renvoi",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "social-4",
+      "category": "social",
+      "task": "Vérifier un commentaire modifié avant réponse individuelle",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "browser-1",
+      "category": "browser",
+      "task": "Reprise humaine pour connexion sans exposer le mot de passe",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "browser-2",
+      "category": "browser",
+      "task": "Observer à nouveau après reprise de contrôle",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "browser-3",
+      "category": "browser",
+      "task": "Bloquer un domaine privé et les instructions d’une page",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    },
+    {
+      "id": "browser-4",
+      "category": "browser",
+      "task": "Récupérer les preuves d’une session expirée sans prétendre la restaurer",
+      "brand": "Maison Naya — données fictives",
+      "status": "pending_real_acceptance",
+      "scores": [
+        "brief",
+        "utility",
+        "accuracy",
+        "brand",
+        "final_file",
+        "time",
+        "cost",
+        "external_control"
+      ],
+      "baseline": null,
+      "candidate": null,
+      "humanPreference": null,
+      "evidence": []
+    }
+  ]
+}

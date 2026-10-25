@@ -50,7 +50,7 @@ await writeFile(configFile, '# Explicit empty configuration for an isolated offl
 // Never inherit provider credentials or the user's .dev.vars file.
 const env = {...process.env};
 for (const key of Object.keys(env)) {
-  if (/^(?:AIRA_|APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|BILLING_|COMPOSIO_|FAL_|META_|OPENAI_|MODEL_ROUTING_|OPENROUTER_|ANTHROPIC_|SASPAY_|RESEND_|OPS_|TOKEN_ENCRYPTION_KEY$|FILE_|SCHEDULER_SECRET$|PAGE_FORM_SECRET$|LLM_PROVIDER$|FREE_DAILY_CREDITS$|PAGES_ORIGIN$|NODE_OPTIONS$)/u.test(key)) delete env[key];
+  if (/^(?:WORK_|RESEARCH_|TAVILY_|SOCIAL_|MEDIA_|AIRA_|APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|BILLING_|COMPOSIO_|FAL_|META_|OPENAI_|MODEL_ROUTING_|OPENROUTER_|ANTHROPIC_|SASPAY_|RESEND_|OPS_|TOKEN_ENCRYPTION_KEY$|FILE_|SCHEDULER_SECRET$|PAGE_FORM_SECRET$|LLM_PROVIDER$|FREE_DAILY_CREDITS$|PAGES_ORIGIN$|NODE_OPTIONS$)/u.test(key)) delete env[key];
 }
 Object.assign(env, {APP_ENV:'development', PORT:String(backendPort), AIRA_DATA_DIR:data, AIRA_BUILD_DIR:build, AIRA_CONFIG_FILE:configFile, FILE_PREVIEW_V1:'true', FILE_URL_SIGNING_SECRET:randomBytes(32).toString('hex'), NODE_OPTIONS:'--max-old-space-size=1536 --max-semi-space-size=8'});
 const child = spawn(process.execPath, ['--import', new URL('./demo/offline.mjs', import.meta.url).href, path.join(root, 'scripts', 'dev-local.mjs')], {cwd:root, env, stdio:['ignore','pipe','pipe'], windowsHide:true});

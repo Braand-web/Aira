@@ -5,6 +5,15 @@ declare namespace Cloudflare {
     AUTH_ENABLED?: string;
     AUTH_HASH_SECRET?: string;
     DB?: D1Database;
+    WORK_QUEUE?: Queue<{workId:string}>;
+    WORK_SCHEDULER_VERIFIED?: string;
+    WORK_ENABLED?: string;
+    WORK_STAGING_VERIFIED?: string;
+    SOCIAL_ENABLED?: string;
+    SOCIAL_STAGING_VERIFIED?: string;
+    MEDIA_PERSIST_ENABLED?: string;
+    MEDIA_RENDER_ENABLED?: string;
+    RESEARCH_ENABLED?: string;
     BROWSER?: Fetcher;
     BROWSER_SESSIONS?: DurableObjectNamespace;
     BROWSER_ENABLED?: string;

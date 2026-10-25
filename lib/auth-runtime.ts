@@ -88,7 +88,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     if (request.method === 'GET') return page('Se déconnecter', '<p>Votre travail enregistré restera disponible lors de votre prochaine connexion.</p><form method="post" action="/auth/sign-out"><button type="submit">Confirmer la déconnexion</button></form>');
     const token = cookie(request.headers, SESSION_COOKIE);
     if (token) await env.DB!.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await hash('session:' + token, env)).run();
-    return redirect('/', setCookie(SESSION_COOKIE, '', 0));
+    const response=redirect('/',setCookie(SESSION_COOKIE,'',0));response.headers.set('Clear-Site-Data','"storage"');return response;
   }
   // Bound bodies before parsing; never log addresses, links or provider payloads.
   if (Number(request.headers.get('content-length') || 0) > 4096) return denied();

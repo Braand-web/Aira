@@ -1,12 +1,13 @@
 "use client";
 
-import {useEffect,useId,useMemo,useRef,useState} from 'react';
+import {lazy,Suspense,useEffect,useId,useMemo,useRef,useState} from 'react';
 import {ArrowDown,ArrowUp,ArrowUpRight,ChartNoAxesCombined,ChevronDown,ChevronUp,Download,Info,RefreshCw,Search,ShieldCheck,Sparkles} from 'lucide-react';
 import {api} from '@/lib/client-api';
 import {userFacingError} from '@/lib/user-facing-errors';
 import {ANALYTICS_DAYS,analyticsCSV,dailyAnalytics,metricChange,summarizeAnalytics,type AnalyticsAccount,type AnalyticsMetric,type AnalyticsMetrics,type AnalyticsReport,type AnalyticsRow} from '@/lib/analytics.mjs';
 import styles from './analytics-dashboard.module.css';
 
+const OrganicInsights=lazy(()=>import('./organic-insights'));
 const labels:Record<AnalyticsMetric,string>={spend:'Dépenses',impressions:'Impressions',clicks:'Clics',ctr:'Taux de clic',cpc:'Coût par clic',cpm:'Coût / 1 000 impressions'};
 const descriptions:Record<AnalyticsMetric,string>={spend:'Montant publicitaire dépensé sur la période.',impressions:'Nombre d’affichages des publicités, y compris plusieurs affichages à la même personne.',clicks:'Tous les clics rapportés par Meta. Ils ne représentent pas des ventes.',ctr:'Clics divisés par les impressions, multipliés par 100.',cpc:'Dépenses divisées par le nombre de clics.',cpm:'Dépenses pour mille impressions.'};
 const number=(value:number,digits=0)=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:digits}).format(value);
@@ -92,6 +93,7 @@ export default function AnalyticsDashboard({ready,connected,onConnect,onAnalyze,
     </section>
    </>:!activeError&&!accounts.length?<section className={styles.empty}><h2>Aucun compte publicitaire disponible</h2><p>Vérifiez les accès de votre connexion, puis actualisez le tableau de bord.</p><button type="button" className="button secondary" onClick={onConnect}>Vérifier mes connexions</button></section>:null}
   </>}
+<Suspense fallback={<p role="status">Chargement des relevés organiques…</p>}><OrganicInsights ready={ready} onAsk={onAnalyze}/></Suspense>
  </div>;
 }
 

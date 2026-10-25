@@ -15,7 +15,8 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./build/worker.ts",
   compatibility_flags: ["nodejs_compat"],
-  triggers: { crons: ["*/5 * * * *"] },
+  triggers: { crons: ["*/5 * * * *","* * * * *"] },
+  queues:{producers:[{binding:'WORK_QUEUE',queue:'braand-work-local'}],consumers:[{queue:'braand-work-local',max_batch_size:1,max_retries:3,dead_letter_queue:'braand-work-local-failed'}]},
   browser: { binding: "BROWSER" },
   durable_objects: { bindings: [{ name: "BROWSER_SESSIONS", class_name: "BrowserSession" }] },
   migrations: [{ tag: "browser-sessions-v1", new_sqlite_classes: ["BrowserSession"] }],

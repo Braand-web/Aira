@@ -16,6 +16,7 @@ const definitions=JSON.parse(await readFile(path.join(skills,'catalog.json'),'ut
 const marketingManifest=JSON.parse(await readFile(path.join(skills,'vendor','marketing','manifest.json'),'utf8'));
 const socialManifest=JSON.parse(await readFile(path.join(skills,'vendor','social','manifest.json'),'utf8'));
 const designManifest=JSON.parse(await readFile(path.join(skills,'vendor','anthropic','frontend-design','manifest.json'),'utf8'));
+const userManifest=JSON.parse(await readFile(path.join(skills,'user','social-media-manager','manifest.json'),'utf8'));
 const generated=new Map();const index=[];const ids=new Set();
 for(const definition of definitions){
  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(definition.id)||ids.has(definition.id))throw Error('Invalid or duplicate skill identifier');
@@ -29,19 +30,20 @@ for(const definition of definitions){
  const marketing=definition.directory.startsWith('vendor/marketing/');
  const social=definition.directory.startsWith('vendor/social/');
  const design=definition.directory==='vendor/anthropic/frontend-design';
- if(!original&&!marketing&&!social&&!design)throw Error('Unknown vendored skill source');
+ const user=definition.directory==='user/social-media-manager'&&definition.license==='User-provided';
+ if(!original&&!marketing&&!social&&!design&&!user)throw Error('Unknown vendored skill source');
  if((marketing||social)&&definition.license!=='MIT'||design&&definition.license!=='Apache-2.0')throw Error('Skill license disagrees with pinned source');
- const manifest=marketing?marketingManifest:social?socialManifest:designManifest;
+ const manifest=marketing?marketingManifest:social?socialManifest:user?userManifest:designManifest;
  const sourcePrefix=marketing||social?path.relative(path.join(skills,'vendor',marketing?'marketing':'social'),directory).split(path.sep).join('/')+'/':'';
  const expectedFiles=original?null:new Map(manifest.files.map(file=>[file.path,file]));
  const entries={};
  async function collect(folder,inReferences=false){for(const item of await readdir(folder,{withFileTypes:true})){
   if(item.isSymbolicLink())throw Error('Skill symlinks forbidden');
   const full=path.join(folder,item.name);
-  if(item.isDirectory()){if(inReferences||item.name==='references')await collect(full,true);continue;}
-  if(!item.isFile()||!item.name.endsWith('.md'))continue;
+  if(item.isDirectory()){if(inReferences||item.name==='references'||user&&item.name==='assets')await collect(full,true);continue;}
+  if(!item.isFile()||!item.name.endsWith('.md')&&!(user&&item.name.endsWith('.json')))continue;
   const relative=path.relative(directory,full).split(path.sep).join('/');
-  if(relative!=='SKILL.md'&&!relative.startsWith('references/'))continue;
+  if(relative!=='SKILL.md'&&!relative.startsWith('references/')&&!(user&&relative.startsWith('assets/')))continue;
   const bytes=await readFile(full);
   if(bytes.length>64000)throw Error('Skill file exceeds reviewed size');
   if(expectedFiles){
