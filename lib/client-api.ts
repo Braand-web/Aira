@@ -1,5 +1,6 @@
 import {userFacingError} from './user-facing-errors';
-export function workspaceHeaders(initial?:HeadersInit){const h=new Headers(initial);if(typeof window!=='undefined'){const space=localStorage.getItem('aira.workspace');if(space){h.set('x-aira-workspace',space);document.cookie='aira_workspace='+encodeURIComponent(space)+'; Path=/; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');}}return h;}
+import {readBraandStorage} from "./client-storage";
+export function workspaceHeaders(initial?:HeadersInit){const h=new Headers(initial);if(typeof window!=='undefined'){const space=readBraandStorage('braand.workspace');if(space){h.set('x-braand-workspace',space);document.cookie='braand_workspace='+encodeURIComponent(space)+'; Path=/; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');}}return h;}
 export async function api<T=unknown>(path:string,options?:RequestInit):Promise<T>{
  const response=await fetch(path,{...options,headers:workspaceHeaders(options?.headers)});
  const data:unknown=await response.json();

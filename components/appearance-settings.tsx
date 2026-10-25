@@ -5,7 +5,7 @@ import {Check, Monitor, Moon, Sun} from "lucide-react";
 import {useTheme} from "next-themes";
 import {ACCENT_THEMES} from "@/lib/appearance";
 import {useAppearance} from "@/components/appearance-provider";
-import {AiraAvatar} from "@/components/aira-avatar";
+import {BraandAvatar} from "@/components/braand-avatar";
 
 const modes = [
   {id: "light", label: "Clair", icon: Sun},
@@ -38,7 +38,7 @@ export function AppearanceSettings() {
           {ACCENT_THEMES.map(({id, label}) => <label key={id} className="appearance-color" data-color={id} data-tooltip={label}>
             <input className="appearance-input" type="radio" name="braand-accent" value={id} checked={accent === id} onChange={() => setAccent(id)} aria-label={label}/>
             <span className="appearance-swatch" aria-hidden="true">
-              {id === "default" && <AiraAvatar size={24} paused/>}
+              {id === "default" && <BraandAvatar size={24} paused/>}
               {accent === id && <span className="appearance-selected"><Check size={10} strokeWidth={2.5}/></span>}
             </span>
           </label>)}

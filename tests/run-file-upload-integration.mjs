@@ -7,7 +7,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-const tempParent=path.resolve(os.tmpdir()),tempRoot=await mkdtemp(path.join(tempParent,"aira-file-upload-"));
+const tempParent=path.resolve(os.tmpdir()),tempRoot=await mkdtemp(path.join(tempParent,"braand-file-upload-"));
 assert.ok(tempRoot.startsWith(tempParent+path.sep),"Test data directory must stay under the system temporary directory.");
 const signingSecret="local-file-upload-test-signing-secret-00000000000000000000000000000000";
 const schedulerSecret="local-file-upload-test-scheduler-secret";
@@ -30,7 +30,7 @@ function run(child){return new Promise((resolve,reject)=>{child.once("error",rej
 
 let server;
 try{
- const port=await freePort(),env={...cleanEnvironment(),PORT:String(port),AIRA_CONFIG_FILE:configFile,AIRA_DATA_DIR:dataDir,AIRA_BUILD_DIR:buildDir};
+ const port=await freePort(),env={...cleanEnvironment(),PORT:String(port),BRAAND_CONFIG_FILE:configFile,BRAAND_DATA_DIR:dataDir,BRAAND_BUILD_DIR:buildDir};
  server=spawn(process.execPath,["scripts/dev-local.mjs"],{cwd:project,env,stdio:["ignore","pipe","pipe"]});
  const serverOutput=capture(server);let ready=false;const deadline=Date.now()+60_000;
  while(Date.now()<deadline){
@@ -39,12 +39,12 @@ try{
   await new Promise(resolve=>setTimeout(resolve,250));
  }
  assert.ok(ready,`Local test server did not become ready. ${serverOutput()}`);
- const integration=spawn(process.execPath,["tests/file-preview.integration.mjs"],{cwd:project,env:{...env,AIRA_TEST_URL:`http://127.0.0.1:${port}`,AIRA_TEST_SQLITE_PATH:dataDir,AIRA_TEST_SCHEDULER_SECRET:schedulerSecret},stdio:["ignore","pipe","pipe"]});
+ const integration=spawn(process.execPath,["tests/file-preview.integration.mjs"],{cwd:project,env:{...env,BRAAND_TEST_URL:`http://127.0.0.1:${port}`,BRAAND_TEST_SQLITE_PATH:dataDir,BRAAND_TEST_SCHEDULER_SECRET:schedulerSecret},stdio:["ignore","pipe","pipe"]});
  const testOutput=capture(integration),result=await run(integration);
  process.stdout.write(testOutput());
  assert.equal(result.code,0,`HTTP integration test failed. ${testOutput()}`);
 }finally{
  if(server&&server.exitCode===null){server.kill();await Promise.race([run(server),new Promise(resolve=>setTimeout(resolve,3_000))]);}
  const resolved=path.resolve(tempRoot);
- if(resolved.startsWith(tempParent+path.sep)&&path.basename(resolved).startsWith("aira-file-upload-"))await rm(resolved,{recursive:true,force:true});
+ if(resolved.startsWith(tempParent+path.sep)&&path.basename(resolved).startsWith("braand-file-upload-"))await rm(resolved,{recursive:true,force:true});
 }

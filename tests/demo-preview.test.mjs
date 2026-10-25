@@ -64,7 +64,7 @@ test("demo files and media point to the exact local bytes and asset whitelist", 
     const record = sql.prepare("SELECT * FROM files WHERE id=?").get(file.id);
     const resource = sql.prepare("SELECT data FROM resources WHERE id=? AND kind='file'").get(file.id);
     const data = JSON.parse(resource.data);
-    assert.match(file.storageKey, /^aira_local_preview\/demo\/files\/[a-z-]+\.(?:md|csv|txt)$/u);
+    assert.match(file.storageKey, /^braand_local_preview\/demo\/files\/[a-z-]+\.(?:md|csv|txt)$/u);
     assert.equal(file.size, Buffer.byteLength(file.content, "utf8"));
     assert.equal(file.sha256, createHash("sha256").update(file.content, "utf8").digest("hex"));
     assert.equal(record.storage_key, file.storageKey);

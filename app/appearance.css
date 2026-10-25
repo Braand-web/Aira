@@ -9,9 +9,9 @@ html[data-design-system="muse"] {
   --ds-user-text: #ffffff;
   --ds-selection: #1793ff;
   --ds-scrollbar: #ffffff40;
-  --aira-elevated-bg: var(--ds-menu);
-  --aira-elevated-border: var(--ds-line);
-  --aira-elevated-hover-border: var(--ds-muted);
+  --braand-elevated-bg: var(--ds-menu);
+  --braand-elevated-border: var(--ds-line);
+  --braand-elevated-hover-border: var(--ds-muted);
   --background: var(--ds-bg);
   --foreground: var(--ds-text);
   --card: var(--ds-surface);

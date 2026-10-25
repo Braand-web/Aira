@@ -122,7 +122,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
 
  return <div className="settings-shell">
   <aside className="settings-sidebar">
-   <h2 id="aira-dialog-title">Paramètres</h2>
+   <h2 id="braand-dialog-title">Paramètres</h2>
    <nav ref={navigation} className="settings-navigation" aria-label="Catégories des paramètres">
     {sections.map(({id, label, icon: Icon}) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => onTabChange(id)}><Icon size={18} aria-hidden="true"/><span>{label}</span></button>)}
    </nav>

@@ -1,10 +1,10 @@
 # Audit et renforcement du harness agentique — 24 octobre 2026
 
-> Mise à jour après l'audit : à la demande du propriétaire, la migration `0015_agent_harness.sql` a été appliquée et vérifiée sur D1 distante `aira-staging` le 24 octobre 2026 à 09:16:34 UTC : 16 migrations, quatre tables et deux index présents, aucune anomalie de clé étrangère ni migration en attente. Les mentions de migration distante non effectuée ci-dessous décrivent l'état initial de l'audit. Le runtime a ensuite été déployé en staging privé, version `6f4aa0ee-abe9-4405-978b-a262af34978e` active à 100 % ; huit contrôles du bundle en preview distante passent, sans génération IA. Voir `production/STATE.md` et `production/STAGING_2026-10-24.md`.
+> Mise à jour après l'audit : à la demande du propriétaire, la migration `0015_agent_harness.sql` a été appliquée et vérifiée sur D1 distante `braand-staging` le 24 octobre 2026 à 09:16:34 UTC : 16 migrations, quatre tables et deux index présents, aucune anomalie de clé étrangère ni migration en attente. Les mentions de migration distante non effectuée ci-dessous décrivent l'état initial de l'audit. Le runtime a ensuite été déployé en staging privé, version `6f4aa0ee-abe9-4405-978b-a262af34978e` active à 100 % ; huit contrôles du bundle en preview distante passent, sans génération IA. Voir `production/STATE.md` et `production/STAGING_2026-10-24.md`.
 
 ## Portée et référence
 
-Référence auditée : `ad41c5f` sur `feat/global-workflow`, dépôt Braand-web/Aira. Le code réel est la référence, et non les captures de démonstration. L'audit préalable et les priorités ont été présentés dans la conversation avant les modifications. Le SaaS, la stack Workers/D1/R2, les offres, les routes métier et les droits sont conservés. Aucun déploiement, migration distante, paiement ni appel fournisseur facturé n'a été effectué pour cette évolution.
+Référence auditée : `ad41c5f` sur `feat/global-workflow`, dépôt Braand-web/Braand. Le code réel est la référence, et non les captures de démonstration. L'audit préalable et les priorités ont été présentés dans la conversation avant les modifications. Le SaaS, la stack Workers/D1/R2, les offres, les routes métier et les droits sont conservés. Aucun déploiement, migration distante, paiement ni appel fournisseur facturé n'a été effectué pour cette évolution.
 
 Les validations ci-dessous portent sur le runtime local avec SQLite réelle, des transports de modèles et de fournisseurs simulés, et Chromium. Elles ne prouvent ni l'intelligence d'un modèle en production ni une qualité métier universelle.
 
@@ -104,7 +104,7 @@ Commandes reproductibles :
 - `npm test`
 - `node --import ./tests/offline-network.mjs tests/agent-routing.integration.mjs`
 - `node --import ./tests/offline-network.mjs --test tests/agent-flow.test.mjs`
-- `node tests/agent-ui.browser.mjs` avec Playwright disponible ou `AIRA_PLAYWRIGHT_MODULE` pointant vers un module exportant chromium.
+- `node tests/agent-ui.browser.mjs` avec Playwright disponible ou `BRAAND_PLAYWRIGHT_MODULE` pointant vers un module exportant chromium.
 
 Les données mesurées et leur environnement sont conservés dans `docs/AGENT_HARNESS_MEASUREMENTS.json`. Les journaux bruts et captures se trouvent localement dans `.tmp/`, non versionnés. Le benchmark de 256 fragments compare l'ancien principe une écriture par fragment au nouveau buffer sur la même SQLite : 256 écritures contre 4, soit 98,4375 % de moins, texte identique. Le temps local inclut le coût du buffer et n'établit aucun gain de latence réseau. Les valeurs ne doivent pas être extrapolées à Cloudflare.
 

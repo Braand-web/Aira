@@ -42,7 +42,7 @@ function CampaignWorkshop({campaign,preparation,resources,readOnly,days,onDays,o
  const [editing,setEditing]=useState(false),[focusField,setFocusField]=useState('');
  const id=useId(),editable=!readOnly&&campaign.status==='draft';
  const edit=(field='')=>{setFocusField(field);setEditing(true);};
- const exportBrief=()=>{const url=URL.createObjectURL(new Blob([campaignMarkdown(campaign,resources)],{type:'text/markdown;charset=utf-8;'})),link=document.createElement('a');link.href=url;link.download='aira-plan-campagne-v'+campaign.version+'.md';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);};
+ const exportBrief=()=>{const url=URL.createObjectURL(new Blob([campaignMarkdown(campaign,resources)],{type:'text/markdown;charset=utf-8;'})),link=document.createElement('a');link.href=url;link.download='braand-plan-campagne-v'+campaign.version+'.md';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);};
  return <section className={styles.workshop} aria-label="Atelier de campagne">
   <button type="button" className={styles.back} onClick={onBack}><ArrowLeft size={16}/>Tous les plans</button>
   <header className={styles.workshopHeader}><div><h2>{campaign.title}</h2><p>Plan enregistré · version {campaign.version} · {preparation.documented}/{preparation.total} éléments renseignés</p></div><button type="button" className="button secondary" onClick={exportBrief}><Download size={16}/>Exporter le brief</button></header>

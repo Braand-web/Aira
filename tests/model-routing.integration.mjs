@@ -5,16 +5,16 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const project=path.resolve(import.meta.dirname,'..'),runtime=process.env.AIRA_TOOLCHAIN||path.join(project,'node_modules');
+const project=path.resolve(import.meta.dirname,'..'),runtime=process.env.BRAAND_TOOLCHAIN||path.join(project,'node_modules');
 const {build}=createRequire(path.join(runtime,'package.json'))('esbuild'),sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
 for(const file of readdirSync(path.join(project,'drizzle')).filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync(path.join(project,'drizzle',file),'utf8'));
 function statement(query,args=[]){return {bind(...v){return statement(query,v);},async first(column){const r=sql.prepare(query).get(...args);return column?r?.[column]??null:r??null;},async all(){return {results:sql.prepare(query).all(...args)};},async run(){return this._run();},_run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes)}};}};}
 const DB={prepare:q=>statement(q),async batch(ss){sql.exec('BEGIN');try{const r=ss.map(s=>s._run());sql.exec('COMMIT');return r;}catch(e){sql.exec('ROLLBACK');throw e;}}};
-globalThis.__modelRoutingTest={env:{DB},headers:new Headers({'x-aira-identity-id':'routing-owner','x-aira-identity-email':'owner@test.invalid'})};
+globalThis.__modelRoutingTest={env:{DB},headers:new Headers({'x-braand-identity-id':'routing-owner','x-braand-identity-email':'owner@test.invalid'})};
 const out=path.join(project,'.local-build','model-routing-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
 await build({stdin:{contents:['model-router','model-client','metering','server','billing'].map((n,i)=>`export * as m${i} from ${JSON.stringify(path.join(project,'lib',n+'.ts').replaceAll('\\','/'))};`).join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__modelRoutingTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__modelRoutingTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
 const {m0:router,m1:client,m2:meter,m3:server}=await import(pathToFileURL(out).href),env=globalThis.__modelRoutingTest.env;
-const who=await server.identity(new Request('https://aira.test/api/chat')),now=Date.now();
+const who=await server.identity(new Request('https://braand.test/api/chat')),now=Date.now();
 sql.prepare('INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES (?,?,?,?,?,?,?,?)').run('routing-credits',who.organization,'topup','fixture',1000000,1000000,now,now);
 const secret='FIXTURE-NEVER-A-REAL-KEY';env.MODEL_ROUTING_ENABLED='true';env.OPENAI_API_KEY=secret;env.ANTHROPIC_API_KEY=secret;
 function catalog(){return Object.fromEntries(Object.entries(router.REASONING_MODELS).map(([key,model],index)=>[key,{enabled:true,maxInputTokens:100000,maxOutputTokens:8192,rate:{...model,input:index+1,output:(index+1)*5,cacheWrite:(index+1)*1.25,cacheRead:(index+1)*.1,usdXaf:600,overheadXaf:0,verifiedAt:new Date().toISOString()}}]));}

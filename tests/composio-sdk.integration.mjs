@@ -6,7 +6,7 @@ import {AnthropicProvider} from '@composio/anthropic';
 const requests=[];
 let executionResponse='completed',executionHttpStatus=200;
 const skill={primary_tool_slugs:['METAADS_GET_AD_ACCOUNTS'],recommended_plan_steps:['Read accounts before insights'],known_pitfalls:['Use an ad account ID'],extra:'Skill text '.repeat(2000)};
-const wireConfig={user_id:'aira_fixture',instant:false,workbench:{enable:false},proxy_execute:{enable:false},manage_connections:{enabled:false},preload:{tools:[]}};
+const wireConfig={user_id:'braand_fixture',instant:false,workbench:{enable:false},proxy_execute:{enable:false},manage_connections:{enabled:false},preload:{tools:[]}};
 const wireSession={session_id:'session_fixture',mcp:{type:'http',url:'https://backend.composio.dev/mcp/session_fixture'},config:wireConfig,config_version:1};
 const savedFetch=globalThis.fetch;
 globalThis.fetch=async(input,init)=>{
@@ -30,11 +30,11 @@ try{
  const client=new Composio({apiKey:'fixture_project_key',provider:new AnthropicProvider(),allowTracking:false,logLevel:'silent'});
  let session;
  await check('Actual SDK sends explicit Instant/sandbox/proxy denial with stable user scope',async()=>{
-  session=await client.sessions.create('aira_fixture',{instant:false,sandbox:{enable:false},proxyExecute:false,manageConnections:false});
-  const body=requests.at(-1).body;assert.equal(body.user_id,'aira_fixture');assert.equal(body.instant,false);assert.deepEqual(body.workbench,{enable:false});assert.deepEqual(body.proxy_execute,{enable:false});assert.equal(session.config.instant,false);
+  session=await client.sessions.create('braand_fixture',{instant:false,sandbox:{enable:false},proxyExecute:false,manageConnections:false});
+  const body=requests.at(-1).body;assert.equal(body.user_id,'braand_fixture');assert.equal(body.instant,false);assert.deepEqual(body.workbench,{enable:false});assert.deepEqual(body.proxy_execute,{enable:false});assert.equal(session.config.instant,false);
  });
  await check('Actual SDK restores session config and maps API next_cursor to cursor',async()=>{
-  session=await client.sessions.use(session.sessionId);assert.equal(session.config.user_id,'aira_fixture');
+  session=await client.sessions.use(session.sessionId);assert.equal(session.config.user_id,'braand_fixture');
   const result=await session.toolkits({limit:30});assert.equal(result.cursor,'next_fixture');assert.equal(result.nextCursor,undefined);assert.equal(result.items[0].connection.connectedAccount.id,'ca_fixture');assert.equal(result.items[0].connection.isActive,true);
  });
  await check('Actual SDK preserves SEARCH skill fields and accepts native meta execution',async()=>{

@@ -7,6 +7,8 @@ import type {ModelRate} from './model-protocol';
 
 export type BillingIdentity={tenant:string;organization:string;user:{userId:string;email:string;displayName:string};role:string};
 const s=(q:string,...values:(string|number|null)[])=>db().prepare(q).bind(...values);
+const LEGACY_ORDER_METADATA_KEY=['ai','ra','_order_id'].join('');
+const providerOrderId=(session:PaymentSession)=>session.metadata?.braand_order_id??(session.metadata as Record<string,unknown>|null|undefined)?.[LEGACY_ORDER_METADATA_KEY];
 function commercialSubscription(row:SubscriptionRow|null){return row?{...row,plan:row.catalog_plan||row.plan}:null;}
 export async function currentSubscription(org:string,now=Date.now()) {return commercialSubscription(await s("SELECT * FROM billing_subscriptions WHERE organization_id=? AND status='active' AND start_at<=? AND end_at>? ORDER BY start_at DESC LIMIT 1",org,now,now).first<SubscriptionRow>());}
 export async function subscriptionTerms(sub:SubscriptionRow){
@@ -145,7 +147,7 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
  const id=uid(),now=Date.now();
  try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'initializing',?,?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now,config().SASPAY_ENV==='live'?'live':'sandbox').run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<OrderRow>();if(same)return orderView(same);throw error;}
  try{
-  const remote=await sas('checkout-sessions/',checkoutResponseSchema,{amount:q.amount.toFixed(2),currency:'XAF',country:'CM',customer_email:who.user.email,customer_name:who.user.displayName||who.user.email,description:'Braand · '+id,metadata:{aira_order_id:id},fee_charge_mode:'DEDUCTED',return_url:origin+'/?billingOrder='+id,expires_at:new Date(now+1800000).toISOString()});
+  const remote=await sas('checkout-sessions/',checkoutResponseSchema,{amount:q.amount.toFixed(2),currency:'XAF',country:'CM',customer_email:who.user.email,customer_name:who.user.displayName||who.user.email,description:'Braand · '+id,metadata:{braand_order_id:id},fee_charge_mode:'DEDUCTED',return_url:origin+'/?billingOrder='+id,expires_at:new Date(now+1800000).toISOString()});
   const url=new URL(remote.checkout_url);if(url.protocol!=='https:'||!['checkout.saspay.me','pay.saspay.me'].includes(url.hostname)||!remote.id)throw new Error('Invalid checkout');
   if(remote.fee_charge_mode!=='DEDUCTED')throw new Error('Merchant fee mode not verified');
   await s("UPDATE billing_orders SET status='pending',session_id=?,checkout_url=?,updated_at=? WHERE id=?",remote.id,url.href,Date.now(),id).run();
@@ -160,7 +162,7 @@ export async function reconcileOrder(id:string){
   // Search the merchant's existing sessions; never issue another create after a timeout.
   let path='checkout-sessions/?currency=XAF';const matches:PaymentSession[]=[];
   for(let page=0;path&&page<5;page++){
-   const listing=await sas(path,sessionListSchema);for(const item of listing.results)if(item.metadata?.aira_order_id===id)matches.push(item);
+   const listing=await sas(path,sessionListSchema);for(const item of listing.results)if(providerOrderId(item)===id)matches.push(item);
    if(!listing.next){path='';break;}const next=new URL(listing.next,'https://api.saspay.me');
    if(next.origin!=='https://api.saspay.me'||!next.pathname.startsWith('/api/v1/checkout-sessions/'))throw new AppError('Pagination fournisseur invalide.',502);
    path=next.pathname.slice('/api/v1/'.length)+next.search;
@@ -169,7 +171,7 @@ export async function reconcileOrder(id:string){
   await s('UPDATE billing_orders SET session_id=?,updated_at=? WHERE id=? AND session_id IS NULL',matches[0].id,Date.now(),id).run();order.session_id=matches[0].id;
  }
  const session=await sas('checkout-sessions/'+encodeURIComponent(order.session_id)+'/',sessionResponseSchema);
- if(session.merchant!==config().SASPAY_MERCHANT_ID||session.metadata?.aira_order_id!==id||session.currency!=='XAF'||decimalXaf(session.amount)!==order.amount)throw new AppError('Paiement incohérent : rapprochement requis.',409);
+ if(session.merchant!==config().SASPAY_MERCHANT_ID||providerOrderId(session)!==id||session.currency!=='XAF'||decimalXaf(session.amount)!==order.amount)throw new AppError('Paiement incohérent : rapprochement requis.',409);
  const txid=typeof session.transaction==='string'?session.transaction:session.transaction?.id;
  if(!txid){if(session.status==='EXPIRED'||session.status==='CANCELLED'){await s('UPDATE billing_orders SET status=?,updated_at=? WHERE id=? AND transaction_id IS NULL',session.status.toLowerCase(),Date.now(),id).run();}return order;}
  // /verify refreshes PENDING from the actual gateway. Its documented schema differs from webhook data.

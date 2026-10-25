@@ -1,9 +1,10 @@
 // Independent passwordless authentication. No trusted identity headers from clients.
 type AuthEnv = Pick<Cloudflare.Env, 'DB' | 'APP_ENV' | 'APP_ORIGIN' | 'AUTH_ENABLED' | 'AUTH_HASH_SECRET' | 'RESEND_MODE' | 'RESEND_API_KEY' | 'RESEND_FROM' | 'RESEND_TEST_RECIPIENT' | 'RESEND_LIVE_APPROVED'>;
 type Challenge = {id: string; email: string; browser_hash: string; return_to: string};
-export type AiraIdentity = {userId: string; email: string; displayName: string; fullName: null};
-const LOGIN_COOKIE = '__Host-aira_login';
-const SESSION_COOKIE = '__Host-aira_session';
+export type BraandIdentity = {userId: string; email: string; displayName: string; fullName: null};
+const LOGIN_COOKIE = '__Host-braand_login';
+const SESSION_COOKIE = '__Host-braand_session';
+const LEGACY_PREFIX = ['ai', 'ra'].join('');
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 const emailPattern = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const encode = (value: Uint8Array) => btoa(String.fromCharCode(...value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -11,11 +12,15 @@ const random = () => encode(crypto.getRandomValues(new Uint8Array(32)));
 const text = new TextEncoder();
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export function safeAuthReturn(value: string | null) {
-  try {const u = new URL(value || '/', 'https://aira.invalid'); return value?.startsWith('/') && u.origin === 'https://aira.invalid' && !u.pathname.startsWith('/auth/') && !u.pathname.includes('with-chatgpt') ? u.pathname + u.search + u.hash : '/';} catch {return '/';}
+  try {const u = new URL(value || '/', 'https://braand.invalid'); return value?.startsWith('/') && u.origin === 'https://braand.invalid' && !u.pathname.startsWith('/auth/') && !u.pathname.includes('with-chatgpt') ? u.pathname + u.search + u.hash : '/';} catch {return '/';}
 }
 function cookie(headers: Headers, name: string) {
-  const values = (headers.get('cookie') || '').split(';').map(c => c.trim()).filter(c => c.startsWith(name + '=')).map(c => c.slice(name.length + 1));
-  return values.length === 1 && tokenPattern.test(values[0]) ? values[0] : null;
+  const cookieHeader = headers.get('cookie') || '';
+  const read = (candidate: string) => {
+    const values = cookieHeader.split(';').map(c => c.trim()).filter(c => c.startsWith(candidate + '=')).map(c => c.slice(candidate.length + 1));
+    return values.length === 1 && tokenPattern.test(values[0]) ? values[0] : null;
+  };
+  return read(name) ?? read(name.replace('braand', LEGACY_PREFIX));
 }
 function setCookie(name: string, value: string, age: number) {return `${name}=${value}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${age}`;}
 async function readForm(request: Request) {
@@ -51,7 +56,7 @@ async function rate(env: AuthEnv, category: string, value: string, max: number, 
   const row = await env.DB!.prepare('INSERT INTO auth_rate_limits(bucket,count,expires_at) VALUES (?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=count+1 WHERE count<? RETURNING count').bind(bucket, (slot+1)*period, max).first<{count:number}>();
   return !!row;
 }
-export async function sessionIdentity(headers: Headers, env: AuthEnv, now = Date.now()): Promise<AiraIdentity | null> {
+export async function sessionIdentity(headers: Headers, env: AuthEnv, now = Date.now()): Promise<BraandIdentity | null> {
   if (!configured(env)) return null;
   const token = cookie(headers, SESSION_COOKIE); if (!token) return null;
   const row = await env.DB!.prepare('SELECT u.id,u.email FROM auth_sessions s JOIN auth_users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?').bind(await hash('session:' + token, env), now).first<{id:string; email:string}>();
@@ -59,9 +64,9 @@ export async function sessionIdentity(headers: Headers, env: AuthEnv, now = Date
 }
 export async function authenticatedRequest(request: Request, env: AuthEnv) {
   const headers = new Headers(request.headers);
-  for (const name of [...headers.keys()]) if (name.startsWith('oai-authenticated-user-') || name.startsWith('x-aira-identity-')) headers.delete(name);
+  for (const name of [...headers.keys()]) if (name.startsWith('oai-authenticated-user-') || name.startsWith('x-braand-identity-')) headers.delete(name);
   const user = await sessionIdentity(headers, env);
-  if (user) {headers.set('x-aira-identity-id', user.userId); headers.set('x-aira-identity-email', user.email);}
+  if (user) {headers.set('x-braand-identity-id', user.userId); headers.set('x-braand-identity-email', user.email);}
   return new Request(request, {headers});
 }
 export async function cleanupAuth(env: AuthEnv, now = Date.now()) {
@@ -88,7 +93,9 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     if (request.method === 'GET') return page('Se déconnecter', '<p>Votre travail enregistré restera disponible lors de votre prochaine connexion.</p><form method="post" action="/auth/sign-out"><button type="submit">Confirmer la déconnexion</button></form>');
     const token = cookie(request.headers, SESSION_COOKIE);
     if (token) await env.DB!.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await hash('session:' + token, env)).run();
-    return redirect('/', setCookie(SESSION_COOKIE, '', 0));
+    const response = redirect('/', setCookie(SESSION_COOKIE, '', 0));
+    response.headers.append('Set-Cookie', setCookie(SESSION_COOKIE.replace('braand', LEGACY_PREFIX), '', 0));
+    return response;
   }
   // Bound bodies before parsing; never log addresses, links or provider payloads.
   if (Number(request.headers.get('content-length') || 0) > 4096) return denied();
@@ -106,7 +113,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     await env.DB!.prepare('INSERT INTO auth_challenges(id,email,token_hash,browser_hash,expires_at,return_to,created_at) VALUES (?,?,?,?,?,?,?)').bind(id, email, await hash('challenge:' + token, env), await hash('browser:' + browser, env), now+600_000, safeAuthReturn(form.get('return_to')), now).run();
     const link = `${origin(env)}/auth/verify?id=${id}&token=${token}`;
     try {
-      const response = await fetch('https://api.resend.com/emails', {method:'POST', headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`, 'Content-Type':'application/json', 'Idempotency-Key':`aira-auth/${id}`}, body:JSON.stringify({from:env.RESEND_FROM, to:[email], subject:'Votre lien de connexion Braand', text:`Pour retrouver votre espace Braand, ouvrez ce lien dans le navigateur où vous avez demandé la connexion :\n${link}\nCe lien expire dans dix minutes et ne peut être utilisé qu’une fois. Si vous n’avez rien demandé, ignorez ce message.`}), signal:AbortSignal.timeout(8000)});
+      const response = await fetch('https://api.resend.com/emails', {method:'POST', headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`, 'Content-Type':'application/json', 'Idempotency-Key':`braand-auth/${id}`}, body:JSON.stringify({from:env.RESEND_FROM, to:[email], subject:'Votre lien de connexion Braand', text:`Pour retrouver votre espace Braand, ouvrez ce lien dans le navigateur où vous avez demandé la connexion :\n${link}\nCe lien expire dans dix minutes et ne peut être utilisé qu’une fois. Si vous n’avez rien demandé, ignorez ce message.`}), signal:AbortSignal.timeout(8000)});
       if (!response.ok) throw new Error('email_rejected');
     } catch {
       // Invalidate even an uncertain send. Never resend authentication links blindly.

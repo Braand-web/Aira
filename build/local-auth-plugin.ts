@@ -4,9 +4,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 
 const localUserId = "local_seedy";
-const localEmail = "local@aira.test";
+const localEmail = "local@braand.test";
 const localFullName = "Seedy";
-const localCookieName = "__aira_local_auth";
+const localCookieName = "__braand_local_auth";
 const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
 const localAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const authPaths = new Set([
@@ -18,15 +18,15 @@ const authPaths = new Set([
 export function localAuth({ mockAuth = true } = {}): Plugin {
 
   return {
-    name: "aira-local-auth",
+    name: "braand-local-auth",
     configureServer(server) {
       if (!mockAuth) return;
       const secure = Boolean(server.config.server.https);
 
-      server.config.logger.info(`Aïra local sign-in: ${localEmail}`);
+      server.config.logger.info(`Braand local sign-in: ${localEmail}`);
       server.middlewares.use((request, response, next) => {
         for (const name of Object.keys(request.headers)) {
-          if ((name.startsWith("x-aira-identity-") || name.startsWith("oai-authenticated-user-"))) {
+          if ((name.startsWith("x-braand-identity-") || name.startsWith("oai-authenticated-user-"))) {
             removeHeader(request, name);
           }
         }
@@ -86,16 +86,16 @@ export function localAuth({ mockAuth = true } = {}): Plugin {
         const signOut = url.pathname === "/auth/sign-out";
         if (!signIn && !signOut) {
           if (signInCookies.length === 1 && signInCookies[0] === "1") {
-            setHeader(request, "x-aira-identity-id", localUserId);
-            setHeader(request, "x-aira-identity-email", localEmail);
+            setHeader(request, "x-braand-identity-id", localUserId);
+            setHeader(request, "x-braand-identity-email", localEmail);
             setHeader(
               request,
-              "x-aira-identity-name",
+              "x-braand-identity-name",
               localFullName,
             );
             setHeader(
               request,
-              "x-aira-identity-name-encoding",
+              "x-braand-identity-name-encoding",
               "percent-encoded-utf-8",
             );
           }

@@ -1,6 +1,6 @@
 # Statuts de l’agent et révélation des visuels
 
-`AiStatus` et `GridReveal` utilisent les libellés français, les variables de thème d’Aïra et des animations CSS/canvas natives. Aucune dépendance d’animation supplémentaire n’est installée.
+`AiStatus` et `GridReveal` utilisent les libellés français, les variables de thème d’Braand et des animations CSS/canvas natives. Aucune dépendance d’animation supplémentaire n’est installée.
 
 - `components/ui/ai-status.tsx` : préparation, analyse, rédaction, fin confirmée, erreur et arrêt. L’horloge utilise le temps réellement écoulé. Un message historique ne reçoit pas une durée inventée.
 - `lib/agent-status.mjs` : traduction déterministe des événements de streaming en états d’interface. Un résultat d’outil ou du texte reçu ne valent jamais confirmation de fin. Une fin de flux sans événement `done` conserve le texte et signale l’interruption.
@@ -24,7 +24,7 @@ Avec Playwright disponible dans l’environnement de développement :
 node tests/agent-ui.browser.mjs
 ```
 
-Si Playwright est fourni par un runtime externe, définir `AIRA_PLAYWRIGHT_MODULE` vers son module `index.mjs` avant de lancer cette commande. Le navigateur Chromium doit être installé ; Microsoft Edge local sert de solution de repli. Les captures et le relevé des vérifications restent dans `.tmp/agent-ui-browser/`, ignoré par Git.
+Si Playwright est fourni par un runtime externe, définir `BRAAND_PLAYWRIGHT_MODULE` vers son module `index.mjs` avant de lancer cette commande. Le navigateur Chromium doit être installé ; Microsoft Edge local sert de solution de repli. Les captures et le relevé des vérifications restent dans `.tmp/agent-ui-browser/`, ignoré par Git.
 
 ## Test manuel
 

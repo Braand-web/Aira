@@ -2,7 +2,7 @@
 
 ## Résumé
 
-- DOCX, XLSX et PPTX sont reconnus depuis la structure ZIP/OOXML et peuvent être ouverts dans le dialogue universel Aïra.
+- DOCX, XLSX et PPTX sont reconnus depuis la structure ZIP/OOXML et peuvent être ouverts dans le dialogue universel Braand.
 - Les lecteurs sont chargés à la demande ; le traitement OOXML s’exécute dans un Web Worker dédié, sans bibliothèque ou dépendance ajoutée.
 - Les formules ne sont jamais calculées, les macros et notes PowerPoint ne sont jamais exécutées ou chargées, et les textes sont rendus comme texte React échappé.
 - Le build, TypeScript, 61 tests unitaires et 71 contrôles HTTP locaux passent ; le lint ciblé passe.
@@ -68,6 +68,6 @@ Commande d’intégration locale : `node tests/run-file-upload-integration.mjs`.
 
 **Description :**
 
-Ajoute des aperçus Office en lecture seule au dialogue universel d’Aïra. Les lecteurs DOCX, XLSX et PPTX sont chargés à la demande ; le parseur OOXML tourne dans un worker dédié, rejette les structures ZIP risquées et applique des limites de taille, de ratio, de contenu et de durée. Les formules ne sont pas calculées, les macros ne sont pas exécutées et le texte est rendu sans HTML brut.
+Ajoute des aperçus Office en lecture seule au dialogue universel d’Braand. Les lecteurs DOCX, XLSX et PPTX sont chargés à la demande ; le parseur OOXML tourne dans un worker dédié, rejette les structures ZIP risquées et applique des limites de taille, de ratio, de contenu et de durée. Les formules ne sont pas calculées, les macros ne sont pas exécutées et le texte est rendu sans HTML brut.
 
 Validation : build, typecheck, 61 tests unitaires, 71 contrôles HTTP locaux et vérification des chunks différés. Le lint global reste en échec sur des erreurs et avertissements existants hors de cette phase ; le lint ciblé passe. Le test E2E navigateur reste à faire.

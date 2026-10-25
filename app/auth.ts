@@ -1,24 +1,24 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export type AiraUser = {
+export type BraandUser = {
   userId: string;
   displayName: string;
   email: string;
   fullName: string | null;
 };
 
-const USER_ID_HEADER = "x-aira-identity-id";
-const USER_EMAIL_HEADER = "x-aira-identity-email";
-const USER_FULL_NAME_HEADER = "x-aira-identity-name";
+const USER_ID_HEADER = "x-braand-identity-id";
+const USER_EMAIL_HEADER = "x-braand-identity-email";
+const USER_FULL_NAME_HEADER = "x-braand-identity-name";
 const USER_FULL_NAME_ENCODING_HEADER =
-  "x-aira-identity-name-encoding";
+  "x-braand-identity-name-encoding";
 const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
 const SIGN_IN_PATH = "/auth/sign-in";
 const SIGN_OUT_PATH = "/auth/sign-out";
 const CALLBACK_PATH = "/callback";
 
-export async function getAiraUser(): Promise<AiraUser | null> {
+export async function getBraandUser(): Promise<BraandUser | null> {
   const requestHeaders = await headers();
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
@@ -39,21 +39,21 @@ export async function getAiraUser(): Promise<AiraUser | null> {
   };
 }
 
-export async function requireAiraUser(
+export async function requireBraandUser(
   returnTo: string,
-): Promise<AiraUser> {
-  const user = await getAiraUser();
+): Promise<BraandUser> {
+  const user = await getBraandUser();
   if (user) return user;
 
-  redirect(airaSignInPath(returnTo));
+  redirect(braandSignInPath(returnTo));
 }
 
-export function airaSignInPath(returnTo: string): string {
+export function braandSignInPath(returnTo: string): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
-export function airaSignOutPath(returnTo = "/"): string {
+export function braandSignOutPath(returnTo = "/"): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }

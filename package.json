@@ -1,5 +1,5 @@
 {
-  "name": "aira",
+  "name": "braand",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -22,7 +22,8 @@
     "test:file-upload-integration": "node tests/run-file-upload-integration.mjs",
     "db:generate": "drizzle-kit generate",
     "cloudflare:config": "node scripts/cloudflare-config.mjs",
-    "cloudflare:deploy:staging": "wrangler deploy --config .wrangler/deploy/staging.json"
+    "cloudflare:deploy:staging": "wrangler deploy --config .wrangler/deploy/staging.json",
+    "cloudflare:deploy:production": "wrangler deploy --config .wrangler/deploy/production.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

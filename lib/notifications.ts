@@ -54,7 +54,7 @@ export async function dispatchOperationalNotifications(limit = 10, now = Date.no
       }
       const c = config();
       const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST', headers: {'Authorization': 'Bearer ' + c.RESEND_API_KEY, 'Content-Type': 'application/json', 'Idempotency-Key': 'aira-ops/' + row.id},
+        method: 'POST', headers: {'Authorization': 'Bearer ' + c.RESEND_API_KEY, 'Content-Type': 'application/json', 'Idempotency-Key': 'braand-ops/' + row.id},
         body: JSON.stringify({from: c.RESEND_FROM, to: [readiness.mode === 'sandbox' ? c.RESEND_TEST_RECIPIENT : c.OPS_ALERT_EMAIL],
           subject: 'Braand — une intervention est nécessaire', text: `Une alerte technique requiert votre attention.\nCatégorie : ${payload.category}\nRéférence : ${payload.target}\nConsultez la console d’exploitation Braand. Aucun secret n’est inclus dans ce message.`}),
         signal: AbortSignal.timeout(8000),
