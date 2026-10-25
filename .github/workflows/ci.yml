@@ -37,3 +37,19 @@ jobs:
         run: npm run build
       - name: Run unit, service, browser bundle, file and HTTP tests offline
         run: npm test
+      - name: Prepare isolated browser checks on the GitHub runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/braand-browser" --no-package-lock --no-audit --no-fund playwright@1.58.2
+          node "$RUNNER_TEMP/braand-browser/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Check desktop and mobile interactions without providers
+        env:
+          BRAAND_PLAYWRIGHT_MODULE: ${{ runner.temp }}/braand-browser/node_modules/playwright/index.mjs
+        run: node tests/agent-ui.browser.mjs
+      - name: Keep fixture screenshots online
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-fixture-screenshots
+          path: .tmp/agent-ui-browser/*.png
+          if-no-files-found: ignore
+          retention-days: 7

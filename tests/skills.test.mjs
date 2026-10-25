@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult} from '../lib/skills/registry.ts';
+import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult,reviewedSkillMetadata} from '../lib/skills/registry.ts';
+import {reviewedSkillCatalogSchema} from '../lib/skill-metadata.ts';
 import {SKILL_POLICY} from '../lib/skills/policy.mjs';
 
 test('reviewed sources and generated lazy catalog reproduce the pinned local bytes',()=>{
@@ -56,4 +57,34 @@ test('growth and community requests discover focused methods without granting ex
   assert.equal(loaded.provenance.origin,id==='braand-growth-strategy'?'Braand':id==='crisis-and-moderation'||id==='cross-platform-repurposing'?'https://github.com/social-media-skills/skills':'https://github.com/coreyhaines31/marketingskills');
   assert.equal(Object.hasOwn(publicSkillResult('read_skill',loaded),'content'),false);
  }
+});
+
+test('adapted methods support model-led multilingual selection and progressive references within existing budgets',async()=>{
+ const ids=['braand-campaign-operations','braand-business-research','braand-decision-prioritization','braand-project-delivery','braand-professional-writing','braand-meeting-actions'];
+ for(const [index,id]of ids.entries()){
+  const query=['Publicité','بحث موثق','優先順位を決める','Organize dependencies','Rédiger une lettre','总结会议'][index];
+  const result=searchSkills({query,semanticIds:[id]});
+  assert.equal(result.skills[0].id,id);assert.equal(result.strategy,'model_selected_and_lexical');
+  const loaded=await readSkill({id},createSkillSession());
+  assert.equal(loaded.provenance.license,'User-provided-adapted');
+  assert.equal(loaded.provenance.origin,'user-provided://braand/2026-10-25');
+  assert.equal(loaded.version,'1.0.0');assert.equal(loaded.truncated,false);
+  assert.ok(loaded.chars<4000,'Focused entry should not load the original long guide');
+ }
+ const session=createSkillSession();
+ await assert.rejects(()=>readSkill({id:ids[0],reference:'references/live-actions.md'},session),error=>error.code==='skill_entry_required');
+ const entry=await readSkill({id:ids[0]},session);assert.equal(entry.references.length,3);
+ const reference=await readSkill({id:ids[0],reference:'references/live-actions.md'},session);
+ assert.equal(reference.reference,'references/live-actions.md');assert.equal(session.calls,2);
+ assert.equal(reference.budget.remainingChars,SKILL_POLICY.maxRunChars-entry.chars-reference.chars);
+ assert.equal(searchSkills({category:'operations',semanticIds:[ids[0],ids[1]]}).skills.some(skill=>skill.id===ids[0]),false);
+});
+
+test('settings metadata matches the reviewed registry and rejects private prose or extra executable fields',()=>{
+ const skills=reviewedSkillMetadata();const dto=reviewedSkillCatalogSchema.parse({skills});
+ assert.equal(dto.skills.length,31);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,31);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],content:'private instructions'}]}).success,false);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],tools:['shell']}]}).success,false);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],id:'../unreviewed'}]}).success,false);
+ assert.ok(dto.skills.every(skill=>Object.keys(skill).sort().join(',')==='capability,category,description,id,title,version'));
 });

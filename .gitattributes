@@ -1,5 +1,6 @@
 # Preserve reviewed upstream bytes, including their license and hash manifests.
 skills/vendor/** -text
 skills/braand/** text eol=lf
+skills/user-adapted/** text eol=lf
 skills/catalog.json text eol=lf
 lib/skills/**/*.generated.mjs text eol=lf

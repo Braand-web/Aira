@@ -37,6 +37,7 @@ function surfaces(file,source){
 
 // Phrases come from substantive source content, never public skill names or UI labels.
 const probes=[
+ {label:'adapted advertising action reference',source:'skills/user-adapted/braand-campaign-operations/references/live-actions.md',marker:'ne jamais transférer silencieusement les données ou audiences d\'un client à un autre.'},
  {label:'marketing method',source:'skills/vendor/marketing/copywriting/SKILL.md',marker:'second-generation tells such as wisdom-shaped sentences and tidy closers'},
  {label:'marketing reference',source:'skills/vendor/marketing/ad-creative/references/awareness-headlines.md',marker:'A complaint supports the pain angle; it does not substantiate a numerical performance promise.'},
  {label:'design method',source:'skills/vendor/anthropic/frontend-design/SKILL.md',marker:'Spend your boldness in one place.'},

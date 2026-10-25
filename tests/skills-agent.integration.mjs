@@ -26,7 +26,7 @@ const out=path.join(project,'.local-build','skills-agent-test.mjs');
 mkdirSync(path.dirname(out),{recursive:true});
 const entry=file=>JSON.stringify(path.join(project,file).replaceAll('\\','/'));
 await build({
- stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
+ stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as skillsRoute from ${entry('app/api/skills/route.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
  outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],
  plugins:[{name:'skills-agent-isolation',setup(builder){
   builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'bindings'}));
@@ -41,7 +41,7 @@ await build({
   }[args.path]}));
  }}],
 });
-const {agent,server,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
+const {agent,server,skillsRoute,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
 const who=await server.identity(new Request('https://braand.test/api/chat'));
 globalThis.fetch=async()=>{fixture.external.push('network');throw Error('Network forbidden in skills integration tests');};
 const emit=async(type,data)=>{fixture.events.push({type,data});};
@@ -199,6 +199,39 @@ await check('aggregate character limit truncates the final excerpt and refuses a
  assert.equal(loaded.at(-1).budget.remainingChars,0);assert.equal(loaded.at(-1).truncated,true);
  const rejection=toolResult(request,'character-overflow');assert.equal(rejection.is_error,true);assert.match(rejection.content,/budget de lecture/);
  assert.equal(skillAudits().length,4);assertNoExternalOrMutation(before);
+});
+
+await check('settings metadata requires identity and workspace access and never exposes method content',async()=>{
+ const headers=fixture.headers;
+ try{
+  const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
+  assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
+  const dto=await response.json();assert.equal(dto.skills.length,31);
+  assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
+  assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
+  const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);
+  fixture.headers=new Headers();
+  const anonymous=await skillsRoute.GET(new Request('https://braand.test/api/skills'));assert.equal(anonymous.status,401);assert.equal(anonymous.headers.get('cache-control'),'private, no-store');
+ }finally{fixture.headers=headers;}
+});
+
+await check('a simple response does not require method discovery, delegation or extra model calls',async()=>{
+ const execution=await setup(),before=mutationCount();fixture.responses=[text('Bonjour ! Comment puis-je vous aider ?')];
+ await run(execution);assert.equal(fixture.requests.length,1);assert.equal(skillAudits().length,0);assertNoExternalOrMutation(before);
+});
+
+await check('an adapted meeting method produces a real private artifact with an independent structural check',async()=>{
+ const execution=await setup();
+ fixture.responses=[stream([read('meeting-method','braand-meeting-actions')]),stream([tool('meeting-save','save_deliverable',{title:'Compte rendu — test isolé',content:'# Décisions\nOffre validée selon les notes fournies.\n\n## Actions\nResponsable et échéance à confirmer.',summary:'Compte rendu fondé sur les notes de test.',category:'management',sources:['Notes fournies dans la conversation de test']})]),request=>{
+  const saved=parsedResult(request,'meeting-save');assert.equal(saved.kind,'deliverable');assert.equal(saved.status,'draft');assert.equal(saved.data.executionConfirmed,false);
+  return stream([tool('meeting-verify','verify_deliverable',{id:saved.id,version:saved.version,criteria:['Compte rendu conservé avec référence aux notes'],requiredSources:true,requiredResourceIds:[]})]);
+ },text('Le compte rendu est enregistré. Les responsables et échéances restent à confirmer.')];
+ await run(execution);
+ const verified=parsedResult(fixture.requests.at(-1),'meeting-verify');assert.equal(verified.status,'structurally_verified');assert.equal(verified.executionConfirmed,false);assert.equal(verified.semanticReview,'required');
+ const row=sql.prepare('SELECT kind,workspace_id,data FROM resources WHERE id=?').get(verified.resourceId);
+ assert.equal(row.kind,'deliverable');assert.equal(row.workspace_id,who.tenant);assert.match(JSON.parse(row.data).content,/à confirmer/);
+ assert.ok(sql.prepare('SELECT COUNT(*) n FROM agent_verifications WHERE resource_id=?').get(verified.resourceId).n>=1);
+ assert.equal(skillAudits().length,1);assert.deepEqual(fixture.external,[]);assert.equal(fixture.responses.length,0);
 });
 
 console.log(count+' skills agent integration checks passed; no external model, provider or mutation calls.');

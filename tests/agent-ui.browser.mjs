@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
+import {SKILL_CATALOG} from '../lib/skills/catalog.generated.mjs';
 import {CATALOG_VERSION,PLANS,PACKS,topupPrice,quoteTax} from '../lib/billing-core.mjs';
 import {demoAnalytics,DEMO_AD_ACCOUNT} from '../scripts/demo/analytics.mjs';
 
@@ -27,6 +28,7 @@ const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conve
 const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
 const history=[];const votes=new Map();
 const workspaceResources=[proposal,conversation],workspaceMutations=[];
+let skillReads=0,failSkills=false;
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 const firstChatHeaders=Promise.withResolvers();
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
@@ -41,7 +43,9 @@ const connectorFixtures=[{slug:'metaads',name:'Meta Ads',description:'Catalogue 
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
+  if(url.pathname==='/api/skills'){skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'});res.end(JSON.stringify({error:'Catalogue indisponible'}));return;}json(res,{skills:SKILL_CATALOG.map(({id,title,description,category,version,capability})=>({id,title,description,category,version,capability}))});return;}
   if(url.pathname==='/api/workspace'&&req.method==='POST'){
+
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
     const created={id:'fixture-imported-skill',workspace_id:'fixture',kind:body.kind,title:body.title,status:'candidate',version:1,created_at:now,updated_at:now,data:body.data};workspaceResources.push(created);json(res,created);return;
   }
@@ -274,6 +278,16 @@ try{
   assert.deepEqual({chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length},mutationsBeforeSwitch);
   checks.push('A workspace change in another tab reloads its snapshot without running model, generation or connector mutations');
   await page.goto(origin+'/?view=knowledge');await settings.waitFor();await settings.getByRole('heading',{name:'Compétences',exact:true}).waitFor();
+  await settings.getByRole('heading',{name:'Pilotage opérationnel des publicités',exact:true}).waitFor();
+  assert.equal(await settings.locator('.skill-card').count(),31);
+  assert.ok(skillReads>0);assert.equal(await settings.getByRole('heading',{name:'Auditer une campagne Meta',exact:true}).count(),0);
+  const methodSearch=settings.getByRole('textbox',{name:'Rechercher des compétences'});
+  await methodSearch.fill('Réunions');const meetingCard=settings.locator('.skill-card');assert.equal(await meetingCard.count(),1);
+  await meetingCard.getByRole('button',{name:'Utiliser',exact:true}).focus();await page.keyboard.press('Enter');await settings.waitFor({state:'hidden'});
+  assert.match(await composer.inputValue(),/braand-meeting-actions/);assert.equal(chatCalls,0);await composer.fill('');
+  failSkills=true;await page.goto(origin+'/?view=knowledge');await settings.waitFor();await settings.getByRole('alert').filter({hasText:'méthodes intégrées'}).waitFor();
+  failSkills=false;await settings.getByRole('button',{name:'Réessayer',exact:true}).click();await settings.getByRole('heading',{name:'Réunions, décisions et actions',exact:true}).waitFor();
+  checks.push('The settings library uses the real reviewed registry; keyboard Use only prepares a draft and a catalog failure can be retried');
   assert.equal(await settings.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
   await capture({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
   const skillChooserPromise=page.waitForEvent('filechooser');await settings.getByRole('button',{name:'Importer une compétence',exact:true}).click();const skillChooser=await skillChooserPromise;

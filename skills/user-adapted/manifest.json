@@ -1,0 +1,142 @@
+{
+  "version": "1.0.0",
+  "source": {
+    "repository": "user-provided://braand/2026-10-25",
+    "commit": "2fefa83a003768dce53bea1048e9c99ed000a92e0676034840d53bcdcf72655e"
+  },
+  "inputs": [
+    {
+      "name": "SKILL.md",
+      "bytes": 52212,
+      "sha256": "218f8a303a82a9fa83805b3fbfd91625c16f7840320aacc2b6fcd65138fd1a54"
+    },
+    {
+      "name": "Texte collé.txt",
+      "bytes": 48289,
+      "sha256": "cffa5df30796621fe852fbb0abae9d805e07ded4a78901ab89b5094f1247d17f"
+    },
+    {
+      "name": "agent-skills-portables (6).zip — inspected Markdown snapshot",
+      "sha256": "2bb8d1bc8b8b74faa8d529ea9f382ebed7689036c53ef9466113afa2a6f6579b",
+      "files": [
+        {
+          "path": "01-developpement-complet/SKILL.md",
+          "bytes": 4029,
+          "sha256": "7e031b2c326553a8093cc77c5e0edcc2e94dad2e07687788af07c58bc6d5dc7e"
+        },
+        {
+          "path": "02-debogage-systematique/SKILL.md",
+          "bytes": 4016,
+          "sha256": "39262bf2b8ea4c1d68434dd0d19d799e78b6de53b6b2fe283c720b0264c60129"
+        },
+        {
+          "path": "03-revue-de-code/SKILL.md",
+          "bytes": 3784,
+          "sha256": "1bbd9632c3ef0838b6217dd7a4532ca8971ac9d38c21f51192d7b360992537d4"
+        },
+        {
+          "path": "04-architecture-conception/SKILL.md",
+          "bytes": 4481,
+          "sha256": "c7a03d2228b426b35579ca2326f379c0d2eff6a8671e33c19709a17090985888"
+        },
+        {
+          "path": "05-automatisation-scripts/SKILL.md",
+          "bytes": 4271,
+          "sha256": "11ee26cd9d1275632fe96f16d192537f524cbcabbdf2937cca06f63b0a70bcc6"
+        },
+        {
+          "path": "06-recherche-documentation/SKILL.md",
+          "bytes": 4472,
+          "sha256": "80f1596e4e2fdd8e1f732947af23577d00d594b58d20693b36a4d74912b85cae"
+        },
+        {
+          "path": "07-productivite-organisation/SKILL.md",
+          "bytes": 3554,
+          "sha256": "320af4d06806ee3370c189e6e38d7d96788158c94cdee5d12cec127bbf781bd3"
+        },
+        {
+          "path": "08-priorisation-decision/SKILL.md",
+          "bytes": 4043,
+          "sha256": "fb7e79213562614b64628442457163959f615fe4c7de3b40cb1d5ae1fc28b854"
+        },
+        {
+          "path": "09-redaction-professionnelle/SKILL.md",
+          "bytes": 4326,
+          "sha256": "92f347a72c10ec2fd766bdc42a9b2470f063e847f491637e4df7c8dcecd4342f"
+        },
+        {
+          "path": "10-ecriture-style/SKILL.md",
+          "bytes": 4007,
+          "sha256": "9a95750491664827c471dde6fb42b59352ce419c7857bfe9d4ab573f8a50d45e"
+        },
+        {
+          "path": "11-gestion-de-projet/SKILL.md",
+          "bytes": 4093,
+          "sha256": "e4c465aa07cbed08a3ab5a1353d484e33d4116d9113238550e4828f774761845"
+        },
+        {
+          "path": "12-reunions-suivi/SKILL.md",
+          "bytes": 4329,
+          "sha256": "adaf0322642bcb16804fda004888366fcaddb30c124453869a34b3280d019c6b"
+        },
+        {
+          "path": "AGENTS.md",
+          "bytes": 4144,
+          "sha256": "337bcfa4e1b2c5aa08d45f23dbd899b43ccbf2686964df2ac84904d6cc89c736"
+        },
+        {
+          "path": "README.md",
+          "bytes": 3286,
+          "sha256": "289d4d27f2e961e2f62860e21f3ebab3282d360e00554e022c4c450b537f96cb"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "braand-business-research/SKILL.md",
+      "bytes": 2347,
+      "sha256": "c0b2b22f46a5536e4164ffc9aa40f85970e98c3319c4dbf0004058da162c7e15"
+    },
+    {
+      "path": "braand-campaign-operations/references/experiments.md",
+      "bytes": 1091,
+      "sha256": "ec85af06e11aa435b63988361984f01371313f4211c70bfdf59b72826be0c898"
+    },
+    {
+      "path": "braand-campaign-operations/references/live-actions.md",
+      "bytes": 1258,
+      "sha256": "79e4550906b9a921ee9121c5a29cd66346dda5848ee10f3732c09ea26d015451"
+    },
+    {
+      "path": "braand-campaign-operations/references/unit-economics.md",
+      "bytes": 1298,
+      "sha256": "2db5acd5f9dc5a3c9981314fa5a4f1936b4c2cb4c69af94fb56a04f2d7f34051"
+    },
+    {
+      "path": "braand-campaign-operations/SKILL.md",
+      "bytes": 3968,
+      "sha256": "a8e89eb0ee191e87f964788acceb04c604a2e48a3c7686271ca8dcd1344dfdb2"
+    },
+    {
+      "path": "braand-decision-prioritization/SKILL.md",
+      "bytes": 1936,
+      "sha256": "2f8d69867972b90ae168238de7388086c6abae4d3e145d9b85ad58fb07cc12fc"
+    },
+    {
+      "path": "braand-meeting-actions/SKILL.md",
+      "bytes": 2130,
+      "sha256": "8ec9c186b3bfc88afc492e3fc66399b015f46193d6e889d8bbc942ca4ead26b8"
+    },
+    {
+      "path": "braand-professional-writing/SKILL.md",
+      "bytes": 2142,
+      "sha256": "63be83b561268de13c568c18134e93dce149be3ef746130592e887fa9448a2bb"
+    },
+    {
+      "path": "braand-project-delivery/SKILL.md",
+      "bytes": 2298,
+      "sha256": "8e872f4f0eea87b209aa30ee44f5c09a101db8d7eef5535b451bcc53ed8b7fab"
+    }
+  ]
+}
