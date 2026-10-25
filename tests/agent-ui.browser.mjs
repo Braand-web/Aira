@@ -288,6 +288,8 @@ try{
   failSkills=true;await page.goto(origin+'/?view=knowledge');await settings.waitFor();await settings.getByRole('alert').filter({hasText:'méthodes intégrées'}).waitFor();
   failSkills=false;await settings.getByRole('button',{name:'Réessayer',exact:true}).click();await settings.getByRole('heading',{name:'Réunions, décisions et actions',exact:true}).waitFor();
   checks.push('The settings library uses the real reviewed registry; keyboard Use only prepares a draft and a catalog failure can be retried');
+  await settings.getByRole('heading',{name:'Compétences',exact:true}).hover();
+  await page.waitForFunction(()=>{const card=document.querySelector('.skill-card');return card&&!card.matches(':hover')&&getComputedStyle(card).backgroundColor==='rgb(40, 41, 43)';});
   assert.equal(await settings.locator('.skill-card').first().evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(40, 41, 43)');
   await capture({path:path.join(output,'design-skills-desktop.png'),fullPage:true});
   const skillChooserPromise=page.waitForEvent('filechooser');await settings.getByRole('button',{name:'Importer une compétence',exact:true}).click();const skillChooser=await skillChooserPromise;
