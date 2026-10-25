@@ -1,18 +1,18 @@
 import assert from "node:assert/strict";
 import {writeFileSync} from "node:fs";
-const base=process.env.AIRA_TEST_URL||"http://127.0.0.1:4176";
+const base=process.env.BRAAND_TEST_URL||"http://127.0.0.1:4176";
 if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(base))throw new Error("These tests run only against isolated local development.");
 let cookie="";const results=[];
 async function request(path,method="GET",body,extra={}){const response=await fetch(base+path,{method,headers:{...(cookie?{Cookie:cookie}:{}),...(body instanceof FormData?{}:{"Content-Type":"application/json"}),...extra},body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body),redirect:"manual"});return {status:response.status,response,data:response.headers.get("content-type")?.includes("json")?await response.json():await response.text()};}
 let r=await request("/api/workspace");assert.equal(r.status,401);results.push("Unauthenticated workspace denied");
-r=await request("/api/workspace","GET",undefined,{"x-aira-identity-id":"fake","x-aira-identity-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
+r=await request("/api/workspace","GET",undefined,{"x-braand-identity-id":"fake","x-braand-identity-email":"fake@test.com"});assert.equal(r.status,401);results.push("Spoofed identity headers ignored");
 r=await request("/auth/sign-in");assert.equal(r.status,302);cookie=r.response.headers.get("set-cookie").split(";")[0];
 r=await request("/api/workspace");assert.equal(r.status,200);assert.equal(r.data.development,true);assert.equal(r.data.capabilities.model,false);assert.equal(r.data.capabilities.modelReady,false);assert.equal(r.data.capabilities.modelStatus,"missing_key");assert.equal(r.data.capabilities.autonomy,false);results.push("Local identity + truthful capability flags");
 r=await request("/api/health");assert.equal(r.status,200);assert.deepEqual(r.data,{status:"ok"});results.push("Health route is reachable through the local adapter");
 r=await request("/api/internal/operations-tick","POST",{});assert.equal(r.status,401);results.push("Operations scheduler denies calls without its secret");
-r=await request("/api/internal/operations-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Operations tick is routed and runs with a test-only secret");
-r=await request("/api/internal/mission-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,503);assert.equal(r.data.code,"autonomy_not_ready");results.push("Mission tick is routed but autonomy remains safely disabled without its production gates");
-r=await request("/api/internal/billing-tick","POST",{}, {Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Billing tick is routed with a test-only secret");
+r=await request("/api/internal/operations-tick","POST",{}, {Authorization:`Bearer ${process.env.BRAAND_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Operations tick is routed and runs with a test-only secret");
+r=await request("/api/internal/mission-tick","POST",{}, {Authorization:`Bearer ${process.env.BRAAND_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,503);assert.equal(r.data.code,"autonomy_not_ready");results.push("Mission tick is routed but autonomy remains safely disabled without its production gates");
+r=await request("/api/internal/billing-tick","POST",{}, {Authorization:`Bearer ${process.env.BRAAND_TEST_SCHEDULER_SECRET}`});assert.equal(r.status,200);results.push("Billing tick is routed with a test-only secret");
 r=await request("/api/admin/operations");assert.equal(r.status,200);results.push("Operations admin route is routed for the explicit local test admin");
 r=await request("/api/workspace","POST",{kind:"project",title:"Test technique — isolé",data:{description:"Donnée de test"}});assert.equal(r.status,201);const id=r.data.id;assert.equal(r.data.version,1);results.push("Project persisted by actual server route");
 r=await request("/api/workspace");assert.ok(r.data.resources.some(p=>p.id===id));results.push("Project survives independent read");

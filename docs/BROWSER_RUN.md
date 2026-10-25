@@ -114,7 +114,7 @@ npm run lint
 npm run build
 npm test
 # Avec Playwright/Chromium disponible dans l'environnement de test :
-# définir AIRA_PLAYWRIGHT_MODULE si Playwright est fourni hors node_modules
+# définir BRAAND_PLAYWRIGHT_MODULE si Playwright est fourni hors node_modules
 node tests/browser-ui.browser.mjs
 ```
 

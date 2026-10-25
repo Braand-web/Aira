@@ -7,7 +7,7 @@ import {syncBuiltinESMExports} from "node:module";
 function assertLoopback(host) {
   if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(String(host).toLowerCase())) return;
   const error = new Error("External network access is disabled in the offline test suite.");
-  error.code = "ERR_AIRA_OFFLINE";
+  error.code = "ERR_BRAAND_OFFLINE";
   throw error;
 }
 

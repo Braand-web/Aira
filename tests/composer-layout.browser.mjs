@@ -8,7 +8,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 
 const require=createRequire(import.meta.url);
-const playwright=process.env.AIRA_PLAYWRIGHT_MODULE;
+const playwright=process.env.BRAAND_PLAYWRIGHT_MODULE;
 const {chromium}=await import(playwright?pathToFileURL(path.resolve(playwright)).href:require.resolve('playwright'));
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const output=path.join(root,'.tmp','composer-layout-browser');

@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const projectRoot = fileURLToPath(new URL("../", import.meta.url));
-const runtimeRoot = process.env.AIRA_RUNTIME_ROOT || path.join(projectRoot, ".aira-runtime");
+const runtimeRoot = process.env.BRAAND_RUNTIME_ROOT || path.join(projectRoot, ".braand-runtime");
 
 process.env.CLOUDFLARE_CF_FETCH_ENABLED ||= "false";
 process.env.WRANGLER_SEND_METRICS ||= "false";

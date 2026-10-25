@@ -7,11 +7,11 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-const tempParent=path.resolve(os.tmpdir()),tempRoot=await mkdtemp(path.join(tempParent,"aira-http-test-"));
+const tempParent=path.resolve(os.tmpdir()),tempRoot=await mkdtemp(path.join(tempParent,"braand-http-test-"));
 assert.ok(tempRoot.startsWith(tempParent+path.sep),"Test data must stay under the system temporary directory.");
 const schedulerSecret="local-http-test-scheduler-secret-00000000000000000000000000000000";
 const configFile=path.join(tempRoot,"dev.vars"),dataDir=path.join(tempRoot,"data"),buildDir=path.join(tempRoot,"build");
-await writeFile(configFile,["APP_ENV=test",`SCHEDULER_SECRET=${schedulerSecret}`,"OPS_ADMIN_IDS=aira_local_preview",""].join("\n"),"utf8");
+await writeFile(configFile,["APP_ENV=test",`SCHEDULER_SECRET=${schedulerSecret}`,"OPS_ADMIN_IDS=braand_local_preview",""].join("\n"),"utf8");
 
 async function freePort(){
  const server=net.createServer();await new Promise((resolve,reject)=>server.once("error",reject).listen(0,"127.0.0.1",resolve));
@@ -28,7 +28,7 @@ function run(child){return new Promise((resolve,reject)=>{child.once("error",rej
 let server;
 try{
  const port=await freePort(),url=`http://127.0.0.1:${port}`;
- const env={...cleanEnvironment(),PORT:String(port),AIRA_CONFIG_FILE:configFile,AIRA_DATA_DIR:dataDir,AIRA_BUILD_DIR:buildDir};
+ const env={...cleanEnvironment(),PORT:String(port),BRAAND_CONFIG_FILE:configFile,BRAAND_DATA_DIR:dataDir,BRAAND_BUILD_DIR:buildDir};
  server=spawn(process.execPath,["scripts/dev-local.mjs"],{cwd:project,env,stdio:["ignore","pipe","pipe"]});
  const serverOutput=capture(server);let ready=false;const deadline=Date.now()+60000;
  while(Date.now()<deadline){
@@ -38,12 +38,12 @@ try{
  }
  assert.ok(ready,`Local test server did not become ready. ${serverOutput()}`);
  for(const testFile of ["http.integration.mjs","composio-http.integration.mjs"]){
-  const integration=spawn(process.execPath,[path.join(project,"tests",testFile)],{cwd:tempRoot,env:{...env,AIRA_TEST_URL:url,AIRA_TEST_SCHEDULER_SECRET:schedulerSecret},stdio:["ignore","pipe","pipe"]});
+  const integration=spawn(process.execPath,[path.join(project,"tests",testFile)],{cwd:tempRoot,env:{...env,BRAAND_TEST_URL:url,BRAAND_TEST_SCHEDULER_SECRET:schedulerSecret},stdio:["ignore","pipe","pipe"]});
   const testOutput=capture(integration),result=await run(integration);process.stdout.write(testOutput());
   assert.equal(result.code,0,`${testFile} failed. ${testOutput()}`);
  }
 }finally{
  if(server&&server.exitCode===null){server.kill();await Promise.race([run(server),new Promise(resolve=>setTimeout(resolve,3000))]);}
  const resolved=path.resolve(tempRoot);
- if(resolved.startsWith(tempParent+path.sep)&&path.basename(resolved).startsWith("aira-http-test-"))await rm(resolved,{recursive:true,force:true});
+ if(resolved.startsWith(tempParent+path.sep)&&path.basename(resolved).startsWith("braand-http-test-"))await rm(resolved,{recursive:true,force:true});
 }

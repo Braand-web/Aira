@@ -1,12 +1,12 @@
-# Compétences internes des agents Aïra
+# Compétences internes des agents Braand
 
-Aïra embarque 25 méthodes de travail consultables par ses agents : treize compétences marketing et deux compétences sociales importées sous MIT, une compétence de conception frontend importée sous Apache-2.0, quatre compétences média originales, quatre compétences documentaires originales et une stratégie de croissance originale. Elles aident le modèle à choisir une méthode et à préparer un résultat. Elles n'ajoutent ni outils, ni permissions, ni accès à un compte ou à un fournisseur.
+Braand embarque 25 méthodes de travail consultables par ses agents : treize compétences marketing et deux compétences sociales importées sous MIT, une compétence de conception frontend importée sous Apache-2.0, quatre compétences média originales, quatre compétences documentaires originales et une stratégie de croissance originale. Elles aident le modèle à choisir une méthode et à préparer un résultat. Elles n'ajoutent ni outils, ni permissions, ni accès à un compte ou à un fournisseur.
 
-Cette intégration appartient au SaaS Aïra. Elle n'installe rien dans Codex, ne dépend pas de son répertoire personnel de skills et ne constitue pas une équivalence parfaite avec les environnements d'origine.
+Cette intégration appartient au SaaS Braand. Elle n'installe rien dans Codex, ne dépend pas de son répertoire personnel de skills et ne constitue pas une équivalence parfaite avec les environnements d'origine.
 
 ## Catalogue et capacités
 
-La liste utilisée par le générateur est [skills/catalog.json](../skills/catalog.json). Chaque entrée définit un identifiant, un titre et une description Aïra, une catégorie, un répertoire, une provenance de licence et une indication de capacité. Cette indication décrit le périmètre attendu ; elle n'accorde pas le droit d'exécuter une action.
+La liste utilisée par le générateur est [skills/catalog.json](../skills/catalog.json). Chaque entrée définit un identifiant, un titre et une description Braand, une catégorie, un répertoire, une provenance de licence et une indication de capacité. Cette indication décrit le périmètre attendu ; elle n'accorde pas le droit d'exécuter une action.
 
 Les treize méthodes marketing sont conservées sous `skills/vendor/marketing/` :
 
@@ -29,43 +29,43 @@ Les deux méthodes sociales sont conservées sous `skills/vendor/social/` et app
 - `crisis-and-moderation` : qualification des critiques, réclamations et abus, réponses proposées et escalade humaine.
 - `cross-platform-repurposing` : déclinaison d'un contenu source selon les plateformes, en préservant ses faits et son sens.
 
-Ces méthodes préparent des analyses et des brouillons. Elles ne collectent pas automatiquement des contacts, n'envoient pas d'emails, ne publient pas de contenu et ne modèrent pas de compte. Les chemins de profils de marque et les outils externes cités dans les textes amont décrivent leurs environnements d'origine ; le contexte client d'Aïra vient de `search_workspace` et des données réellement disponibles.
+Ces méthodes préparent des analyses et des brouillons. Elles ne collectent pas automatiquement des contacts, n'envoient pas d'emails, ne publient pas de contenu et ne modèrent pas de compte. Les chemins de profils de marque et les outils externes cités dans les textes amont décrivent leurs environnements d'origine ; le contexte client d'Braand vient de `search_workspace` et des données réellement disponibles.
 
-La méthode originale `aira-growth-strategy`, sous `skills/aira/marketing/`, identifie le goulot d'acquisition, de conversion, d'activation ou de rétention, choisit un canal prioritaire et prépare un test mesurable. Sa référence `references/marches-locaux.md` adapte la décision à la langue, la devise, la distribution, le paiement et le parcours constatés sur le marché du client. Aucun canal, ratio financier, seuil ou calendrier n'est une formule universelle. La [sélection des méthodes de croissance](GROWTH_SKILL_SELECTION.md) détaille ce lot, ses sources et les services différés.
+La méthode originale `braand-growth-strategy`, sous `skills/braand/marketing/`, identifie le goulot d'acquisition, de conversion, d'activation ou de rétention, choisit un canal prioritaire et prépare un test mesurable. Sa référence `references/marches-locaux.md` adapte la décision à la langue, la devise, la distribution, le paiement et le parcours constatés sur le marché du client. Aucun canal, ratio financier, seuil ou calendrier n'est une formule universelle. La [sélection des méthodes de croissance](GROWTH_SKILL_SELECTION.md) détaille ce lot, ses sources et les services différés.
 
 `frontend-design`, sous `skills/vendor/anthropic/frontend-design/`, apporte une méthode de direction visuelle et de hiérarchie pour des brouillons de page. Sa lecture ne fournit pas de shell, de navigateur, de moteur frontend ou de publication supplémentaire.
 
-Les quatre méthodes originales média sont sous `skills/aira/media/`, dans un dossier portant leur identifiant :
+Les quatre méthodes originales média sont sous `skills/braand/media/`, dans un dossier portant leur identifiant :
 
-- `aira-product-visuals` : brief produit, mise en scène, fidélité aux références et proposition de création.
-- `aira-video-direction` : intention, plans, rythme, mouvement et continuité.
-- `aira-image-variants` : retouche et adaptation de format à partir d'une référence acceptée.
-- `aira-media-pipeline` : dépendances, critères d'acceptation, budget cumulé et reprise par étapes.
+- `braand-product-visuals` : brief produit, mise en scène, fidélité aux références et proposition de création.
+- `braand-video-direction` : intention, plans, rythme, mouvement et continuité.
+- `braand-image-variants` : retouche et adaptation de format à partir d'une référence acceptée.
+- `braand-media-pipeline` : dépendances, critères d'acceptation, budget cumulé et reprise par étapes.
 
-La référence originale `aira-video-direction/references/motion-design.md` précise la préparation de teasers produit, de démonstrations d'application, d'explications animées et de typographie en mouvement. Le catalogue permet de retrouver cette méthode avec une demande de motion design. La [sélection des sources média](MEDIA_SOURCE_SELECTION.md) distingue les exemples consultés, leurs auteurs et le texte Aïra écrit indépendamment. Les animations HTML/Canvas et leur export MP4 n'ont pas de moteur connecté ; `create_page` reste un outil de sections JSON, et non d'exécution de code d'animation.
+La référence originale `braand-video-direction/references/motion-design.md` précise la préparation de teasers produit, de démonstrations d'application, d'explications animées et de typographie en mouvement. Le catalogue permet de retrouver cette méthode avec une demande de motion design. La [sélection des sources média](MEDIA_SOURCE_SELECTION.md) distingue les exemples consultés, leurs auteurs et le texte Braand écrit indépendamment. Les animations HTML/Canvas et leur export MP4 n'ont pas de moteur connecté ; `create_page` reste un outil de sections JSON, et non d'exécution de code d'animation.
 
 Elles emploient le catalogue administrateur réel : `media_catalog`, puis `prepare_media` pour une proposition exacte. La génération attend sa validation dans l'interface. Une étape dépendante attend une sortie `ready` et acceptée comme référence ; une lecture de skill ne remplace jamais ces contrôles. Les modèles, paramètres et coûts viennent du serveur et du catalogue, pas des dépôts consultés. Le budget de production inclut les coûts consommés, engagements et devis en attente, sans double comptage.
 
-Les quatre méthodes originales documentaires sont sous `skills/aira/documents/` :
+Les quatre méthodes originales documentaires sont sous `skills/braand/documents/` :
 
-- `aira-docx` : rédaction, lecture du contenu accessible, modifications localisées et propositions de révision Word.
-- `aira-pdf` : extraction accessible, contenu à exporter, manifeste de fusion ou sélection de pages et correspondance des champs d'un formulaire ; sans OCR.
-- `aira-pptx` : récit, organisation et contenu des diapositives, notes et changements proposés.
-- `aira-xlsx` : lecture et nettoyage de données accessibles, schéma de classeur, formules proposées et analyses justifiables sur ces données.
+- `braand-docx` : rédaction, lecture du contenu accessible, modifications localisées et propositions de révision Word.
+- `braand-pdf` : extraction accessible, contenu à exporter, manifeste de fusion ou sélection de pages et correspondance des champs d'un formulaire ; sans OCR.
+- `braand-pptx` : récit, organisation et contenu des diapositives, notes et changements proposés.
+- `braand-xlsx` : lecture et nettoyage de données accessibles, schéma de classeur, formules proposées et analyses justifiables sur ces données.
 
-Leurs dossiers sont `aira-docx`, `aira-pdf`, `aira-pptx` et `aira-xlsx`, afin de correspondre au champ `name` du `SKILL.md`. Chacun conserve `references/controles.md` avec des contrôles pratiques et des scénarios comportementaux.
+Leurs dossiers sont `braand-docx`, `braand-pdf`, `braand-pptx` et `braand-xlsx`, afin de correspondre au champ `name` du `SKILL.md`. Chacun conserve `references/controles.md` avec des contrôles pratiques et des scénarios comportementaux.
 
-Ces quatre entrées portent `document_content_only`. Aucun moteur de création ou modification binaire Office/PDF, de recalcul de classeur ou de rendu documentaire n'est connecté au modèle. Les extractions et aperçus de fichiers existants ne fournissent pas ces capacités. `create_page` crée une page Aïra, pas un DOCX, PDF, PPTX ou XLSX. Un tableau ou une formule proposés ne prouvent ni l'édition ni le recalcul d'un classeur. Le modèle doit signaler la limite et livrer le contenu contrôlable, sans annoncer un fichier créé ou modifié ni inventer un lien de téléchargement.
+Ces quatre entrées portent `document_content_only`. Aucun moteur de création ou modification binaire Office/PDF, de recalcul de classeur ou de rendu documentaire n'est connecté au modèle. Les extractions et aperçus de fichiers existants ne fournissent pas ces capacités. `create_page` crée une page Braand, pas un DOCX, PDF, PPTX ou XLSX. Un tableau ou une formule proposés ne prouvent ni l'édition ni le recalcul d'un classeur. Le modèle doit signaler la limite et livrer le contenu contrôlable, sans annoncer un fichier créé ou modifié ni inventer un lien de téléchargement.
 
 ## Sources épinglées et licences
 
 Le snapshot marketing est décrit par [son manifest](../skills/vendor/marketing/manifest.json) : dépôt `coreyhaines31/marketingskills`, révision `e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b`, licence MIT. Les treize `SKILL.md`, leurs références Markdown sélectionnées et [la notice MIT](../skills/vendor/marketing/LICENSE) sont conservés avec leurs octets amont : 84 fichiers, soit 834 021 octets. Les scripts, guides d'intégration, installateurs, assets HTML et autres skills ne font pas partie de la sélection. Les liens vers des fichiers absents ou vers une branche amont évolutive ne sont pas des fichiers implicitement importés.
 
-Le snapshot social est décrit par [son manifest](../skills/vendor/social/manifest.json) : dépôt `social-media-skills/skills`, révision `f28cef2b7067ec64e79c9d85421c022c06659e03`, licence MIT. Deux `SKILL.md`, leurs huit références Markdown et [la notice MIT](../skills/vendor/social/LICENSE) sont conservés avec leurs octets amont : 11 fichiers, soit 40 784 octets. Les autres compétences citées, les outils WoopSocial ou Postiz et les guides d'intégration ne sont pas importés. Les prescriptions de pause, de réponse ou de modération restent des propositions tant qu'aucun outil Aïra disponible et autorisé ne les exécute.
+Le snapshot social est décrit par [son manifest](../skills/vendor/social/manifest.json) : dépôt `social-media-skills/skills`, révision `f28cef2b7067ec64e79c9d85421c022c06659e03`, licence MIT. Deux `SKILL.md`, leurs huit références Markdown et [la notice MIT](../skills/vendor/social/LICENSE) sont conservés avec leurs octets amont : 11 fichiers, soit 40 784 octets. Les autres compétences citées, les outils WoopSocial ou Postiz et les guides d'intégration ne sont pas importés. Les prescriptions de pause, de réponse ou de modération restent des propositions tant qu'aucun outil Braand disponible et autorisé ne les exécute.
 
-Le snapshot frontend est décrit par [son manifest](../skills/vendor/anthropic/frontend-design/manifest.json) : dépôt `anthropics/skills`, révision `dbd4588f9e1033efb41dad4bef2f7947c8993d44`, uniquement `skills/frontend-design/SKILL.md` et [sa licence Apache-2.0](../skills/vendor/anthropic/frontend-design/LICENSE.txt). Cette sélection et cette notice ne s'étendent pas à tous les répertoires du dépôt. Les compétences documentaires propriétaires amont, leurs prompts, scripts et assets sont exclus ; les quatre méthodes documentaires Aïra sont des textes originaux.
+Le snapshot frontend est décrit par [son manifest](../skills/vendor/anthropic/frontend-design/manifest.json) : dépôt `anthropics/skills`, révision `dbd4588f9e1033efb41dad4bef2f7947c8993d44`, uniquement `skills/frontend-design/SKILL.md` et [sa licence Apache-2.0](../skills/vendor/anthropic/frontend-design/LICENSE.txt). Cette sélection et cette notice ne s'étendent pas à tous les répertoires du dépôt. Les compétences documentaires propriétaires amont, leurs prompts, scripts et assets sont exclus ; les quatre méthodes documentaires Braand sont des textes originaux.
 
-Les neuf méthodes originales portent `Aira-original` dans le catalogue et la version `1.0.0` dans la provenance générée. `Aira-original` est un repère de provenance du projet, pas une déclaration MIT ou Apache-2.0 ni une nouvelle licence publique. Ne pas attribuer ces textes originaux à leurs sources d'inspiration.
+Les neuf méthodes originales portent `Braand-original` dans le catalogue et la version `1.0.0` dans la provenance générée. `Braand-original` est un repère de provenance du projet, pas une déclaration MIT ou Apache-2.0 ni une nouvelle licence publique. Ne pas attribuer ces textes originaux à leurs sources d'inspiration.
 
 La [sélection documentaire média](MEDIA_SOURCE_SELECTION.md) donne les décisions et révisions consultées :
 
@@ -91,11 +91,11 @@ Exemple d'arguments d'outils, dans l'ordre :
 ```
 
 ```json
-{"id":"aira-xlsx"}
+{"id":"braand-xlsx"}
 ```
 
 ```json
-{"id":"aira-xlsx","reference":"references/controles.md"}
+{"id":"braand-xlsx","reference":"references/controles.md"}
 ```
 
 Les plafonds de [lib/skills/policy.mjs](../lib/skills/policy.mjs) sont communs à l'agent principal et aux spécialistes qu'il délègue pendant le même run : au plus **18 000 caractères par lecture**, **60 000 caractères au total**, **huit lectures** et **quatre skills distincts**. Les lectures des références et des fragments suivants consomment le même budget ; relire un fichier consomme une nouvelle lecture. Il ne s'agit pas d'une enveloppe séparée par spécialiste. Les positions et compteurs suivent les chaînes JavaScript, pas les octets ni les tokens ; réutiliser `nextOffset` plutôt que calculer soi-même une position.
@@ -106,7 +106,7 @@ Les plafonds de [lib/skills/policy.mjs](../lib/skills/policy.mjs) sont communs �
 
 Une méthode reste sous les règles système, le brief, les droits de l'utilisateur et les outils réellement exposés. Les commandes, chemins locaux, services, tarifs et installations cités dans un texte amont sont des données de référence, jamais des autorisations. Les agents ne lancent ni scripts amont, ni CLI genmedia, ni commandes shell ou requêtes fournisseur brutes à partir de ces textes.
 
-Les exemples, études de cas, seuils et calendriers amont ne sont pas des mesures du client ni des résultats d'Aïra. Les affirmations importantes demandent des preuves pertinentes et, si nécessaire, des sources primaires actuelles. Une compétence ne fournit pas un profil de marque local implicite, une instrumentation analytics, une attribution de ventes ni une expérience en cours.
+Les exemples, études de cas, seuils et calendriers amont ne sont pas des mesures du client ni des résultats d'Braand. Les affirmations importantes demandent des preuves pertinentes et, si nécessaire, des sources primaires actuelles. Une compétence ne fournit pas un profil de marque local implicite, une instrumentation analytics, une attribution de ventes ni une expérience en cours.
 
 Les droits des modes et rôles restent ceux du runtime. Un spécialiste ne gagne aucun outil d'écriture, de dépense, de publication ou de délégation en lisant une méthode. En mode autonome, `search_skills` et `read_skill` sont autorisés mais la lecture d'un skill média n'ajoute pas `prepare_media` à la liste des outils permis. Les contrôles d'espace, d'identité, de budget et d'approbation existants demeurent applicables.
 
@@ -118,7 +118,7 @@ Les modules générés sont réservés au serveur et chargés à la demande. Ne 
 
 ## Vérifier, importer et générer
 
-Exécuter les commandes depuis la racine du projet, avec Node et les dépendances de développement déjà disponibles. Aucun de ces gestes n'est délégué au modèle Aïra par la lecture d'un skill.
+Exécuter les commandes depuis la racine du projet, avec Node et les dépendances de développement déjà disponibles. Aucun de ces gestes n'est délégué au modèle Braand par la lecture d'un skill.
 
 Vérifications locales sans accès réseau :
 
@@ -148,7 +148,7 @@ node scripts/build-skill-catalog.mjs
 node scripts/build-skill-catalog.mjs --check
 ```
 
-Le générateur produit `lib/skills/catalog.generated.mjs` et un module `lib/skills/content/<id>.generated.mjs` par skill. Il collecte uniquement `SKILL.md` et les fichiers Markdown de `references/`, avec une limite de 64 000 octets par fichier. Les originaux doivent être sous `aira/`, dans un dossier égal à leur identifiant, avec un frontmatter `name` correspondant et des fins de ligne LF. Modifier les sources, puis régénérer ; ne pas corriger les fichiers générés à la main.
+Le générateur produit `lib/skills/catalog.generated.mjs` et un module `lib/skills/content/<id>.generated.mjs` par skill. Il collecte uniquement `SKILL.md` et les fichiers Markdown de `references/`, avec une limite de 64 000 octets par fichier. Les originaux doivent être sous `braand/`, dans un dossier égal à leur identifiant, avec un frontmatter `name` correspondant et des fins de ligne LF. Modifier les sources, puis régénérer ; ne pas corriger les fichiers générés à la main.
 
 ## Contrôles développeur
 

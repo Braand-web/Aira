@@ -41,12 +41,12 @@
     "Cross-skill links and recommendations to competitor-profiling, pricing, launch, sales-enablement, signup, and other unselected skills are intentionally unresolved; customer-research is now included.",
     "The upstream ads/references/google-ads-audit-checklist.md links to conversion-tracking.md, which does not exist at that source path in the pinned Git tree.",
     "Absolute links to upstream main, external services, tool guides, and related skills are not part of this pinned snapshot.",
-    "Filesystem workflow paths such as .agents/product-marketing.md describe the upstream environment. Aira uses its tenant-scoped workspace context and never grants filesystem access through these methods.",
+    "Filesystem workflow paths such as .agents/product-marketing.md describe the upstream environment. Braand uses its tenant-scoped workspace context and never grants filesystem access through these methods.",
     "Customer research can analyze supplied evidence and prepare interview or survey materials. External collection and outreach require available tools and explicit authorization; the skill itself connects no accounts or data sources.",
     "Offer design produces proposals only. Guarantees, prices, scarcity, testimonials, and results must be supported by the actual business; methods do not change billing or publish promises.",
     "A/B testing and onboarding skills prepare plans and analyze available data. They do not install experimentation tools, assign traffic, collect events, or deploy interface changes.",
     "Email skills prepare drafts and sequence specifications only. They do not send, schedule, subscribe, import contacts, or activate campaigns without a separately supported and authorized action.",
-    "Benchmarks and examples in upstream reference prose are contextual claims, not measured Aira results, current platform guarantees, or promised customer performance. Validate consequential claims against supplied evidence and current primary sources."
+    "Benchmarks and examples in upstream reference prose are contextual claims, not measured Braand results, current platform guarantees, or promised customer performance. Validate consequential claims against supplied evidence and current primary sources."
   ],
   "files": [
     {

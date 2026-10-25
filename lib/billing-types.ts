@@ -25,7 +25,7 @@ export type InvoiceDocument={seller:InvoiceSeller;buyer:{name?:string;email?:str
 const amount=z.union([z.string(),z.number()]);
 export const checkoutResponseSchema=z.object({id:z.string(),checkout_url:z.string(),fee_charge_mode:z.string().optional()}).passthrough();
 export const sessionResponseSchema=z.object({
-  id:z.string(),merchant:z.string().optional(),metadata:z.object({aira_order_id:z.string().optional()}).passthrough().nullish(),currency:z.string().optional(),amount:amount.optional(),
+  id:z.string(),merchant:z.string().optional(),metadata:z.object({braand_order_id:z.string().optional()}).passthrough().nullish(),currency:z.string().optional(),amount:amount.optional(),
   transaction:z.union([z.string(),z.object({id:z.string().optional()}).passthrough()]).nullish(),status:z.string().optional(),customer_email:z.string().optional(),customer_name:z.string().optional(),
 }).passthrough();
 export type PaymentSession=z.infer<typeof sessionResponseSchema>;

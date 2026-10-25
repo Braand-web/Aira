@@ -15,15 +15,15 @@ La première suite couvre 21 scénarios existants (création de checkout, confir
 
 Sources officielles consultées le **18 octobre 2026** :
 
-- [SasPay — Checkout](https://docs.saspay.me/api-reference/payments/checkout-create) : `POST /checkout-sessions/`, clés serveur `sk_test_` / `sk_live_`, pas de prise en charge d’`Idempotency-Key`. `DEDUCTED` peut être ignoré si l’option marchande d’autorisation de surcharge est désactivée. Aïra vérifie le mode renvoyé avant de proposer la redirection.
+- [SasPay — Checkout](https://docs.saspay.me/api-reference/payments/checkout-create) : `POST /checkout-sessions/`, clés serveur `sk_test_` / `sk_live_`, pas de prise en charge d’`Idempotency-Key`. `DEDUCTED` peut être ignoré si l’option marchande d’autorisation de surcharge est désactivée. Braand vérifie le mode renvoyé avant de proposer la redirection.
 - [SasPay — Vérification du paiement](https://docs.saspay.me/api-reference/payments/verify) : `GET /payments/{payment_id}/verify/` rafraîchit une transaction en attente auprès du gateway. Champs REST : `requested_amount`, `debited_amount`, `transaction_type`, `flow_direction`, `merchant`. Ils diffèrent de la forme d’un webhook.
-- [SasPay — Détail transaction](https://docs.saspay.me/api-reference/transactions/get) : montants bruts, ventilation, frais et référence. Les enregistrements Aïra conservent la ventilation financière utile, sans recopier l’adresse IP ni le numéro de téléphone d’une réponse fournisseur.
+- [SasPay — Détail transaction](https://docs.saspay.me/api-reference/transactions/get) : montants bruts, ventilation, frais et référence. Les enregistrements Braand conservent la ventilation financière utile, sans recopier l’adresse IP ni le numéro de téléphone d’une réponse fournisseur.
 - [SasPay — Statuts](https://docs.saspay.me/api-reference/payments) : `PENDING`, `SUCCESS`, `FAILED`, `CANCELLED`. Un paiement échoué n’est jamais assimilé à une réussite. Une confirmation tardive peut être rapprochée sans deuxième attribution.
-- [SasPay — Pays et réseaux](https://docs.saspay.me/api-reference/reference/formats) : au Cameroun, MTN et Orange utilisent XAF ; la carte et la crypto sont **USD uniquement**, avec conversion fournisseur si l’entrée est dans une autre monnaie. La carte facturée en XAF n’est donc pas une capacité validée d’Aïra.
-- [SasPay — Mes tarifs](https://docs.saspay.me/api-reference/reference/my-rates) : `GET /pricing/my-rates/` donne les tarifs **du marchand**, par réseau et tranche, leur disponibilité et le mode de frais. Les pourcentages montrés dans la documentation sont des exemples, pas les frais d’Aïra.
+- [SasPay — Pays et réseaux](https://docs.saspay.me/api-reference/reference/formats) : au Cameroun, MTN et Orange utilisent XAF ; la carte et la crypto sont **USD uniquement**, avec conversion fournisseur si l’entrée est dans une autre monnaie. La carte facturée en XAF n’est donc pas une capacité validée d’Braand.
+- [SasPay — Mes tarifs](https://docs.saspay.me/api-reference/reference/my-rates) : `GET /pricing/my-rates/` donne les tarifs **du marchand**, par réseau et tranche, leur disponibilité et le mode de frais. Les pourcentages montrés dans la documentation sont des exemples, pas les frais d’Braand.
 - [SasPay — Webhooks](https://docs.saspay.me/api-reference/webhooks) : signature HMAC de `timestamp.body`, contrôle de l’âge, corps brut. Création/rotation des secrets depuis le dashboard uniquement ; une clé API ne permet pas de créer le webhook.
 - [SasPay — OpenAPI](https://docs.saspay.me/api-reference/openapi.json), récupéré par une requête GET publique : **aucune route de remboursement**. Ni endpoint, ni événement de remboursement n’a été inventé. Le [catalogue officiel](https://docs.saspay.me/llms.txt) ne décrit pas non plus cette opération.
-- [SIX, agence ISO 4217 — liste officielle XML](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml), récupérée par GET : XAF, code numérique 950, unité mineure 0. Aïra stocke les montants XAF entiers. La chaîne `2500.00` de l’API représente 2 500 FCFA, jamais 25 FCFA. Les fractions non nulles sont refusées.
+- [SIX, agence ISO 4217 — liste officielle XML](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml), récupérée par GET : XAF, code numérique 950, unité mineure 0. Braand stocke les montants XAF entiers. La chaîne `2500.00` de l’API représente 2 500 FCFA, jamais 25 FCFA. Les fractions non nulles sont refusées.
 
 ## Défaut corrigé dans le rapprochement
 
@@ -37,7 +37,7 @@ L’environnement de paiement est enregistré avec chaque nouvelle commande. Un 
 
 1. Un test SasPay sandbox réellement confirmé avec Mobile Money au Cameroun et vérification XAF/montant/mode de frais.
 2. Une vérification du comportement carte sur le checkout hébergé. Le schéma public du checkout ne documente pas de filtre de moyens de paiement.
-3. Une décision permettant d’éviter qu’un client paie en USD sans livraison : retrait de cette méthode du parcours par une configuration fournisseur prouvée, ou contrat multidevise explicitement conçu et testé. Aucune conversion de change n’est devinée par Aïra.
+3. Une décision permettant d’éviter qu’un client paie en USD sans livraison : retrait de cette méthode du parcours par une configuration fournisseur prouvée, ou contrat multidevise explicitement conçu et testé. Aucune conversion de change n’est devinée par Braand.
 
 Une transaction USD reçue pour une commande XAF est refusée au rapprochement et ne crée aucun droit. Elle demande une intervention ; cela ne justifie pas d’ouvrir un checkout connu pour proposer une méthode incompatible.
 
@@ -67,7 +67,7 @@ Les avoirs sont disponibles via `GET /api/billing/credit-notes/:id`, pour le pro
 - Clé SasPay **test**, identifiant marchand, moyens Mobile Money réellement actifs et permission PAYIN ; secrets à fournir dans les secrets serveur, jamais dans le chat ou Git.
 - Webhook sandbox configuré au dashboard et secret de signature enregistré côté serveur ; événement de test reçu et rapproché.
 - Lecture authentifiée des tarifs marchands par réseau, plancher, plafond, frais fixes/variables et conversion éventuelle ; conserver la date et l’environnement du relevé.
-- Contrat et environnement de test du remboursement SasPay, ou procédure fournisseur autorisée et vérifiable. L’enregistrement administratif Aïra ne remplace pas cette capacité externe.
+- Contrat et environnement de test du remboursement SasPay, ou procédure fournisseur autorisée et vérifiable. L’enregistrement administratif Braand ne remplace pas cette capacité externe.
 - Décision sur la carte USD, sans annoncer une carte XAF non validée.
 - Validation fiscale, facture/avoir, politique de remboursement et traitement des achats/quotas déjà consommés.
 - Après tous les tests, accord explicite séparé pour basculer en live. Aucun drapeau de validation n’est une preuve à lui seul.
@@ -76,4 +76,4 @@ Les avoirs sont disponibles via `GET /api/billing/credit-notes/:id`, pour le pro
 
 Le calcul `marginCheck` refuse les coûts absents et les offres sous 75 %. La couverture interne de 4 FCFA par crédit est un paramètre de gestion proposé dans le plan, **pas un tarif fournisseur prouvé**. Une configuration ou une fixture avec un coût ne démontre pas une marge réelle.
 
-Avant toute vente, compléter coûts IA/médias, infrastructure variable, e-mails, support, taux de change, frais marchands et fiscalité. Le coût publicitaire Meta payé directement par le client n’est pas une dépense supportée par Aïra ; les services Meta/Composio facturés au SaaS doivent, eux, être intégrés au coût variable. Sans relevés authentifiés, les 75 % par offre restent **BLOQUÉS**, même si le calcul déterministe et les tests d’arrondis passent.
+Avant toute vente, compléter coûts IA/médias, infrastructure variable, e-mails, support, taux de change, frais marchands et fiscalité. Le coût publicitaire Meta payé directement par le client n’est pas une dépense supportée par Braand ; les services Meta/Composio facturés au SaaS doivent, eux, être intégrés au coût variable. Sans relevés authentifiés, les 75 % par offre restent **BLOQUÉS**, même si le calcul déterministe et les tests d’arrondis passent.

@@ -12,14 +12,14 @@ const standardTools = [
   { name: "create_page" },
   { name: "propose_media" },
 ];
-const connectorTools = [{ name: "COMPOSIO_SEARCH_TOOLS" }, { name: "aira_connector_action" }];
+const connectorTools = [{ name: "COMPOSIO_SEARCH_TOOLS" }, { name: "braand_connector_action" }];
 
 test("accompanied mode retains normal and connected tools", () => {
   assert.deepEqual(
     agentToolsForMode("accompanied", standardTools, connectorTools).map((tool) => tool.name),
     [...standardTools, ...connectorTools].map((tool) => tool.name),
   );
-  assert.equal(agentToolAllowedForMode("accompanied", "aira_connector_action"), true);
+  assert.equal(agentToolAllowedForMode("accompanied", "braand_connector_action"), true);
 });
 
 test("autonomous mode exposes only safe reads and draft mission planning", () => {
@@ -30,5 +30,5 @@ test("autonomous mode exposes only safe reads and draft mission planning", () =>
   assert.equal(agentToolAllowedForMode("autonomous", "plan_mission"), true);
   assert.equal(agentToolAllowedForMode("autonomous", "get_workspace_resource"), true);
   assert.equal(agentToolAllowedForMode("autonomous", "create_page"), false);
-  assert.equal(agentToolAllowedForMode("autonomous", "aira_connector_action"), false);
+  assert.equal(agentToolAllowedForMode("autonomous", "braand_connector_action"), false);
 });

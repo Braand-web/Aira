@@ -6,7 +6,7 @@ export function deploymentConfig(environment, input, built, root=process.cwd(), 
   if (!['staging','production'].includes(environment)) throw new Error('Choose staging or production.');
   const databaseOnly=options.databaseOnly===true;
   if (databaseOnly && environment!=='staging') throw new Error('Database-only deployment is limited to private staging.');
-  const prefix=environment==='staging'?'AIRA_STAGING_':'AIRA_PRODUCTION_';
+  const prefix=environment==='staging'?'BRAAND_STAGING_':'BRAAND_PRODUCTION_';
   const account=input.CLOUDFLARE_ACCOUNT_ID, database=input[prefix+'D1_ID'], files=input[prefix+'FILES_BUCKET'], backups=input[prefix+'BACKUPS_BUCKET'];
   if (!/^[a-f0-9]{32}$/.test(account||'')) throw new Error('CLOUDFLARE_ACCOUNT_ID is required.');
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(database||'') || database==='00000000-0000-4000-8000-000000000000') throw new Error('A real environment-specific D1 ID is required.');
@@ -15,16 +15,16 @@ export function deploymentConfig(environment, input, built, root=process.cwd(), 
     if (files===backups) throw new Error('Backups must use a separate bucket.');
   }
   for (const suffix of ['D1_ID','FILES_BUCKET','BACKUPS_BUCKET']) {
-    const other=environment==='staging'?'AIRA_PRODUCTION_':'AIRA_STAGING_';
+    const other=environment==='staging'?'BRAAND_PRODUCTION_':'BRAAND_STAGING_';
     if (input[other+suffix] && input[prefix+suffix]===input[other+suffix]) throw new Error('Staging and production must not share resources.');
   }
-  if (built.main!=='index.js' || !built.durable_objects?.bindings?.some(b=>b.class_name==='BrowserSession')) throw new Error('Build the current Aira Worker before deploying.');
+  if (built.main!=='index.js' || !built.durable_objects?.bindings?.some(b=>b.class_name==='BrowserSession')) throw new Error('Build the current Braand Worker before deploying.');
   return {
-    name:'aira-'+environment,account_id:account,main:path.join(root,'dist/server/index.js'),
+    name:'braand-'+environment,account_id:account,main:path.join(root,'dist/server/index.js'),
     compatibility_date:built.compatibility_date,compatibility_flags:built.compatibility_flags,
     no_bundle:true,rules:built.rules,assets:{directory:path.join(root,'dist/client')},
     workers_dev:false,preview_urls:false,routes:[],
-    d1_databases:[{binding:'DB',database_name:'aira-'+environment,database_id:database,migrations_dir:path.join(root,'drizzle')}],
+    d1_databases:[{binding:'DB',database_name:'braand-'+environment,database_id:database,migrations_dir:path.join(root,'drizzle')}],
     r2_buckets:databaseOnly?[]:[{binding:'BUCKET',bucket_name:files},{binding:'BACKUP_BUCKET',bucket_name:backups}],
     durable_objects:built.durable_objects,migrations:built.migrations,browser:built.browser,
     triggers:{crons:['*/5 * * * *']},observability:{enabled:false},

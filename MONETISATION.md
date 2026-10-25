@@ -1,4 +1,4 @@
-# Aïra — état de livraison de la monétisation
+# Braand — état de livraison de la monétisation
 
 ## Fonctionnement livré
 
@@ -10,7 +10,7 @@ Les annuels sont distribués en douze allocations aux anniversaires calendaires 
 
 Les organisations, appartenances, accès par espace, invitations liées à un email, révocations et budgets sur trente jours glissants sont contrôlés côté serveur. La création de projets, le stockage, les transferts et la concurrence des réponses disposent de contrôles transactionnels. Les espaces secondaires passent en lecture seule sans Business. L’espace individuel historique est actuellement l’espace principal conservé.
 
-Les appels Anthropic sont mesurés pour le maître et les spécialistes : entrées, sorties, cache et appels après outils. Une enveloppe est réservée avant la demande. Les tarifs et le change doivent être récents et configurés. Une consommation inconnue reste inconnue. Les échecs techniques sans livrable libèrent les crédits. Les étapes complètes livrées sont comptabilisées même si la mission se termine partiellement ; les appels défaillants restent à la charge d’Aïra.
+Les appels Anthropic sont mesurés pour le maître et les spécialistes : entrées, sorties, cache et appels après outils. Une enveloppe est réservée avant la demande. Les tarifs et le change doivent être récents et configurés. Une consommation inconnue reste inconnue. Les échecs techniques sans livrable libèrent les crédits. Les étapes complètes livrées sont comptabilisées même si la mission se termine partiellement ; les appels défaillants restent à la charge d’Braand.
 
 Les générations fal.ai utilisent le même portefeuille et une approbation de version. Leur coût maximal doit être validé dans le catalogue. La facture réelle fournisseur reste à rapprocher : un plafond estimé n’est pas enregistré comme un coût observé certain.
 
@@ -75,7 +75,7 @@ Un traitement doit être lancé et relu sans navigateur avant validation. Mesure
 - Aucun paiement réel, appel Anthropic réel ni génération fal.ai réelle dans ces tests.
 - Le test HTTP externe au processus n’a pas abouti dans l’environnement local. Ce résultat n’est pas présenté comme un succès.
 
-Commandes : `node --test tests/core.test.mjs tests/billing.test.mjs`, `node tests/billing.integration.mjs` (esbuild nécessaire, `AIRA_TOOLCHAIN` peut indiquer un dossier de dépendances existant).
+Commandes : `node --test tests/core.test.mjs tests/billing.test.mjs`, `node tests/billing.integration.mjs` (esbuild nécessaire, `BRAAND_TOOLCHAIN` peut indiquer un dossier de dépendances existant).
 
 ## Données et migrations
 

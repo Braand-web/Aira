@@ -45,8 +45,8 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("apercu", id);
     else url.searchParams.delete("apercu");
-    const state = { ...(history.state || {}), airaFilePreview: mode === "push" || history.state?.airaFilePreview === true };
-    if (!id) delete state.airaFilePreview;
+    const state = { ...(history.state || {}), braandFilePreview: mode === "push" || history.state?.braandFilePreview === true };
+    if (!id) delete state.braandFilePreview;
     history[mode === "push" ? "pushState" : "replaceState"](state, "", url);
   }, []);
 
@@ -62,7 +62,7 @@ export function FilePreviewProvider({ children }: { children: ReactNode }) {
 
   const closePreview = useCallback(() => {
     setActiveId(null);
-    if (history.state?.airaFilePreview === true) {
+    if (history.state?.braandFilePreview === true) {
       history.back();
     } else {
       updateUrl(null, "replace");

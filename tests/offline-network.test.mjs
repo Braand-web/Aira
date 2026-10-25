@@ -6,12 +6,12 @@ import test from "node:test";
 import "./offline-network.mjs";
 
 test("offline tests reject real provider fetch and sockets before connection", async () => {
-  await assert.rejects(fetch("https://example.invalid/provider"), {code: "ERR_AIRA_OFFLINE"});
+  await assert.rejects(fetch("https://example.invalid/provider"), {code: "ERR_BRAAND_OFFLINE"});
   const socket = new net.Socket();
   try {
-    assert.throws(() => socket.connect({host: "example.invalid", port: 443}), {code: "ERR_AIRA_OFFLINE"});
-    assert.throws(() => net.createConnection(443, "example.invalid"), {code: "ERR_AIRA_OFFLINE"});
-    assert.throws(() => tls.connect({host: "example.invalid", port: 443}), {code: "ERR_AIRA_OFFLINE"});
+    assert.throws(() => socket.connect({host: "example.invalid", port: 443}), {code: "ERR_BRAAND_OFFLINE"});
+    assert.throws(() => net.createConnection(443, "example.invalid"), {code: "ERR_BRAAND_OFFLINE"});
+    assert.throws(() => tls.connect({host: "example.invalid", port: 443}), {code: "ERR_BRAAND_OFFLINE"});
   } finally {
     socket.destroy();
   }

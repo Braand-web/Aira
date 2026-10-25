@@ -7,19 +7,19 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const project=path.resolve(import.meta.dirname,'..');
-const runtime=process.env.AIRA_TOOLCHAIN||path.join(project,'node_modules');
+const runtime=process.env.BRAAND_TOOLCHAIN||path.join(project,'node_modules');
 const {build}=createRequire(path.join(runtime,'package.json'))('esbuild');
 const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
 for(const f of readdirSync(path.join(project,'drizzle')).filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync(path.join(project,'drizzle',f),'utf8'));
 function statement(query,args=[]){return {bind(...v){return statement(query,v);},async first(column){const r=sql.prepare(query).get(...args);return column?r?.[column]??null:r??null;},async all(){return {results:sql.prepare(query).all(...args)};},async run(){return this._run();},_run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};}};}
 const DB={prepare:q=>statement(q),async batch(ss){sql.exec('BEGIN');try{const r=ss.map(s=>s._run());sql.exec('COMMIT');return r;}catch(e){sql.exec('ROLLBACK');throw e;}}};
 const secret='sk-or-v1-FIXTURE-NEVER-A-REAL-KEY';
-globalThis.__openrouterTest={env:{DB},headers:new Headers({'x-aira-identity-id':'openrouter-owner','x-aira-identity-email':'owner@test.invalid'})};
+globalThis.__openrouterTest={env:{DB},headers:new Headers({'x-braand-identity-id':'openrouter-owner','x-braand-identity-email':'owner@test.invalid'})};
 const out=path.join(project,'.local-build','openrouter-test.mjs');mkdirSync(path.dirname(out),{recursive:true});
 await build({stdin:{contents:['llm','metering','server','billing','agent'].map(n=>'export * as '+n+' from "'+path.join(project,n==='agent'?'lib':'lib',n+'.ts').replaceAll('\\','/')+'";').join('\n'),resolveDir:project,loader:'ts'},outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],plugins:[{name:'test-bindings',setup(b){b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__openrouterTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__openrouterTest.headers;}':'export function redirect(){throw new Error("unexpected redirect");}'}));}}]});
 const {llm,metering:meter,server,billing,agent}=await import(pathToFileURL(out).href);
 const env=globalThis.__openrouterTest.env;
-const who=await server.identity(new Request('https://aira.test/api/chat'));
+const who=await server.identity(new Request('https://braand.test/api/chat'));
 const now=Date.now();sql.prepare('INSERT INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,created_at) VALUES (?,?,?,?,?,?,?,?)').run('fixture-credit',who.organization,'topup','fixture',1000000,1000000,now,now);
 const rate={model:'anthropic/claude-opus-5.5',input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1,fundingFeeBps:300,verifiedAt:new Date().toISOString()};
 const masterBody={max_tokens:4096,stream:true,system:[{type:'text',text:agent.systemPrompt,cache_control:{type:'ephemeral'}},{type:'text',text:'Plafond de cette demande : 10 crédits.'}],messages:[{role:'user',content:[{type:'text',text:'bonjour'}]},{role:'user',content:[{type:'text',text:'Réponds brièvement en français pour confirmer que tu me reçois.'}]}],tools:agent.toolDefinitions};

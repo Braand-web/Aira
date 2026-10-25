@@ -1,8 +1,8 @@
-# OpenRouter pour le cerveau d’Aïra
+# OpenRouter pour le cerveau d’Braand
 
 ## Secrets de l’hébergement
 
-La clé se configure sur le site Sites **Aïra — Studio de croissance**, dans ses variables d’environnement de production. Ajouter `OPENROUTER_API_KEY` en **secret**. Ne pas l’ajouter au code, à `.openai/hosting.json` ou à une variable préfixée `NEXT_PUBLIC_`.
+La clé se configure sur le site Sites **Braand — Studio de croissance**, dans ses variables d’environnement de production. Ajouter `OPENROUTER_API_KEY` en **secret**. Ne pas l’ajouter au code, à `.openai/hosting.json` ou à une variable préfixée `NEXT_PUBLIC_`.
 
 Configuration du fournisseur :
 
@@ -35,7 +35,7 @@ revalidation effective du prix, du taux de change et des frais applicables.
 
 Le catalogue OpenRouter consulté lors de cette intégration indique 4 USD / million en entrée, 20 en sortie, 0,20 pour la lecture de cache, 5 pour l’écriture de cache 5 minutes et 8 pour une heure. Vérifier les prix actifs avant configuration : le change, les frais de financement et l’infrastructure ne sont pas supposés gratuits. Ces valeurs ne constituent pas une configuration de production complète.
 
-L’utilisateur doit disposer de crédits Aïra et autoriser l’enveloppe de sa demande. Ajouter une clé fournisseur n’attribue pas de crédits gratuits aux clients et n’active pas les encaissements.
+L’utilisateur doit disposer de crédits Braand et autoriser l’enveloppe de sa demande. Ajouter une clé fournisseur n’attribue pas de crédits gratuits aux clients et n’active pas les encaissements.
 
 ## Streaming et outils
 

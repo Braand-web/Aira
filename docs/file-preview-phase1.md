@@ -1,4 +1,4 @@
-# Aïra — fondations des fichiers (Phase 1)
+# Braand — fondations des fichiers (Phase 1)
 
 Cette phase ajoute les métadonnées durables des fichiers, les références de pièces jointes dans les messages, le contrôle des accès par espace, les signatures HMAC temporaires et la suppression douce. Le drapeau `FILE_PREVIEW_V1` reste désactivé par défaut.
 
@@ -29,4 +29,4 @@ La suppression utilisateur marque le fichier comme supprimé et masque son conte
 
 ## Tests locaux
 
-Sans aucun secret fournisseur, lancez les tests unitaires et la migration avec `node --test tests/file-policy.test.mjs tests/file-migration.test.mjs`. Pour les routes HTTP, lancez le serveur local avec un fichier de configuration vide, une base temporaire, `FILE_PREVIEW_V1=true` et une clé de signature de test, puis exécutez `tests/file-preview.integration.mjs` et `tests/http.integration.mjs` avec `AIRA_TEST_URL` fixé sur localhost.
+Sans aucun secret fournisseur, lancez les tests unitaires et la migration avec `node --test tests/file-policy.test.mjs tests/file-migration.test.mjs`. Pour les routes HTTP, lancez le serveur local avec un fichier de configuration vide, une base temporaire, `FILE_PREVIEW_V1=true` et une clé de signature de test, puis exécutez `tests/file-preview.integration.mjs` et `tests/http.integration.mjs` avec `BRAAND_TEST_URL` fixé sur localhost.

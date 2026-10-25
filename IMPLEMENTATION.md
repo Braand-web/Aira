@@ -1,6 +1,6 @@
-# Aïra — première implémentation
+# Braand — première implémentation
 
-Application React / TypeScript, Vinext, Cloudflare D1 et R2. Interface française inspirée des captures fournies ; le nom Aïra est provisoire.
+Application React / TypeScript, Vinext, Cloudflare D1 et R2. Interface française inspirée des captures fournies ; le nom Braand est provisoire.
 
 ## État réel
 
@@ -83,8 +83,8 @@ Les crédits démarrent à zéro. Aucun solde fictif n’est offert. La conversa
 - 10 parcours UI sur Chromium : navigation, suggestions, brouillon conservé, connexion requise, panneau, bibliothèques, Analytics vide et mobile sans débordement.
 - Détecteur Impeccable : aucune alerte.
 - 13 tests HTTP supplémentaires passent sur les vraies routes avec SQLite et stockage local isolés : identité, persistance, versions, origine des mutations, fichiers, signature MIME et indisponibilité explicite des fournisseurs.
-- Compilation et publication distante du premier état réussies sur Sites. URL privée : https://aira-growth-studio.wiseskunk64.chatgpt.site
-- Captures : ../aira-desktop.png et ../aira-mobile.png.
+- Compilation et publication distante du premier état réussies sur Sites. URL privée : https://braand-growth-studio.wiseskunk64.chatgpt.site
+- Captures : ../braand-desktop.png et ../braand-mobile.png.
 - Compilation complète locale impossible : installation interrompue par disque plein. Les dépendances incomplètes du projet ont été nettoyées. Une vérification réduite a été installée dans work/verify.
 
 ## Aperçu local avec serveur
@@ -92,9 +92,9 @@ Les crédits démarrent à zéro. Aucun solde fictif n’est offert. La conversa
 `scripts/dev-local.mjs` exécute les mêmes routes API que l’application avec SQLite et un stockage de fichiers locaux. C’est un adaptateur de développement uniquement, lié à 127.0.0.1 ; il n’est jamais utilisé par le Worker hébergé.
 
 - Démarrage : `node scripts/dev-local.mjs` après installation des dépendances. Le paquet esbuild doit être disponible.
-- Dans cet environnement à disque limité, définir AIRA_TOOLCHAIN vers le dossier work/verify/node_modules avant le démarrage.
+- Dans cet environnement à disque limité, définir BRAAND_TOOLCHAIN vers le dossier work/verify/node_modules avant le démarrage.
 - Port par défaut : 4175 ; variable PORT pour le changer.
-- Données privées locales : .local-data, ignoré par Git. AIRA_DATA_DIR permet un dossier de test distinct.
+- Données privées locales : .local-data, ignoré par Git. BRAAND_DATA_DIR permet un dossier de test distinct.
 - La connexion locale est une session de développement, pas une authentification ChatGPT réelle. Le badge Local le signale après connexion.
 - Les clés peuvent être définies dans .dev.vars, également ignoré. Le serveur ne lit aucune clé du navigateur.
 - Pour tester : démarrer une instance isolée sur 4176, puis `node tests/http.integration.mjs`. Ce script refuse les cibles non locales.

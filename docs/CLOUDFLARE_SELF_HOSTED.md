@@ -1,4 +1,4 @@
-# Aïra sur votre compte Cloudflare
+# Braand sur votre compte Cloudflare
 
 État au 24 octobre 2026. Ce guide remplace la publication Sites. Le site historique,
 les DNS et les données distantes n'ont pas été supprimés.
@@ -6,7 +6,7 @@ les DNS et les données distantes n'ont pas été supprimés.
 ## Préparation effectuée
 
 - Worker indépendant, sans manifeste ni API de publication Sites.
-- Connexion Aïra par e-mail, sessions privées D1, vérification côté serveur.
+- Connexion Braand par e-mail, sessions privées D1, vérification côté serveur.
 - Migration additive 0014 ; aucune propriété d'ancien espace n'est modifiée.
 - Configuration générée refusant les identifiants factices, le partage de stockage
   staging/production et l'utilisation du bucket fichiers pour les sauvegardes.
@@ -26,7 +26,7 @@ Worker. Ces clés restent à transférer par un canal privé. Le jeton OAuth Clo
 ne permet pas d'administrer les autres fournisseurs.
 
 Les ressources Cloudflare visibles concernent d'autres projets. Le propriétaire
-a confirmé FlowPay pour Aïra, avec une nouvelle clé dédiée ; les clés visibles
+a confirmé FlowPay pour Braand, avec une nouvelle clé dédiée ; les clés visibles
 concernent d'autres produits : aucune réutilisation implicite de LiveFoot, Sellow
 ou Coden. Il ne dispose pas encore d'un domaine. Il a fourni l'adresse du compte
 Resend pour les tests ; elle est conservée dans les secrets serveur.
@@ -35,7 +35,7 @@ les nouvelles publications ; sa suppression exige un inventaire et une sauvegard
 
 ## 1. Ressources et reprise du staging existant
 
-D1 `aira-staging` existe déjà : `7a2e1508-922b-4138-97ba-40e61c9be447`,
+D1 `braand-staging` existe déjà : `7a2e1508-922b-4138-97ba-40e61c9be447`,
 15 migrations appliquées. Ne pas la recréer. Le Worker est privé et D1 seule est
 branchée : les deux buckets restent absents, l'API R2 renvoyant le code 10042.
 Voir [le constat distant](production/STAGING_2026-10-24.md).
@@ -53,19 +53,19 @@ Terminer l'activation R2 dans le **même compte**, jusqu'à l'accès aux buckets
 Ne créer les buckets suivants qu'après un inventaire réussi et s'ils sont absents :
 
 ```sh
-npx --no-install wrangler r2 bucket create aira-staging-files
-npx --no-install wrangler r2 bucket create aira-staging-backups
+npx --no-install wrangler r2 bucket create braand-staging-files
+npx --no-install wrangler r2 bucket create braand-staging-backups
 ```
 
 Ces ressources peuvent être facturées selon le contrat Cloudflare. Dans
 l'environnement GitHub `staging`, ajouter les variables non secrètes
-`CLOUDFLARE_ACCOUNT_ID`, `AIRA_STAGING_D1_ID`, `AIRA_STAGING_FILES_BUCKET`,
-`AIRA_STAGING_BACKUPS_BUCKET`. Ajouter un secret `CLOUDFLARE_API_TOKEN` limité au
-compte et aux ressources Aïra (Workers, D1, R2 et lecture du compte si nécessaire).
+`CLOUDFLARE_ACCOUNT_ID`, `BRAAND_STAGING_D1_ID`, `BRAAND_STAGING_FILES_BUCKET`,
+`BRAAND_STAGING_BACKUPS_BUCKET`. Ajouter un secret `CLOUDFLARE_API_TOKEN` limité au
+compte et aux ressources Braand (Workers, D1, R2 et lecture du compte si nécessaire).
 Ne pas le transmettre en message ni dans une variable publique.
 
 Pour reproduire le staging partiel en attendant R2, définir seulement
-`CLOUDFLARE_ACCOUNT_ID` et `AIRA_STAGING_D1_ID`, puis :
+`CLOUDFLARE_ACCOUNT_ID` et `BRAAND_STAGING_D1_ID`, puis :
 
 ```sh
 npm run build
@@ -93,17 +93,17 @@ sont désactivés pour éviter de conserver des liens d'authentification.
 
 ## 2. Secrets et connexion
 
-Workers → Aïra staging → Settings → Variables and Secrets, type **Secret**, ou
+Workers → Braand staging → Settings → Variables and Secrets, type **Secret**, ou
 `wrangler secret put NOM --config .wrangler/deploy/staging.json`, puis saisie privée.
 Ne jamais placer une valeur secrète en argument de commande.
 
-Les secrets techniques ci-dessous sont déjà présents dans `aira-staging` :
+Les secrets techniques ci-dessous sont déjà présents dans `braand-staging` :
 les conserver, ne pas les régénérer lors d'un redéploiement. Vérifier leur
 **nom seulement** par `wrangler secret list --config .wrangler/deploy/staging-db-only.json`.
 Les valeurs ne sont pas récupérables par une liste de secrets.
 
 - AUTH_HASH_SECRET : secret aléatoire dédié d'au moins 32 caractères.
-- RESEND_API_KEY : clé Aïra avec droit d'envoi limité au domaine choisi.
+- RESEND_API_KEY : clé Braand avec droit d'envoi limité au domaine choisi.
 - TOKEN_ENCRYPTION_KEY, BACKUP_ENCRYPTION_KEY, BROWSER_PROFILE_KEY : clés distinctes
   de 32 octets aléatoires en base64. Conserver les anciennes clés lors d'une rotation
   jusqu'au rechiffrement et à la vérification des sauvegardes.
@@ -112,7 +112,7 @@ Les valeurs ne sont pas récupérables par une liste de secrets.
 
 Définir APP_ORIGIN à l'origine HTTPS exacte ; APP_ENV=staging, RESEND_MODE=sandbox,
 RESEND_FROM à l'adresse d'un domaine vérifié et RESEND_TEST_RECIPIENT à une adresse
-appartenant au responsable. Sans domaine, `Aira <onboarding@resend.dev>` permet
+appartenant au responsable. Sans domaine, `Braand <onboarding@resend.dev>` permet
 uniquement le test vers l'adresse du compte Resend ; ces deux réglages sont déjà
 stockés en secrets, avec `RESEND_MODE=disabled` tant que la clé est absente.
 AUTH_ENABLED=true seulement après cette configuration.
@@ -132,7 +132,7 @@ Les limites anti-abus sont des choix internes, pas des quotas promis par Resend.
   ne pas la remplacer automatiquement. Meta utilise les configurations d'autorisation
   approuvées. Un appel de lecture réel doit retourner une référence de journal Composio.
   Instant reste désactivé.
-- SasPay.me : le marchand FlowPay est confirmé pour Aïra ; obtenir une clé test propre et
+- SasPay.me : le marchand FlowPay est confirmé pour Braand ; obtenir une clé test propre et
   un secret webhook, avec portée d'encaissement minimale. Vérifier le sandbox,
   Mobile Money/carte en XAF et les frais du contrat ; ne pas reprendre les anciennes
   clés d'autres produits. Les données fiscales et légales restent à valider.
@@ -147,11 +147,11 @@ Ne pas exposer le Worker avant migration D1, connexion et déconnexion réelles,
 isolation et restauration de sauvegarde. Vérifier ensuite Composio, paiements XAF,
 webhooks, remboursements, notifications, cron et navigateur sur un site contrôlé.
 
-Créer des ressources de production séparées : aira-production,
-aira-production-files, aira-production-backups ; définir les AIRA_PRODUCTION_*
+Créer des ressources de production séparées : braand-production,
+braand-production-files, braand-production-backups ; définir les BRAAND_PRODUCTION_*
 correspondantes puis `npm run cloudflare:config -- production`. Le résultat reste
 fermé. Après acceptation du staging, conserver une configuration finale revue,
-renseigner APP_ORIGIN et les secrets, ajouter le domaine Aïra ou activer volontairement
+renseigner APP_ORIGIN et les secrets, ajouter le domaine Braand ou activer volontairement
 workers.dev dans cette configuration, puis la déployer. Vérifier /api/health et
 le parcours authentifié sur l'adresse finale avant d'ouvrir les fonctions payantes.
 
@@ -161,7 +161,7 @@ configuration finale validée avant tout redéploiement. Ne jamais déclarer ré
 les flags de recette, TVA, marge, support ou restauration sans preuve.
 
 Les anciens comptes Sites demandent un rapprochement administratif avec preuve de
-propriété avant attribution à une nouvelle identité Aïra. Aucune fusion automatique
+propriété avant attribution à une nouvelle identité Braand. Aucune fusion automatique
 par adresse et aucune suppression des données historiques.
 
 ## Preuves locales du 24 octobre 2026
@@ -185,7 +185,7 @@ agent, comparatif des forfaits et tableau de bord compris. Le lanceur de
 démonstration utilise aussi la nouvelle route de connexion.
 
 Pour relancer le parcours de connexion, installer Playwright dans l'environnement
-de test (ou définir AIRA_PLAYWRIGHT_MODULE vers son module existant), disposer
+de test (ou définir BRAAND_PLAYWRIGHT_MODULE vers son module existant), disposer
 d'OpenSSL dans le PATH sur Linux/macOS ou fourni par Git for Windows, puis lancer
 `node tests/auth-ui.browser.mjs`. Les clés TLS éphémères et captures restent dans
 `.tmp/auth-ui`, ignoré par Git. Aucun vrai e-mail ou paiement n'a été envoyé.

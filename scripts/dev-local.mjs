@@ -8,13 +8,13 @@ import {pathToFileURL} from "node:url";
 import {randomBytes,createHash} from "node:crypto";
 import path from "node:path";
 const project=path.resolve(import.meta.dirname,"..");
-const runtime=process.env.AIRA_TOOLCHAIN||path.join(project,"node_modules");
+const runtime=process.env.BRAAND_TOOLCHAIN||path.join(project,"node_modules");
 const require=createRequire(path.join(runtime,"package.json"));
 const {build}=require("esbuild");
-const output=process.env.AIRA_BUILD_DIR?path.resolve(process.env.AIRA_BUILD_DIR):path.join(project,".local-build"),dataDir=process.env.AIRA_DATA_DIR?path.resolve(process.env.AIRA_DATA_DIR):path.join(project,".local-data");
+const output=process.env.BRAAND_BUILD_DIR?path.resolve(process.env.BRAAND_BUILD_DIR):path.join(project,".local-build"),dataDir=process.env.BRAAND_DATA_DIR?path.resolve(process.env.BRAAND_DATA_DIR):path.join(project,".local-data");
 mkdirSync(output,{recursive:true});mkdirSync(dataDir,{recursive:true});mkdirSync(path.join(dataDir,"files"),{recursive:true});
 mkdirSync(path.join(dataDir,"multipart"),{recursive:true});
-const sql=new DatabaseSync(path.join(dataDir,"aira.sqlite"));
+const sql=new DatabaseSync(path.join(dataDir,"braand.sqlite"));
 sql.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS _local_migrations(name TEXT PRIMARY KEY)");
 for(const file of readdirSync(path.join(project,"drizzle")).filter(f=>f.endsWith(".sql")).sort()){
  if(!sql.prepare("SELECT name FROM _local_migrations WHERE name=?").get(file)){
@@ -46,10 +46,10 @@ const BUCKET={
 };
 const settings={};
 const allowed=new Set(["BROWSER_ENABLED","BROWSER_AUTH_VERIFIED","BROWSER_STAGING_VERIFIED","BROWSER_PRICING_VALIDATED","BROWSER_MARGIN_VERIFIED","BROWSER_OWNERSHIP_VERIFIED","BROWSER_PRICING_JSON","BROWSER_PROFILE_KEY","BROWSER_MAX_ACTIONS","BROWSER_MAX_SECONDS","BROWSER_HUMAN_WAIT_SECONDS","APP_ENV","COMPOSIO_API_KEY","COMPOSIO_AUTH_CONFIGS_JSON","COMPOSIO_INSTANT_ENABLED","COMPOSIO_INSTANT_CATALOG_JSON","FILE_PREVIEW_V1","FILE_URL_SIGNING_SECRET","SCHEDULER_SECRET","OPS_ADMIN_IDS","BILLING_ADMIN_IDS","ANTHROPIC_API_KEY","ANTHROPIC_MODEL","ANTHROPIC_RATE_JSON","LLM_PROVIDER","OPENAI_API_KEY","MODEL_ROUTING_ENABLED","MODEL_ROUTING_POLICY","MODEL_PRICING_REFRESH_JSON","MODEL_ROUTING_CATALOG_JSON","OPENROUTER_API_KEY","OPENROUTER_MODEL","OPENROUTER_RATE_JSON","FAL_KEY","FAL_CATALOG_JSON","META_APP_ID","META_APP_SECRET","META_GRAPH_VERSION","META_REDIRECT_URI","TOKEN_ENCRYPTION_KEY","BILLING_ENABLED","BILLING_XAF_CHECKOUT_VALIDATED","BILLING_TAX_VALIDATED","BILLING_BENCHMARKS_VALIDATED","BILLING_SCHEDULER_VERIFIED","BILLING_PROVIDER_TESTS_PASSED","BILLING_SUPPORT_READY","BILLING_TERMS_APPROVED","BILLING_RESTORE_TESTED","BILLING_WEBHOOK_VERIFIED","BILLING_PRODUCT_ACCEPTANCE","BILLING_LEGAL_JSON","BILLING_ECONOMICS_JSON","SASPAY_ENV","SASPAY_SECRET_KEY","SASPAY_MERCHANT_ID","SASPAY_WEBHOOK_SECRET","FREE_DAILY_CREDITS","PAGES_ORIGIN","PAGE_FORM_SECRET","AUTONOMY_ENABLED","AUTONOMY_SCHEDULER_VERIFIED","BACKUP_ENABLED","BACKUP_ENCRYPTION_KEY","BACKUP_MAINTENANCE_CONFIRMED","BACKUP_RESTORE_ALLOWED","RESEND_MODE","RESEND_API_KEY","RESEND_FROM","RESEND_TEST_RECIPIENT","OPS_ALERT_EMAIL","RESEND_LIVE_APPROVED"]);
-const configFile=process.env.AIRA_CONFIG_FILE?path.resolve(process.env.AIRA_CONFIG_FILE):path.join(project,".dev.vars");
+const configFile=(process.env.BRAAND_CONFIG_FILE||process.env.AIRA_CONFIG_FILE)?path.resolve(process.env.BRAAND_CONFIG_FILE||process.env.AIRA_CONFIG_FILE):path.join(project,".dev.vars");
 if(existsSync(configFile))for(const line of readFileSync(configFile,"utf8").split(/\r?\n/)){const match=line.match(/^([A-Z0-9_]+)=(.*)$/);if(match&&allowed.has(match[1]))settings[match[1]]=match[2].trim().replace(/^["']|["']$/g,"");}
 for(const [k,v] of Object.entries(process.env))if(/^(APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|COMPOSIO_|RESEND_|OPS_|SASPAY_|BILLING_|OPENROUTER_|FILE_PREVIEW_V1$|FILE_URL_SIGNING_SECRET$|LLM_PROVIDER$|ANTHROPIC_|FAL_|META_|TOKEN_ENCRYPTION_KEY$|FREE_DAILY_CREDITS$|SCHEDULER_SECRET$|PAGES_ORIGIN$|PAGE_FORM_SECRET$)/.test(k))settings[k]=v;
-const context=new AsyncLocalStorage();globalThis.__airaLocal={env:{DB,BUCKET,...settings},context};
+const context=new AsyncLocalStorage();globalThis.__braandLocal={env:{DB,BUCKET,...settings},context};
 const routeFiles={
  browser:"app/api/browser/[...path]/route.ts",
  connectors:"app/api/connectors/[...path]/route.ts",billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",missionTick:"app/api/internal/mission-tick/route.ts",operationsTick:"app/api/internal/operations-tick/route.ts",health:"app/api/health/route.ts",billingAdmin:"app/api/admin/billing/route.ts",operationsAdmin:"app/api/admin/operations/route.ts",mission:"app/api/missions/[id]/route.ts",published:"app/api/published/[id]/route.ts",
@@ -58,11 +58,11 @@ const routeFiles={
  meta:"app/api/meta/route.ts",connect:"app/api/meta/connect/route.ts",callback:"app/api/meta/callback/route.ts"
 };
 const entry=Object.entries(routeFiles).map(([name,file])=>'export * as '+name+' from "'+path.join(project,file).replaceAll("\\","/")+'";').join("\n");
-await build({stdin:{contents:entry,resolveDir:project,loader:"ts"},outfile:path.join(output,"routes.mjs"),bundle:true,platform:"node",format:"esm",banner:{js:'import {createRequire as __airaCreateRequire} from "node:module";const require=__airaCreateRequire(import.meta.url);'},nodePaths:[runtime],plugins:[{name:"local-environment",setup(b){
+await build({stdin:{contents:entry,resolveDir:project,loader:"ts"},outfile:path.join(output,"routes.mjs"),bundle:true,platform:"node",format:"esm",banner:{js:'import {createRequire as __braandCreateRequire} from "node:module";const require=__braandCreateRequire(import.meta.url);'},nodePaths:[runtime],plugins:[{name:"local-environment",setup(b){
  b.onResolve({filter:/^cloudflare:workers$/},()=>({path:"env",namespace:"local"}));
  b.onResolve({filter:/^next\/headers$/},()=>({path:"headers",namespace:"local"}));
  b.onResolve({filter:/^next\/navigation$/},()=>({path:"navigation",namespace:"local"}));
- b.onLoad({filter:/.*/,namespace:"local"},args=>({contents:args.path==="env"?"export const env=globalThis.__airaLocal.env;":args.path==="headers"?"export async function headers(){return globalThis.__airaLocal.context.getStore()?.headers||new Headers();}":"export function redirect(url){throw new Error('Unexpected server redirect: '+url);}"}));
+ b.onLoad({filter:/.*/,namespace:"local"},args=>({contents:args.path==="env"?"export const env=globalThis.__braandLocal.env;":args.path==="headers"?"export async function headers(){return globalThis.__braandLocal.context.getStore()?.headers||new Headers();}":"export function redirect(url){throw new Error('Unexpected server redirect: '+url);}"}));
 }}]});
 const routes=await import(pathToFileURL(path.join(output,"routes.mjs")).href);
 await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Studio from "'+path.join(project,"app/studio.tsx").replaceAll("\\","/")+'";import {FilePreviewProvider} from "'+path.join(project,"components/file-preview/file-preview-provider.tsx").replaceAll("\\","/")+'";import "'+path.join(project,"components/file-preview/file-preview.css").replaceAll("\\","/")+'";createRoot(document.getElementById("root")).render(<FilePreviewProvider><Studio/></FilePreviewProvider>);',resolveDir:project,loader:"tsx"},outdir:output,entryNames:"app",chunkNames:"chunks/[name]-[hash]",alias:{'next/image':'vinext/shims/image'},bundle:true,splitting:true,format:"esm",jsx:"automatic",nodePaths:[runtime],define:{"process.env.NODE_ENV":'"development"',"process.env":'{}'},minify:true,plugins:[{name:"local-pdf-worker-url",setup(b){b.onResolve({filter:/^pdfjs-dist\/build\/pdf\.worker\.min\.mjs\?url$/},()=>({path:"pdf-worker-url",namespace:"local-pdf-worker"}));b.onLoad({filter:/.*/,namespace:"local-pdf-worker"},()=>({contents:'export default "/pdf.worker.min.mjs";',loader:"js"}));}}]});
@@ -75,12 +75,12 @@ const server=createServer(async(req,res)=>{
   const origin="http://127.0.0.1:"+port;
   if(req.headers.host!=="127.0.0.1:"+port&&req.headers.host!=="localhost:"+port){sendJSON(res,403,{error:"Local host only."});return;}
   const url=new URL(req.url,origin);
-  if(url.pathname==="/auth/sign-in"){res.writeHead(302,{"Set-Cookie":"aira_local_session="+session+"; HttpOnly; SameSite=Strict; Path=/",Location:"/"});res.end();return;}
-  if(url.pathname==="/auth/sign-out"){res.writeHead(302,{"Set-Cookie":"aira_local_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",Location:"/"});res.end();return;}
+  if(url.pathname==="/auth/sign-in"){res.writeHead(302,{"Set-Cookie":"braand_local_session="+session+"; HttpOnly; SameSite=Strict; Path=/",Location:"/"});res.end();return;}
+  if(url.pathname==="/auth/sign-out"){res.writeHead(302,{"Set-Cookie":"braand_local_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",Location:"/"});res.end();return;}
   if(url.pathname.startsWith("/api/")){
-   const signedIn=(req.headers.cookie||"").split(";").some(c=>c.trim()==="aira_local_session="+session);
-   const headers=new Headers();if(signedIn){headers.set("x-aira-identity-id","aira_local_preview");headers.set("x-aira-identity-email","local@aira.test");headers.set("x-aira-identity-name","Espace%20local");headers.set("x-aira-identity-name-encoding","percent-encoded-utf-8");}
-   const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("x-aira-identity-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
+   const signedIn=(req.headers.cookie||"").split(";").some(c=>c.trim()==="braand_local_session="+session);
+   const headers=new Headers();if(signedIn){headers.set("x-braand-identity-id","braand_local_preview");headers.set("x-braand-identity-email","local@braand.test");headers.set("x-braand-identity-name","Espace%20local");headers.set("x-braand-identity-name-encoding","percent-encoded-utf-8");}
+   const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("x-braand-identity-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>24*1024*1024){sendJSON(res,413,{error:"Requête trop volumineuse."});return;}chunks.push(chunk);}
    const request=new Request(url,{method:req.method,headers:requestHeaders,...(!["GET","HEAD"].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
    const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/internal/mission-tick":"missionTick","/api/internal/operations-tick":"operationsTick","/api/health":"health","/api/admin/billing":"billingAdmin","/api/admin/operations":"operationsAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};

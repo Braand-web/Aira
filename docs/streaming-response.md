@@ -1,6 +1,6 @@
 # Réponses en streaming
 
-Le composant `StreamingResponse` adapte le composant [beUI](https://beui.dev/components/agents/streaming-response) à Aïra : textes français, thème existant, transitions CSS natives et réduction des animations. Aucun paquet supplémentaire ni commande de registre n’est nécessaire.
+Le composant `StreamingResponse` adapte le composant [beUI](https://beui.dev/components/agents/streaming-response) à Braand : textes français, thème existant, transitions CSS natives et réduction des animations. Aucun paquet supplémentaire ni commande de registre n’est nécessaire.
 
 ## Comportement
 
@@ -32,7 +32,7 @@ npm test
 node tests/agent-ui.browser.mjs
 ```
 
-Le test navigateur utilise Playwright/Chromium (Edge en repli), un serveur de fixtures local et bloque les requêtes externes. Le chemin d’un runtime Playwright fourni peut être indiqué par `AIRA_PLAYWRIGHT_MODULE`. Aucun fournisseur réel ni paiement n’est appelé. Les tests de routes utilisent une base SQLite isolée et de vrais gestionnaires HTTP, avec le flux modèle simulé.
+Le test navigateur utilise Playwright/Chromium (Edge en repli), un serveur de fixtures local et bloque les requêtes externes. Le chemin d’un runtime Playwright fourni peut être indiqué par `BRAAND_PLAYWRIGHT_MODULE`. Aucun fournisseur réel ni paiement n’est appelé. Les tests de routes utilisent une base SQLite isolée et de vrais gestionnaires HTTP, avec le flux modèle simulé.
 
 Contrôle manuel : envoyer une demande, attendre la fin, copier puis autoriser/refuser le presse-papiers, modifier/annuler un avis et recharger la discussion. Vérifier les sources si le fournisseur en fournit. Reprendre une demande avec un brouillon existant : aucun nouvel envoi ne doit se produire avant validation par l’utilisateur. Vérifier aussi un arrêt, une coupure, le clavier et le mobile avec réduction des animations.
 
