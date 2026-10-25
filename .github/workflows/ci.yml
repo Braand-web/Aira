@@ -51,5 +51,6 @@ jobs:
         with:
           name: browser-fixture-screenshots
           path: .tmp/agent-ui-browser/*.png
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
