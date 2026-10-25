@@ -9,7 +9,9 @@ test('Only the three approved packs can be sold at exact integer XAF prices',()=
  for(const value of [-1,0,49,50.5,100,150,250,1000,10000,10001,NaN,Infinity,'125'])assert.throws(()=>topupPrice(value));
  for(const [plan,amount,credits] of [['essential',4900,100],['pro',9900,250],['business',24900,600]]){
   assert.deepEqual([product({kind:'subscription',plan,cycle:'period'}).amount,PLANS[plan].credits],[amount,credits]);
-  assert.throws(()=>product({kind:'subscription',plan,cycle:'annual'}),error=>error.code==='annual_unavailable');
+  const annual=product({kind:'subscription',plan,cycle:'annual'});
+  assert.equal(annual.amount,amount*10);assert.equal(annual.cycle,'annual');assert.equal(annual.credits,credits);
+  assert.equal(periods(Date.parse('2026-01-31T12:00:00Z'),annual.cycle,annual.credits).reduce((total,row)=>total+row.units,0),credits*12*100);
  }
 });
 const taxConfig={mode:'exclusive',rateBps:1925,jurisdiction:'fixture:CM-applicable-rule',version:'fixture-tax-v1',validatedAt:'2026-10-22'};
@@ -51,6 +53,18 @@ test('Upgrade prorates price and credit difference, never grants a second full q
  const tiny={kind:'upgrade',...upgradeQuote(sub,sub.end_at-3600000)},e={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
  assert.equal(tiny.amount,21);assert.equal(marginCheck(tiny,e).eligible,false);
 });
+test('New annual upgrades use current contracts while historical annual upgrades keep their catalogue',()=>{
+ const start=Date.parse('2026-01-01T00:00:00Z'),now=anniversary(start,6),end=anniversary(start,12);
+ const sub={plan:'essential',cycle:'annual',start_at:start,end_at:end,catalog_version:'2026-10-25.1'};
+ const q=upgradeQuote(sub,now,PLANS.essential,'pro');
+ assert.equal(q.amount,Math.ceil((99000-49000)*(end-now)/(end-start)));
+ assert.equal(q.units,15000);assert.equal(q.remainingCredits,900);assert.equal(q.subscriptionEnd,end);
+ const modern=upgradeQuote({...sub,plan:'pro'},now,PLANS.pro,'business');
+ const historical=upgradeQuote({...sub,plan:'pro',catalog_version:'2026-10-16.1'},now,LEGACY_PLANS.pro,'business');
+ assert.equal(modern.remainingCredits,2100);assert.equal(historical.remainingCredits,2400);
+ assert.equal(historical.amount,Math.ceil(200000*(end-now)/(end-start)));
+});
+
 test('Usage includes cache; malformed or partial provider amounts are rejected',()=>{
  const r=usageUnits({input_tokens:1000,output_tokens:200,cache_creation_input_tokens:300,cache_read_input_tokens:400},{input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1});
  assert(Math.abs(r.xaf-8.245)<.00001);assert.equal(r.units,207);
