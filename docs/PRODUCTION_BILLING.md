@@ -77,3 +77,7 @@ Les avoirs sont disponibles via `GET /api/billing/credit-notes/:id`, pour le pro
 Le calcul `marginCheck` refuse les coûts absents et les offres sous 75 %. La couverture interne de 4 FCFA par crédit est un paramètre de gestion proposé dans le plan, **pas un tarif fournisseur prouvé**. Une configuration ou une fixture avec un coût ne démontre pas une marge réelle.
 
 Avant toute vente, compléter coûts IA/médias, infrastructure variable, e-mails, support, taux de change, frais marchands et fiscalité. Le coût publicitaire Meta payé directement par le client n’est pas une dépense supportée par Braand ; les services Meta/Composio facturés au SaaS doivent, eux, être intégrés au coût variable. Sans relevés authentifiés, les 75 % par offre restent **BLOQUÉS**, même si le calcul déterministe et les tests d’arrondis passent.
+
+## Catalogue annuel du 25 octobre 2026
+
+Version `2026-10-25.1` : Essentiel 49 000 FCFA/an, Pro 99 000 FCFA/an, Business 249 000 FCFA/an, avant application des taxes configurées. Le prix correspond à dix mensualités pour douze mois de service. Les quotas de 100, 250 et 600 crédits sont attribués chaque mois anniversaire, sans report au mois suivant ; le paiement couvre l’année et le renouvellement reste volontaire. Les contrats historiques conservent leurs montants et quotas. Les contrôles de marge incluent les douze quotas et les douze mois de service. L’ouverture du cycle annuel ne contourne aucun prérequis global d’encaissement.
