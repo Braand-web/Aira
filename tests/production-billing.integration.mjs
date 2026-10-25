@@ -147,6 +147,11 @@ await check('Verified hosted checkout grants XAF and provider-converted USD once
  const verified=JSON.parse(sql.prepare('SELECT verified FROM billing_orders WHERE id=?').get(usd.id).verified);
  assert.equal(verified.session,usd.session.id);assert.equal(verified.transaction.currency,'USD');assert.equal(verified.transaction.charged,'4.50');
  const invoice=JSON.parse(sql.prepare('SELECT document FROM billing_invoices WHERE order_id=?').get(usd.id).document);assert.equal(invoice.currency,'XAF');assert.equal(invoice.total,2500);
+ for(const currency of ['XOF','CDF','GHS','GNF','KES','MWK','MZN','NGN','RWF','TZS','UGX','ZMW']){
+  const local=await pending();Object.assign(local.tx,{currency,requested_amount:'100.00',debited_amount:'100.00'});await billing.reconcileOrder(local.id);
+  assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(local.id).status,'fulfilled');
+  assert.equal(JSON.parse(sql.prepare('SELECT verified FROM billing_orders WHERE id=?').get(local.id).verified).transaction.currency,currency);
+ }
  for(const mutate of [
   payment=>{payment.session.id='unrelated-session';},payment=>{payment.session.metadata.braand_order_id='unrelated-order';},
   payment=>{payment.session.merchant='wrong-merchant';},payment=>{payment.session.amount='1.00';},payment=>{payment.session.currency='USD';},

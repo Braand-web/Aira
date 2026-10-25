@@ -9,6 +9,8 @@ export type BillingIdentity={tenant:string;organization:string;user:{userId:stri
 const s=(q:string,...values:(string|number|null)[])=>db().prepare(q).bind(...values);
 const LEGACY_ORDER_METADATA_KEY=['ai','ra','_order_id'].join('');
 const providerOrderId=(session:PaymentSession)=>session.metadata?.braand_order_id??(session.metadata as Record<string,unknown>|null|undefined)?.[LEGACY_ORDER_METADATA_KEY];
+// Provider country/network currencies plus its global card/crypto currency.
+const convertedCheckoutCurrencies=new Set(['USD','XOF','CDF','GHS','GNF','KES','MWK','MZN','NGN','RWF','TZS','UGX','ZMW']);
 function decimalMinorUnits(value:unknown):number|undefined{
  if(value===undefined||value===null)return;
  const raw=String(value);if(!/^\d+(?:\.\d{1,2})?$/.test(raw))return;
@@ -202,14 +204,14 @@ export async function reconcileOrder(id:string){
   if(tx.status==='FAILED'||tx.status==='CANCELLED')await s("UPDATE billing_orders SET status=?,transaction_id=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested','partially_refunded')",tx.status.toLowerCase(),txid,Date.now(),id).run();
   return s('SELECT * FROM billing_orders WHERE id=?',id).first<OrderRow>();
  }
- // SasPay can settle a hosted XAF checkout in USD for global card/crypto methods.
- // The successful transaction is accepted in USD only after the exact merchant,
+ // SasPay can convert a hosted XAF checkout to the selected network's currency.
+ // A converted successful transaction is accepted only after the exact merchant,
  // order metadata, checkout session, and linked transaction ID above are verified.
  // Keep the original XAF order amount as the commercial price, and persist the
- // provider's actual USD amounts below for an auditable payment record.
+ // provider's actual amounts and currency below for an auditable payment record.
  const settledAsQuoted=tx.currency==='XAF'&&decimalXaf(tx.requested_amount)===order.amount&&decimalXaf(tx.debited_amount)===order.amount;
- const requestedUsd=decimalMinorUnits(tx.requested_amount),debitedUsd=decimalMinorUnits(tx.debited_amount);
- const convertedByProvider=tx.currency==='USD'&&requestedUsd!==undefined&&requestedUsd>0&&requestedUsd===debitedUsd;
+ const requested=decimalMinorUnits(tx.requested_amount),debited=decimalMinorUnits(tx.debited_amount);
+ const convertedByProvider=convertedCheckoutCurrencies.has(tx.currency||'')&&requested!==undefined&&requested>0&&requested===debited;
  if((!settledAsQuoted&&!convertedByProvider)||tx.fee_charge_mode!=='DEDUCTED')throw new AppError('Montant réellement payé incohérent.',409);
  const verifiedTx={id:tx.id,merchant:tx.merchant,status:tx.status,currency:tx.currency,requestedAmount:tx.requested_amount,charged:tx.debited_amount,net:tx.net_amount,fee:tx.client_fee,feeChargeMode:tx.fee_charge_mode};
  const p=JSON.parse(order.product) as BillingProduct,now=Date.now(),statements:D1PreparedStatement[]=[];

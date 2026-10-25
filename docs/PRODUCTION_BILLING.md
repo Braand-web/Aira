@@ -1,4 +1,18 @@
-# Paiements et remboursements — vérification du 18 octobre 2026
+# Paiements et remboursements
+
+## Checkout hébergé et reçus — 25 octobre 2026
+
+Sur instruction du propriétaire, `BILLING_CHECKOUT_MODE=hosted` ouvre un parcours direct : un choix de forfait ou de recharge prépare un devis serveur et redirige vers le checkout hébergé. Le prix de commande reste celui du catalogue XAF. Le prestataire affiche la conversion éventuelle avant confirmation. Le retour ouvre `/?settings=billing&billingOrder=…` et vérifie la commande ; le planificateur rapproche aussi les paiements si le navigateur est fermé.
+
+Ce mode émet un **reçu de paiement**, jamais une facture fiscale sans configuration réelle. Aucun taux, exonération, adresse, immatriculation ou e-mail d’assistance n’est inventé. Le reçu conserve la marque Braand, le client, la référence, le total XAF et la devise ainsi que le montant effectivement retournés par la transaction vérifiée. Le mode `invoiced` conserve les validations de vendeur, de fiscalité et de lancement ci-dessous.
+
+L’ouverture du mode hébergé nécessite `BILLING_ENABLED=true`, les trois secrets de paiement, une clé cohérente avec l’environnement et le secret du planificateur. Les autres indicateurs restent des diagnostics honnêtes : ils ne sont pas artificiellement déclarés validés. Les diagnostics économiques continuent d’être calculés ; ils ne bloquent plus les achats dans ce mode demandé par le propriétaire.
+
+Une conversion ne suffit pas à attribuer des crédits : le serveur vérifie le marchand, l’identifiant exact de session, les métadonnées de commande, le montant XAF original, la transaction liée via l’API de vérification, son succès entrant et son mode de frais déduits. XAF reste comparé exactement au prix. Pour les monnaies des réseaux du prestataire, un montant positif et un débit identique sont exigés ; le change est confié au prestataire, sans taux inventé. Le rapprochement est idempotent. Les reçus et remboursements restent privés et rattachés à leur organisation.
+
+Les sections suivantes décrivent les contrôles historiques du mode avec facturation fiscale ; leur ancienne règle de rejet systématique USD est remplacée par le rapprochement de session vérifié ci-dessus. Aucun test simulé ne constitue un paiement réel ni une validation du réseau bancaire.
+
+## Vérification historique du 18 octobre 2026
 
 ## Portée prouvée
 
