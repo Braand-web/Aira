@@ -53,7 +53,7 @@ const context=new AsyncLocalStorage();globalThis.__braandLocal={env:{DB,BUCKET,.
 const routeFiles={
  browser:"app/api/browser/[...path]/route.ts",
  connectors:"app/api/connectors/[...path]/route.ts",billing:"app/api/billing/[...path]/route.ts",webhook:"app/api/webhooks/saspay/route.ts",billingTick:"app/api/internal/billing-tick/route.ts",missionTick:"app/api/internal/mission-tick/route.ts",operationsTick:"app/api/internal/operations-tick/route.ts",health:"app/api/health/route.ts",billingAdmin:"app/api/admin/billing/route.ts",operationsAdmin:"app/api/admin/operations/route.ts",mission:"app/api/missions/[id]/route.ts",published:"app/api/published/[id]/route.ts",
- workspace:"app/api/workspace/route.ts",chat:"app/api/chat/route.ts",files:"app/api/files/route.ts",fileUploads:"app/api/files/uploads/route.ts",fileAction:"app/api/files/[id]/[action]/route.ts",
+ skills:"app/api/skills/route.ts",workspace:"app/api/workspace/route.ts",chat:"app/api/chat/route.ts",files:"app/api/files/route.ts",fileUploads:"app/api/files/uploads/route.ts",fileAction:"app/api/files/[id]/[action]/route.ts",
  resource:"app/api/resources/[id]/route.ts",page:"app/api/pages/[id]/route.ts",proposal:"app/api/proposals/[id]/route.ts",
  meta:"app/api/meta/route.ts",connect:"app/api/meta/connect/route.ts",callback:"app/api/meta/callback/route.ts"
 };
@@ -83,7 +83,7 @@ const server=createServer(async(req,res)=>{
    const requestHeaders=new Headers();for(const [k,v] of Object.entries(req.headers))if(v&&!k.startsWith("x-braand-identity-"))requestHeaders.set(k,Array.isArray(v)?v.join(","):v);
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>24*1024*1024){sendJSON(res,413,{error:"Requête trop volumineuse."});return;}chunks.push(chunk);}
    const request=new Request(url,{method:req.method,headers:requestHeaders,...(!["GET","HEAD"].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
-   const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/internal/mission-tick":"missionTick","/api/internal/operations-tick":"operationsTick","/api/health":"health","/api/admin/billing":"billingAdmin","/api/admin/operations":"operationsAdmin","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
+   const exact={"/api/webhooks/saspay":"webhook","/api/internal/billing-tick":"billingTick","/api/internal/mission-tick":"missionTick","/api/internal/operations-tick":"operationsTick","/api/health":"health","/api/admin/billing":"billingAdmin","/api/admin/operations":"operationsAdmin","/api/skills":"skills","/api/workspace":"workspace","/api/chat":"chat","/api/files":"files","/api/files/uploads":"fileUploads","/api/meta":"meta","/api/meta/connect":"connect","/api/meta/callback":"callback"};
    let name=exact[url.pathname],id,action;const fileActionMatch=url.pathname.match(/^\/api\/files\/([^/]+)\/([^/]+)$/);
    if(fileActionMatch){name="fileAction";id=decodeURIComponent(fileActionMatch[1]);action=decodeURIComponent(fileActionMatch[2]);}
    const match=url.pathname.match(/^\/api\/(resources|pages|proposals)\/([^/]+)$/);
