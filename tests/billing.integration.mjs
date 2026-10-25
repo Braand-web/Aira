@@ -53,9 +53,9 @@ async function legacySubscriptionPurchase(person){
  await b.reconcileOrder(id);return {id};
 }
 let order;
-await check('Unknown tax rules block quoting, and new annual/custom sales are refused',async()=>{
+await check('Unknown tax rules block quoting; annual quotes use exact server prices and custom packs remain refused',async()=>{
  const configured=env.BILLING_TAX_JSON;delete env.BILLING_TAX_JSON;assert.equal(b.releaseReadiness().checks.fiscal,false);await assert.rejects(()=>b.makeQuote(who,{kind:'topup',quantity:50}),error=>error.code==='tax_not_ready');env.BILLING_TAX_JSON=configured;
- await assert.rejects(()=>b.makeQuote(who,{kind:'subscription',plan:'pro',cycle:'annual'}),error=>error.code==='annual_unavailable');await assert.rejects(()=>b.makeQuote(who,{kind:'topup',quantity:150}));
+ const annual=await b.makeQuote(who,{kind:'subscription',plan:'pro',cycle:'annual'});assert.deepEqual([annual.amount,annual.credits,annual.cycle,annual.eligible],[99000,250,'annual',true]);assert.deepEqual(b.catalog().cycles,['period','annual']);assert.equal(b.catalog().annualAvailable,true);await assert.rejects(()=>b.makeQuote(who,{kind:'topup',quantity:150}));
 });
 await check('Tax-inclusive total and complete tax config are immutable before provider execution',async()=>{
  const changed={...taxRule,rateBps:1925};env.BILLING_TAX_JSON=JSON.stringify(changed);env.BILLING_ECONOMICS_JSON=JSON.stringify({essential:{...economics,taxBps:1925},pro:{...economics,taxBps:1925},business:{...economics,taxBps:1925}});
@@ -87,6 +87,30 @@ await check('Actual upgrade keeps end date and prepayment does not grant another
  const after=await b.currentSubscription(person.organization);assert.equal(after.end_at,before.end_at);assert.equal(after.plan,'business');assert.equal(after.version,2);assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE organization_id=? AND source='upgrade'").get(person.organization).n,1);
  const wallet=(await b.summary(person.organization)).wallet.available;
  const next=await b.makeQuote(person,{kind:'subscription',plan:'pro',cycle:'period'}),renew=await b.checkout(person,next.id,crypto.randomUUID(),'https://braand.test');await b.reconcileOrder(renew.id);assert.equal((await b.summary(person.organization)).wallet.available,wallet);assert.equal(sql.prepare('SELECT start_at FROM billing_subscriptions WHERE order_id=?').get(renew.id).start_at,before.end_at);
+});
+await check('Current annual purchase and upgrade retain monthly quotas, exact contracts and one allocation per month',async()=>{
+ const previousHeaders=globalThis.__billingTest.headers;
+ globalThis.__billingTest.headers=new Headers({'x-braand-identity-id':'annual-current-owner','x-braand-identity-email':'annual-current@test.invalid'});
+ try{
+  const person=await s.identity(request('GET',undefined,'annual-current-owner'));
+  const quote=await b.makeQuote(person,{kind:'subscription',plan:'essential',cycle:'annual'});
+  assert.deepEqual([quote.baseAmount,quote.credits,quote.cycle],[49000,100,'annual']);
+  const paid=await b.checkout(person,quote.id,crypto.randomUUID(),'https://braand.test');
+  await b.reconcileOrder(paid.id);await b.reconcileOrder(paid.id);
+  const original=await b.currentSubscription(person.organization);
+  assert.deepEqual([original.plan,original.credit_allowance,original.contract_price],['essential',100,49000]);
+  assert.equal((await b.summary(person.organization)).wallet.available,100);
+  const change=await b.makeQuote(person,{kind:'upgrade',plan:'business'});
+  assert.deepEqual([change.targetCredits,change.targetContractPrice],[600,249000]);
+  const upgrade=await b.checkout(person,change.id,crypto.randomUUID(),'https://braand.test');
+  await b.reconcileOrder(upgrade.id);await b.reconcileOrder(upgrade.id);
+  const current=await b.currentSubscription(person.organization);
+  assert.equal(current.end_at,original.end_at);assert.equal(current.credit_allowance,600);assert.equal(current.contract_price,249000);
+  await b.allocateDue(person.organization,current.end_at-1);await b.allocateDue(person.organization,current.end_at-1);
+  assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE organization_id=? AND source='subscription'").get(person.organization).n,12);
+  assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_lots WHERE organization_id=? AND source='upgrade'").get(person.organization).n,1);
+  assert.equal(sql.prepare("SELECT SUM(granted) n FROM credit_lots WHERE organization_id=? AND source='subscription'").get(person.organization).n,(100+11*600)*100);
+ }finally{globalThis.__billingTest.headers=previousHeaders;}
 });
 await check('Stale subscription quote is rejected before another provider request',async()=>{
  const person=await s.identity(request('GET',undefined,'upgrade-owner')),quote=await b.makeQuote(person,{kind:'topup',quantity:125}),before=creates;
@@ -186,7 +210,7 @@ await check('Hosted checkout sells catalogue packs and plans without fabricated 
   const key=env.SASPAY_SECRET_KEY;env.SASPAY_SECRET_KEY='sk_live_wrong_environment';assert.equal(b.releaseReadiness().enabled,false);env.SASPAY_SECRET_KEY=key;
   const scheduler=env.SCHEDULER_SECRET;env.SCHEDULER_SECRET='short';assert.equal(b.releaseReadiness().enabled,false);env.SCHEDULER_SECRET=scheduler;
   let purchase,person;
-  for(const input of [{kind:'topup',quantity:50},{kind:'topup',quantity:125},{kind:'topup',quantity:300},...['essential','pro','business'].map(plan=>({kind:'subscription',plan,cycle:'period'}))]){
+  for(const input of [{kind:'topup',quantity:50},{kind:'topup',quantity:125},{kind:'topup',quantity:300},...['period','annual'].flatMap(cycle=>['essential','pro','business'].map(plan=>({kind:'subscription',plan,cycle})))]){
    const user='hosted-'+crypto.randomUUID();globalThis.__billingTest.headers=new Headers({'x-braand-identity-id':user,'x-braand-identity-email':user+'@test.invalid'});
    person=await s.identity(request('GET',undefined,user));const quote=await b.makeQuote(person,input);
    assert.equal(quote.eligible,true);assert.equal(quote.documentKind,'receipt');assert.equal(quote.tax,undefined);assert.equal(quote.taxRateBps,undefined);assert.deepEqual(quote.invoiceSeller,{name:'Braand'});

@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {db,config,uid,auditLog} from './server';
 import {AppError} from './core.mjs';
-import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
+import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,upgradePlan,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
 import {checkoutResponseSchema,sessionResponseSchema,sessionListSchema,transactionResponseSchema,type BillingProduct,type CreditAllocationRow,type CreditHoldRow,type CreditLotSummary,type Economics,type InvoiceDocument,type InvoiceSeller,type OrderRow,type PaymentSession,type QuoteInput,type QuoteRow,type SubscriptionRow,type TaxRule} from './billing-types';
 import type {ModelRate} from './model-protocol';
 
@@ -61,7 +61,7 @@ export function releaseReadiness(){
  const operational={payment:diagnostics.payment,environment:!!c.SASPAY_SECRET_KEY?.startsWith(c.SASPAY_ENV==='live'?'sk_live_':'sk_test_'),scheduler:!!c.SCHEDULER_SECRET&&c.SCHEDULER_SECRET.length>=32,enabled:diagnostics.enabled};
  return {enabled:mode==='hosted'?Object.values(operational).every(Boolean):checks.every(([,ok])=>ok),checks:diagnostics,operational,mode,environment:c.SASPAY_ENV==='live'?'live':'sandbox'};
 }
-export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,checkoutMode:hostedCheckout()?'hosted':'invoiced',tax:hostedCheckout()?{configured:false}:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
+export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period','annual'],annualAvailable:true,checkoutMode:hostedCheckout()?'hosted':'invoiced',tax:hostedCheckout()?{configured:false}:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
 export function requireBilling(who:BillingIdentity){if(!roleAllows(who.role,'billing'))throw new AppError('Seul le propriétaire peut gérer les paiements.',403);}
 export async function activeRights(org:string){const sub=await currentSubscription(org);return {subscription:sub,plan:sub?.plan||'free',limits:sub?PLANS[sub.plan as keyof typeof PLANS]:{members:1,spaces:1,projects:2,storage:256*1024**2,transfer:1024**3,concurrency:1}};}
 
@@ -129,7 +129,7 @@ export async function makeQuote(who:BillingIdentity,input:QuoteInput){
   await allocateDue(who.organization);
   const sub=await currentSubscription(who.organization);if(!sub)throw new AppError('Abonnement actif requis.',409);
   const target=input.plan||'business';
-  const adjustment=upgradeQuote(sub,now,await subscriptionTerms(sub),target),next=sub.cycle==='annual'?LEGACY_PLANS[target as keyof typeof LEGACY_PLANS]:PLANS[target];
+  const adjustment=upgradeQuote(sub,now,await subscriptionTerms(sub),target),next=upgradePlan(sub,target);
   p={kind:'upgrade',plan:target,cycle:sub.cycle,...adjustment,targetCredits:next.credits,targetContractPrice:(sub.cycle==='annual'?next.annualPrice:next.periodPrice)!,subscriptionId:sub.id,subscriptionRevision:sub.version,currency:'XAF',version:CATALOG_VERSION,credits:0};
  }else p=product(input) as BillingProduct;
  p={...p,...commercialDetails(p.amount)} as BillingProduct;
@@ -231,7 +231,7 @@ export async function reconcileOrder(id:string){
   statements.push(s("INSERT OR IGNORE INTO billing_subscriptions(id,organization_id,plan,catalog_plan,credit_allowance,catalog_version,contract_price,cycle,start_at,end_at,order_id) SELECT ?,organization_id,?,?,?,?,?,?,?,?,id FROM billing_orders WHERE id=? AND status='verified'",'sub:'+id,p.plan==='essential'?'pro':p.plan,p.plan,p.credits,p.version,p.baseAmount??p.amount,p.cycle,start,schedule.at(-1)!.end,id));
  }else if(p.kind==='upgrade'){
   await allocateDue(order.organization_id,now);
-  const next=p.cycle==='annual'||p.version==='2026-10-16.1'?LEGACY_PLANS[p.plan as keyof typeof LEGACY_PLANS]:PLANS[p.plan],allowance=p.targetCredits??next.credits,contractPrice=p.targetContractPrice??(p.cycle==='annual'?next.annualPrice:next.periodPrice);
+  const next=p.version==='2026-10-16.1'?LEGACY_PLANS[p.plan as keyof typeof LEGACY_PLANS]:PLANS[p.plan],allowance=p.targetCredits??next.credits,contractPrice=p.targetContractPrice??(p.cycle==='annual'?next.annualPrice:next.periodPrice);
   if(!Number.isSafeInteger(allowance)||allowance<0||!contractPrice||!Number.isSafeInteger(contractPrice))throw new AppError('Contrat de changement incomplet.',409,'subscription_terms_unknown');
   statements.push(s("UPDATE billing_subscriptions SET plan=?,catalog_plan=?,credit_allowance=?,catalog_version=?,contract_price=?,version=version+1 WHERE id=? AND version=? AND EXISTS(SELECT 1 FROM billing_orders WHERE id=? AND status='verified')",p.plan,p.plan,allowance,p.version,contractPrice,p.subscriptionId,p.subscriptionRevision,id));
   statements.push(s("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT ?,organization_id,'upgrade',id,?,?,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'upgrade:'+id,p.units,p.units,now,p.periodEnd,now,id));

@@ -116,6 +116,7 @@ function CompactOffers({catalog,priceLabel,currentPlan,busy,owner,guest,signInHr
    </div>
   </div>
   {!annualAvailable&&<p id={`${carouselId}-annual-note`} className={styles.compactNote}>Les forfaits annuels sont actuellement indisponibles.</p>}
+  {annual&&<p className={styles.compactNote}>2 mensualités offertes · paiement annuel unique. Les crédits sont renouvelés chaque mois et expirent à la fin de chaque mois d’abonnement.</p>}
   {guest&&<Guest href={signInHref}/>}
   <div ref={carouselRef} id={carouselId} className={styles.compactPlans} role="region" aria-label="Forfaits disponibles" aria-roledescription="carrousel" tabIndex={0} onKeyDown={event=>{
    if(event.target!==event.currentTarget)return;
