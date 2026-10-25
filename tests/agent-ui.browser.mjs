@@ -160,8 +160,8 @@ try{
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Braand'}).waitFor();
   assert.equal(await page.locator('.brand-lockup').innerText(),'Braand');
   assert.ok(await page.locator('.sidebar-brand').evaluate(element=>element.scrollWidth<=element.clientWidth),'Braand wordmark must fit beside navigation controls');
-  assert.ok(!(await page.locator('body').innerText()).includes('Braand'),'Visible application keeps the new product name');
-  checks.push('Braand identity fits the existing sidebar without changing technical storage or session identifiers');
+  assert.doesNotMatch(await page.locator('body').innerText(),/\bA[iï]ra\b/iu,'Visible application keeps the new product name');
+  checks.push('Braand identity fits the existing sidebar and replaces the legacy visible product name');
   await page.locator('.welcome-symbol canvas[data-bot-avatar="clover"][data-state="default"]').waitFor();
   const composer=page.getByRole('textbox',{name:'Votre demande à Braand'});
   const initial=await page.locator('.composer').boundingBox();
