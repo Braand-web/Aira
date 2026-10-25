@@ -46,6 +46,7 @@ declare namespace Cloudflare {
     OPS_ADMIN_IDS?: string;
     BILLING_ADMIN_IDS?: string;
     BILLING_ENABLED?: string;
+    BILLING_CHECKOUT_MODE?: 'hosted' | 'invoiced';
     BILLING_XAF_CHECKOUT_VALIDATED?: string;
     BILLING_TAX_VALIDATED?: string;
     BILLING_TAX_JSON?: string;

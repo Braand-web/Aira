@@ -31,7 +31,8 @@ export async function GET(request:Request,context:Context){try{
  }
  if(key==='invoices'&&path[1]){
   requireBilling(who);const row=await db().prepare('SELECT * FROM billing_invoices WHERE id=? AND organization_id=?').bind(path[1],who.organization).first<{number:string;document:string}>();if(!row)throw new AppError('Facture introuvable.',404);
-  return new Response(invoiceHTML(row.number,JSON.parse(row.document) as InvoiceDocument),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':'attachment; filename="facture-braand.html"','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
+  const document=JSON.parse(row.document) as InvoiceDocument;
+  return new Response(invoiceHTML(row.number,document),{headers:{'Content-Type':'text/html; charset=utf-8','Content-Disposition':`attachment; filename="${document.documentKind==='receipt'?'recu':'facture'}-braand.html"`,'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'",'Cache-Control':'private, no-store'}});
  }
  if(key==='credit-notes'&&path[1]){
   requireBilling(who);const row=await db().prepare('SELECT n.number,n.document,t.tax,t.subtotal FROM billing_credit_notes n LEFT JOIN billing_credit_note_taxes t ON t.credit_note_id=n.id WHERE n.id=? AND n.organization_id=?').bind(path[1],who.organization).first<{number:string;document:string;tax:number|null;subtotal:number|null}>();if(!row)throw new AppError('Avoir introuvable.',404);

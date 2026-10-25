@@ -176,6 +176,43 @@ await check('Workspace response keeps financial documents private from administr
   assert.deepEqual(data.billing.orders,[]);assert.deepEqual(data.billing.invoices,[]);assert.deepEqual(data.billing.creditNotes,[]);
  }finally{globalThis.__billingTest.headers=oldHeaders;}
 });
+await check('Hosted checkout sells catalogue packs and plans without fabricated fiscal data; receipts, refunds and retries remain consistent',async()=>{
+ const saved={...env},oldHeaders=globalThis.__billingTest.headers;
+ try{
+  for(const name of Object.keys(env))if(name.startsWith('BILLING_'))delete env[name];
+  Object.assign(env,{BILLING_ENABLED:'true',BILLING_CHECKOUT_MODE:'hosted',SCHEDULER_SECRET:'scheduler-fixture-'.repeat(3)});
+  assert.equal(b.releaseReadiness().enabled,true);assert.equal(b.releaseReadiness().checks.fiscal,false);assert.equal(b.releaseReadiness().checks.providerTests,false);
+  assert.equal(b.catalog().checkoutMode,'hosted');assert.deepEqual(b.catalog().tax,{configured:false});
+  const key=env.SASPAY_SECRET_KEY;env.SASPAY_SECRET_KEY='sk_live_wrong_environment';assert.equal(b.releaseReadiness().enabled,false);env.SASPAY_SECRET_KEY=key;
+  const scheduler=env.SCHEDULER_SECRET;env.SCHEDULER_SECRET='short';assert.equal(b.releaseReadiness().enabled,false);env.SCHEDULER_SECRET=scheduler;
+  let purchase,person;
+  for(const input of [{kind:'topup',quantity:50},{kind:'topup',quantity:125},{kind:'topup',quantity:300},...['essential','pro','business'].map(plan=>({kind:'subscription',plan,cycle:'period'}))]){
+   const user='hosted-'+crypto.randomUUID();globalThis.__billingTest.headers=new Headers({'x-braand-identity-id':user,'x-braand-identity-email':user+'@test.invalid'});
+   person=await s.identity(request('GET',undefined,user));const quote=await b.makeQuote(person,input);
+   assert.equal(quote.eligible,true);assert.equal(quote.documentKind,'receipt');assert.equal(quote.tax,undefined);assert.equal(quote.taxRateBps,undefined);assert.deepEqual(quote.invoiceSeller,{name:'Braand'});
+   const before=creates,idempotency=crypto.randomUUID();purchase=await b.checkout(person,quote.id,idempotency,'https://braand.test');
+   assert.equal((await b.checkout(person,quote.id,idempotency,'https://braand.test')).id,purchase.id);assert.equal(creates,before+1);assert.ok(purchase.checkoutUrl);
+   const stored=sql.prepare('SELECT session_id FROM billing_orders WHERE id=?').get(purchase.id),session=sessions.get(stored.session_id),tx=transactions.get(session.transaction);
+   assert.equal(session.return_url,'https://braand.test/?settings=billing&billingOrder='+purchase.id);assert.equal(session.amount,quote.amount.toFixed(2));
+   tx.status='PENDING';await b.reconcileOrder(purchase.id);assert.equal((await b.summary(person.organization)).wallet.available,0);
+   Object.assign(tx,{status:'SUCCESS',currency:'USD',requested_amount:'4.50',debited_amount:'4.50'});
+   await Promise.all([b.reconcileOrder(purchase.id),b.reconcileOrder(purchase.id)]);await b.reconcileOrder(purchase.id);
+   assert.equal((await b.summary(person.organization)).wallet.available,quote.credits);
+   assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(purchase.id).n,1);
+   const row=sql.prepare('SELECT id,number,document FROM billing_invoices WHERE order_id=?').get(purchase.id),document=JSON.parse(row.document);
+   assert.match(row.number,/^BR-REC-/);assert.equal(document.documentKind,'receipt');assert.equal(document.tax,undefined);assert.equal(document.taxBps,undefined);assert.deepEqual(document.payment,{currency:'USD',amount:'4.50'});
+   const downloaded=await route.GET(request('GET',undefined,user),{params:Promise.resolve({path:['invoices',row.id]})});
+   assert.match(downloaded.headers.get('Content-Disposition'),/recu-braand/);const html=await downloaded.text();assert.match(html,/Reçu de paiement Braand/);assert.ok(!html.includes('Taxes configurées'));assert.ok(!html.includes('Facture Braand'));
+  }
+  const quote=await b.makeQuote(person,{kind:'topup',quantity:50}),before=creates;env.BILLING_CHECKOUT_MODE='invoiced';await assert.rejects(()=>b.checkout(person,quote.id,crypto.randomUUID(),'https://braand.test'));assert.equal(creates,before);env.BILLING_CHECKOUT_MODE='hosted';
+  const refund=await b.requestRefund(person,purchase.id,'Receipt purchase examined for an external refund.');env.BILLING_ADMIN_IDS='hosted-finance';
+  const admin={user:{userId:'hosted-finance'}},preview=await refunds.previewExternalRefund(admin,refund.id,purchase.amount);
+  assert.equal(preview.plan.tax,0);await refunds.confirmExternalRefund(admin,{quoteId:preview.id,amount:preview.amount,currency:'XAF',environment:'sandbox',externalReference:'hosted-fixture-refund',evidenceNote:'Offline fixture external reimbursement evidence.',acknowledgement:'EXTERNAL_REFUND_CONFIRMED'});
+  assert.equal((await b.summary(person.organization)).wallet.available,0);
+  const note=sql.prepare('SELECT id FROM billing_credit_notes WHERE organization_id=?').get(person.organization),response=await route.GET(request('GET',undefined,person.tenant),{params:Promise.resolve({path:['credit-notes',note.id]})});
+  const html=await response.text();assert.match(html,/Confirmation de remboursement Braand/);assert.ok(!html.includes('Taxes configurées'));
+ }finally{for(const name of Object.keys(env))delete env[name];Object.assign(env,saved);globalThis.__billingTest.headers=oldHeaders;}
+});
 console.log(`${checks} billing integration checks passed. Provider responses were simulated; no real payment or provider validation.`);sql.close();
 
 
