@@ -59,7 +59,12 @@
 .cycleSwitch>button,.paymentFilters>button{min-height:32px;padding:4px 12px;border:0;border-radius:var(--ds-radius-pill);background:transparent;color:var(--ds-muted);font:500 12px/20px var(--ds-font);cursor:pointer;transition:background-color var(--ds-fast) var(--ds-ease),color var(--ds-fast) var(--ds-ease)}
 .cycleSwitch>button[aria-pressed=true],.paymentFilters>button[aria-pressed=true]{color:var(--ds-text);background:var(--ds-fill)}
 .cycleSwitch>button:hover,.paymentFilters>button:hover{background:var(--ds-hover);color:var(--ds-text)}
-.planToolbar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.planToolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.planActions{display:flex;align-items:center;gap:12px;margin-left:auto}
+.planActions .cycleSwitch>button{min-height:44px}
+.cycleSwitch>button:disabled{color:var(--ds-muted);opacity:.55;cursor:not-allowed}
+.cycleSwitch>button:hover:disabled{background:transparent;color:var(--ds-muted)}
+.cycleSwitch>button:focus-visible,.planControls>button:focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}
 .planControls{display:flex;flex-shrink:0;gap:8px}
 .planControls>button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--ds-radius-pill);background:var(--ds-fill);color:var(--ds-text);cursor:pointer;transition:background-color var(--ds-fast) var(--ds-ease),opacity var(--ds-fast) var(--ds-ease)}
 .planControls>button:hover:not(:disabled){background:var(--ds-hover)}
