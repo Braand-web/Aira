@@ -28,6 +28,7 @@ const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',ur
 const history=[];const votes=new Map();
 const workspaceResources=[proposal,conversation],workspaceMutations=[];
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
+const firstChatHeaders=Promise.withResolvers();
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
 let checkoutCalls=0,billingEnabled=false;
 let analyticsConnected=false,analyticsMode='full';const analyticsReads=[];
@@ -110,6 +111,7 @@ const server=createServer(async(req,res)=>{
     const chunks=[];for await(const chunk of req)chunks.push(chunk);
     const body=JSON.parse(Buffer.concat(chunks).toString());chatCalls++;
     const generatedText=body.text==='Markdown multilingue'?'# Résumé\n\n- **مرحبا**\n- 世界\n\n```json\n{"safe":"<img src=x onerror=alert(1)>"}\n```':'Résultat de test conservé.';
+    if(body.text==='Bonjour')await firstChatHeaders.promise;
     res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});
     const emit=(event,data)=>res.write('event: '+event+'\ndata: '+JSON.stringify(data)+'\n\n');
     emit('run',{runId:'run-'+chatCalls,conversationId:'conversation-fixture'});
@@ -429,9 +431,26 @@ try{
   await page.goto(origin);await composer.fill('Bonjour');
   checks.push('Design system: shared tokens, desktop/mobile settings, catalog, billing and 72px rail');
   checks.push('Composer grows only vertically, caps at 192px and scrolls internally');
+  const composerBeforeSend=await page.locator('.composer').boundingBox();
   await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
+  await page.locator('.welcome-symbol .aira-avatar[data-state="working"]').waitFor();
+  assert.equal(await page.locator('.chat-connect-status,.composer-wrap [data-slot=ai-status]').count(),0);
+  assert.doesNotMatch(await page.locator('body').innerText(),/Préparation de la réponse|Connexion au modèle/);
+  assert.equal(await page.locator('.composer-wrap [role=status]').textContent(),'Réponse en cours');
+  assert.equal(Math.round((await page.locator('.composer').boundingBox()).height),Math.round(composerBeforeSend.height),'Waiting must preserve the compact composer dimensions');
+  await capture({path:path.join(output,'quiet-wait-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  assert.equal(await page.locator('.chat-connect-status,.composer-wrap [data-slot=ai-status]').count(),0);
+  await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).waitFor();
+  await capture({path:path.join(output,'quiet-wait-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1280,height:800});await page.emulateMedia({reducedMotion:'no-preference'});
+  firstChatHeaders.resolve();
+  checks.push('Pending chat headers preserve composer dimensions and show only the working clover, an accessible waiting announcement and stop control on desktop/mobile');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
+  assert.equal(await page.locator('[data-slot=ai-status][data-state=thinking]').count(),0);
+  assert.doesNotMatch(await page.locator('body').innerText(),/Préparation de la réponse|Connexion au modèle/);
   assert.equal(await page.locator('.message.assistant .aira-avatar[data-state="working"]').count(),1);
   await page.locator('.message.assistant canvas[data-bot-avatar="clover"][data-state="working"]').waitFor();
   await capture({path:path.join(output,'desktop-writing.png'),fullPage:true});
@@ -607,4 +626,4 @@ try{
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);
 }catch(error){if(lastPage){await lastPage.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});console.error((await lastPage.locator('body').innerText()).slice(0,1200));}throw error;}
-finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
+finally{firstChatHeaders.resolve();await browser?.close();await new Promise(resolve=>server.close(resolve));}

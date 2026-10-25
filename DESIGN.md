@@ -22,4 +22,5 @@ Transitions utiles de 150 ms, réduction du mouvement, clavier et focus visible 
 
 
 Le rendu des réponses utilise des blocs Markdown mémorisés, échappés et stables : titres, listes, code avec retour à la ligne et liens HTTP(S) contrôlés. Le flux peut récupérer les événements persistants manquants d'une réponse active sans relancer sa génération. Arrêt immédiat côté client, conservation du texte partiel et ressources dédupliquées ; aucun changement de dimensions du compositeur ni nouvelle animation.
+L’attente initiale du chat reste discrète : le clover travaille et le bouton d’arrêt reste accessible, sans bandeau de préparation, de connexion au modèle ni compteur sous le compositeur. Une annonce réservée aux lecteurs d’écran conserve le retour accessible. Les étapes utiles et les erreurs restent liées aux événements réels.
 Les informations légales sont une rubrique des paramètres. Les trois documents s’ouvrent dans un nouvel onglet, avec une indication explicite, tandis que la fenêtre des paramètres et le brouillon restent en place.
