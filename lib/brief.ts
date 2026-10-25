@@ -19,6 +19,6 @@ export async function answerBrief(who: BillingIdentity, id: string, input: unkno
             throw new AppError('Une réponse est invalide ou manquante.');
     }
     const updated = await updateResource(who.tenant, id, p.version, { status: 'saved', data: { ...resource.data, answers: p.answers, answeredAt: Date.now() } });
-    await auditLog(who.tenant, who.user.userId, 'brief.answered', id);
+    await auditLog(who.tenant, who.user.userId, 'brief.answered', id);await (await import('./work')).wakeWorkForResource(who.tenant,id);
     return updated;
 }

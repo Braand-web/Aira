@@ -167,6 +167,7 @@ export const socialPosts = sqliteTable('social_posts', {
     timezone: text("timezone").notNull(),
     status: text("status").notNull().default(sql.raw("'draft'")),
     version: integer("version").notNull().default(sql.raw("1")),
+    approvedBy:text("approved_by"),approvedAt:integer("approved_at"),approvalExpiresAt:integer("approval_expires_at"),
     approvedDigest: text("approved_digest"),
     receipt: text("receipt"),
     errorCode: text("error_code"),

@@ -4,7 +4,7 @@ import { AppError } from './core.mjs';
 import { NETWORKS, digest, type SocialNetwork } from './platform-contracts';
 const path = z.string().regex(/^[a-zA-Z0-9_.]{1,160}$/), slug = z.string().regex(/^[A-Z][A-Z0-9_]{0,199}$/).refine(value => !value.startsWith('COMPOSIO_'));
 const call = z.object({ toolSlug: slug, arguments: z.record(z.unknown()) }).strict();
-const read = call.extend({ itemsPath: path, idPath: path, textPath: path.optional(), authorPath: path.optional(), postPath: path.optional(), parentPath: path.optional(), publishedPath: path.optional(), metricsPath: path.optional() });
+const read = call.extend({ itemsPath: path, idPath: path, textPath: path.optional(), authorPath: path.optional(), postPath: path.optional(), parentPath: path.optional(), publishedPath: path.optional(), metricsPath: path.optional(),contextPath:path.optional() });
 export const socialAdapterSchema = z.object({ network: z.enum(NETWORKS), toolkit: z.string().regex(/^[a-z][a-z0-9_]{0,99}$/), version: z.string().min(1).max(80), verifiedAt: z.string().datetime(), source: z.string().url(), enabled: z.boolean(),
     discovery: call.extend({ itemsPath: path, idPath: path, labelPath: path, capabilityPaths: z.object({ publish: path.optional(), comments: path.optional(), insights: path.optional() }).strict() }),
     formats: z.array(z.enum(['text', 'image', 'carousel', 'video', 'story'])).min(1).max(5),

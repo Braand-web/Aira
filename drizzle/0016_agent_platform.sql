@@ -13,7 +13,7 @@ CREATE INDEX agent_work_space ON agent_work(workspace_id,conversation_id,updated
 CREATE TABLE agent_work_steps (
  id TEXT PRIMARY KEY, work_id TEXT NOT NULL REFERENCES agent_work(id), ordinal INTEGER NOT NULL,
  title TEXT NOT NULL, instruction TEXT NOT NULL, criteria TEXT NOT NULL, depends_on TEXT NOT NULL,
- status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','waiting_approval','waiting_external','completed','partial','failed','uncertain','cancelled')),
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','waiting_input','waiting_approval','waiting_external','completed','partial','failed','uncertain','cancelled')),
  max_units INTEGER NOT NULL CHECK(max_units>0), run_id TEXT UNIQUE, result TEXT, started_at INTEGER, finished_at INTEGER,
  UNIQUE(work_id,ordinal)
 );
@@ -84,7 +84,7 @@ CREATE TABLE social_posts (
  account_id TEXT NOT NULL REFERENCES social_accounts(id), text TEXT NOT NULL, assets TEXT NOT NULL DEFAULT '[]',
  format TEXT NOT NULL, alt_text TEXT NOT NULL DEFAULT '', destination TEXT, scheduled_at INTEGER NOT NULL,
  timezone TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft', version INTEGER NOT NULL DEFAULT 1,
- approved_digest TEXT, receipt TEXT, error_code TEXT, lease_token TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
+ approved_by TEXT, approved_at INTEGER, approval_expires_at INTEGER, approved_digest TEXT, receipt TEXT, error_code TEXT, lease_token TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE INDEX social_posts_due ON social_posts(status,scheduled_at,lease_until);

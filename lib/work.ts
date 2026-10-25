@@ -225,7 +225,7 @@ export async function linkMediaWork(tenant: string, proposalId: string, holdId: 
 }>(); if (!row)
     return; if (['paused', 'cancelled', 'expired', 'needs_reconciliation'].includes(row.status))
     throw new AppError('Ce travail est en pause ou doit être vérifié. Reprenez-le avant cette génération.', 409, 'work_inactive'); await q('UPDATE agent_work_allocations SET hold_id=? WHERE work_id=? AND reference=?', holdId, row.id, 'proposal:' + proposalId).run(); }
-export async function wakeWorkForResource(tenant: string, id: string) { const rows = await q("SELECT w.id FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=? AND w.status IN ('waiting_approval','waiting_external')", id, tenant).all<{
+export async function wakeWorkForResource(tenant: string, id: string) {await q("UPDATE agent_work SET status='running',next_at=? WHERE workspace_id=? AND status='waiting_input' AND error_code='brief_required' AND approved_version IS NOT NULL AND expires_at>? AND id IN (SELECT a.work_id FROM agent_work_artifacts a JOIN resources r ON r.id=a.resource_id WHERE r.id=? AND r.kind='brief' AND r.status='saved')",Date.now(),tenant,Date.now(),id).run(); const rows = await q("SELECT w.id FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=? AND w.status IN ('running','waiting_approval','waiting_external')", id, tenant).all<{
     id: string;
 }>(); for (const row of rows.results)
     await enqueue(row.id); }
@@ -289,7 +289,7 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
                 await setState(row.id, 'waiting_input', 'proposal_rejected');
                 continue;
             }
-            await q("UPDATE agent_work_steps SET status='completed' WHERE work_id=? AND status IN ('waiting_approval','waiting_external')", row.id).run();
+            await q("UPDATE agent_work_steps SET status='completed' WHERE work_id=? AND status IN ('waiting_approval','waiting_external','waiting_input')", row.id).run();
             const steps = (await q('SELECT * FROM agent_work_steps WHERE work_id=? ORDER BY ordinal', row.id).all<StepRow>()).results;
             step = steps.find(item => item.status === 'pending' && (JSON.parse(item.depends_on) as string[]).every(id => steps.some(s => s.id === id && s.status === 'completed')));
             if (!step) {
@@ -340,12 +340,12 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
             }>();
             if (held?.status !== 'settled')
                 throw new AppError('Le coût de cette étape reste à rapprocher.', 409, 'usage_unknown');
-            const waiting = await q("SELECT r.status FROM resources r JOIN agent_work_artifacts a ON a.resource_id=r.id WHERE a.work_id=? AND a.step_id=? AND r.status IN ('awaiting_approval','generating','pending','executing') LIMIT 1", row.id, step.id).first<{
+            const waiting = await q("SELECT r.status FROM resources r JOIN agent_work_artifacts a ON a.resource_id=r.id WHERE a.work_id=? AND a.step_id=? AND r.status IN ('awaiting_approval','generating','pending','executing','waiting_input') LIMIT 1", row.id, step.id).first<{
                 status: string;
             }>();
-            const stepStatus = waiting ? ['generating', 'executing'].includes(waiting.status) ? 'waiting_external' : 'waiting_approval' : 'completed';
+            const stepStatus = waiting ? waiting.status==='waiting_input'?'waiting_input':['generating', 'executing'].includes(waiting.status) ? 'waiting_external' : 'waiting_approval' : 'completed';
             await q('UPDATE agent_work_steps SET status=?,result=?,finished_at=? WHERE id=?', stepStatus, JSON.stringify({ runId, deliveryConfirmed: true, semanticReview: 'see_deliverable_receipts' }), Date.now(), step.id).run();
-            await setState(row.id, stepStatus === 'completed' ? (steps.filter(s => s.id !== step!.id).every(s => s.status === 'completed') ? 'completed' : 'running') : stepStatus);
+            await setState(row.id, stepStatus === 'completed' ? (steps.filter(s => s.id !== step!.id).every(s => s.status === 'completed') ? 'completed' : 'running') : stepStatus,stepStatus==='waiting_input'?'brief_required':null);
             await enqueue(row.id);
             completed++;
         }

@@ -36,6 +36,7 @@ type PostRow = {
     timezone: string;
     status: string;
     version: number;
+    approved_by:string|null;approval_expires_at:number|null;
     approved_digest: string | null;
     receipt: string | null;
     error_code: string | null;
@@ -61,7 +62,7 @@ async function batch(tenant: string, id: string) { const row = await q('SELECT *
 async function post(tenant: string, id: string) { const row = await q('SELECT * FROM social_posts WHERE id=? AND workspace_id=?', id, tenant).first<PostRow>(); if (!row)
     throw new AppError('Publication introuvable.', 404, 'social_post_not_found'); return row; }
 async function actor(tenant: string, userId: string): Promise<BillingIdentity> { const rights = await authorize(tenant, userId, 'write'); return { tenant, organization: rights.organization_id, role: rights.role, user: { userId, email: '', displayName: '' } }; }
-export async function socialAccounts(tenant: string) { const rows = await q('SELECT * FROM social_accounts WHERE workspace_id=? ORDER BY network,label LIMIT 100', tenant).all<AccountRow>(); return { accounts: rows.results.map((row): SocialAccountDTO => ({ id: row.id, network: row.network, label: row.label, targetId: row.target_id, timezone: row.timezone, status: row.status, version: row.version, verifiedAt: row.verified_at, capabilities: JSON.parse(row.capabilities), reason: row.status !== 'active' ? 'connection_required' : socialReadiness(row.network).reason })), networks: NETWORKS.map(network => ({ network, ...socialReadiness(network) })) }; }
+export async function socialAccounts(tenant: string) { const rows = await q('SELECT * FROM social_accounts WHERE workspace_id=? ORDER BY network,label LIMIT 100', tenant).all<AccountRow>(); return { accounts: rows.results.map((row): SocialAccountDTO => ({ id: row.id, network: row.network, label: row.label, targetId: row.target_id, timezone: row.timezone, status: row.status, version: row.version, verifiedAt: row.verified_at, capabilities: {...JSON.parse(row.capabilities),publish:!!JSON.parse(row.capabilities).publish&&config().SOCIAL_PUBLISHING_ENABLED==='true',comments:!!JSON.parse(row.capabilities).comments&&config().SOCIAL_COMMENTS_ENABLED==='true',insights:!!JSON.parse(row.capabilities).insights&&config().SOCIAL_INSIGHTS_ENABLED==='true'}, reason: row.status !== 'active' ? 'connection_required' : socialReadiness(row.network).reason })), networks: NETWORKS.map(network => ({ network, ...socialReadiness(network) })) }; }
 export async function socialAssetChoices(tenant: string) { const rows = await q("SELECT f.id,f.display_name,f.detected_mime,f.sha256,f.size_bytes,r.version FROM files f JOIN resources r ON r.id=f.id WHERE f.workspace_id=? AND f.status='ready' AND r.status!='deleted' AND f.sha256 IS NOT NULL AND (f.detected_mime LIKE 'image/%' OR f.detected_mime LIKE 'video/%') ORDER BY f.updated_at DESC LIMIT 100", tenant).all<{
     id: string;
     display_name: string;
@@ -159,7 +160,7 @@ export async function createSocialBatch(who: BillingIdentity, input: unknown) { 
     } const saved = await createResource(who.tenant, 'social_batch', p.title, { publicationCount: p.posts.length }, 'awaiting_approval'), id = saved.id, now = Date.now(); await db().batch([q('INSERT INTO social_batches(id,workspace_id,actor_id,title,brand_id,project_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)', id, who.tenant, who.user.userId, p.title, p.brandId || null, p.projectId || null, now, now), ...p.posts.map(item => q('INSERT INTO social_posts(id,batch_id,workspace_id,account_id,text,assets,format,alt_text,destination,scheduled_at,timezone,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', uid(), id, who.tenant, item.accountId, item.text, JSON.stringify(item.assets), item.format, item.altText, item.destination, item.scheduledAt, item.timezone, now, now))]); await auditLog(who.tenant, who.user.userId, 'social.batch_created', id); return getSocialBatch(who.tenant, id); }
 export async function reviseSocialPost(who: BillingIdentity, id: string, input: unknown) { await authorize(who.tenant, who.user.userId, 'write'); const p = z.object({ version: z.number().int().positive(), post: postInput }).strict().parse(input), row = await post(who.tenant, id); if (['publishing', 'processing', 'published', 'uncertain'].includes(row.status))
     throw new AppError('Cette publication est en cours, publiée ou à vérifier. Créez un nouveau brouillon pour la modifier.', 409, 'social_post_locked'); const destination = await validatePost(who.tenant, p.post); if (destination.actor_id !== who.user.userId)
-    throw new AppError('Choisissez un compte connecté par votre utilisateur.', 403, 'social_account_owner'); const item = p.post, now = Date.now(); const changed = await q("UPDATE social_posts SET account_id=?,text=?,assets=?,format=?,alt_text=?,destination=?,scheduled_at=?,timezone=?,status='draft',approved_digest=NULL,error_code=NULL,version=version+1,updated_at=? WHERE id=? AND workspace_id=? AND version=? AND status NOT IN ('publishing','processing','published','uncertain')", item.accountId, item.text, JSON.stringify(item.assets), item.format, item.altText, item.destination, item.scheduledAt, item.timezone, now, id, who.tenant, p.version).run(); if (!changed.meta.changes)
+    throw new AppError('Choisissez un compte connecté par votre utilisateur.', 403, 'social_account_owner'); const item = p.post, now = Date.now(); const changed = await q("UPDATE social_posts SET account_id=?,text=?,assets=?,format=?,alt_text=?,destination=?,scheduled_at=?,timezone=?,status='draft',approved_digest=NULL,approved_by=NULL,approved_at=NULL,approval_expires_at=NULL,error_code=NULL,version=version+1,updated_at=? WHERE id=? AND workspace_id=? AND version=? AND status NOT IN ('publishing','processing','published','uncertain')", item.accountId, item.text, JSON.stringify(item.assets), item.format, item.altText, item.destination, item.scheduledAt, item.timezone, now, id, who.tenant, p.version).run(); if (!changed.meta.changes)
     throw new AppError('La publication a changé. Votre saisie reste conservée.', 409, 'stale_version'); await q("UPDATE social_batches SET status='draft',version=version+1,updated_at=? WHERE id=?", now, row.batch_id).run(); await q("UPDATE resources SET status='awaiting_approval',version=version+1,updated_at=? WHERE id=? AND workspace_id=?", now, row.batch_id, who.tenant).run(); await auditLog(who.tenant, who.user.userId, 'social.post_revised', id); return getSocialBatch(who.tenant, row.batch_id); }
 async function approvedPostDigest(row: PostRow, a: AccountRow, recipe: SocialAdapter) { return digest({ post: snapshot(row), accountVersion: a.version, connectedAccount: a.connected_account_id, target: a.target_id, adapter: await adapterDigest(recipe), lateWindowMs: 900000 }); }
 export async function decideSocialBatch(who: BillingIdentity, id: string, input: unknown) {
@@ -178,13 +179,14 @@ export async function decideSocialBatch(who: BillingIdentity, id: string, input:
             throw new AppError('Une publication de la sélection ne peut plus être modifiée.', 409);
         let hash: string | null = null;
         if (p.decision === 'approve') {
+            if(config().SOCIAL_PUBLISHING_ENABLED!=='true'||config().SOCIAL_SCHEDULING_ENABLED!=='true')throw new AppError('La publication et la programmation attendent leur recette.',503,'social_not_ready');
             const a = await validatePost(who.tenant, postDTO(item), true);
             if (item.scheduled_at < Date.now() || item.scheduled_at > Date.now() + 90 * 86400000)
                 throw new AppError('Choisissez un créneau futur dans les quatre-vingt-dix prochains jours.');
             hash = await approvedPostDigest(item, a, adapter(a.network));
             expires = Math.max(expires, item.scheduled_at + 900000);
         }
-        updates.push(q('UPDATE social_posts SET status=?,approved_digest=?,error_code=NULL,updated_at=? WHERE id=? AND version=? AND status IN (\'draft\',\'blocked\',\'needs_reschedule\',\'rejected\',\'approved\') AND EXISTS(SELECT 1 FROM social_batches WHERE id=? AND version=? AND digest=? AND approved_by=? AND decision_token=?)', p.decision === 'approve' ? 'approved' : 'rejected', hash, Date.now(), item.id, item.version, id, p.version + 1, p.digest, who.user.userId, decisionToken));
+        updates.push(q('UPDATE social_posts SET status=?,approved_digest=?,approved_by=?,approved_at=?,approval_expires_at=?,error_code=NULL,updated_at=? WHERE id=? AND version=? AND status IN (\'draft\',\'blocked\',\'needs_reschedule\',\'rejected\',\'approved\') AND EXISTS(SELECT 1 FROM social_batches WHERE id=? AND version=? AND digest=? AND approved_by=? AND decision_token=?)', p.decision === 'approve' ? 'approved' : 'rejected', hash,p.decision==='approve'?who.user.userId:null,p.decision==='approve'?Date.now():null,p.decision==='approve'?item.scheduled_at+900000:null,Date.now(), item.id, item.version, id, p.version + 1, p.digest, who.user.userId, decisionToken));
     }
     // CAS on the batch first; a concurrent edit makes all snapshot guards fail.
     const decisions = await db().batch([q('UPDATE social_batches SET version=version+1,status=?,digest=?,approved_by=?,approved_at=?,expires_at=?,updated_at=?,decision_token=? WHERE id=? AND workspace_id=? AND version=?', p.decision === 'approve' ? 'approved' : 'rejected', p.digest, who.user.userId, Date.now(), expires || null, Date.now(), decisionToken, id, who.tenant, p.version), ...updates]);
@@ -221,17 +223,17 @@ export async function runSocialTick() {
     const rows = await q("SELECT * FROM social_posts WHERE (status='approved' AND scheduled_at<=?) OR status='processing' ORDER BY scheduled_at,id LIMIT 10", now).all<PostRow>();
     let published = 0, blocked = 0;
     for (const item of rows.results) {
-        if (!socialReadiness((await account(item.workspace_id, item.account_id)).network).ready)
+        if (item.status==='approved'&&(config().SOCIAL_PUBLISHING_ENABLED!=='true'||config().SOCIAL_SCHEDULING_ENABLED!=='true')||!socialReadiness((await account(item.workspace_id, item.account_id)).network).ready)
             continue;
         const token = uid(), lock = await q("UPDATE social_posts SET lease_token=?,lease_until=? WHERE id=? AND status=? AND lease_until<=?", token, Date.now() + 120000, item.id, item.status, Date.now()).run();
         if (!lock.meta.changes)
             continue;
         let crossed = false;
         try {
-            const b = await batch(item.workspace_id, item.batch_id), a = await account(item.workspace_id, item.account_id), recipe = adapter(a.network), who = await actor(item.workspace_id, a.actor_id);
-            if (!b.approved_by)
+            const a = await account(item.workspace_id, item.account_id), recipe = adapter(a.network), who = await actor(item.workspace_id, a.actor_id);
+            if (!item.approved_by||item.approval_expires_at!==item.scheduled_at+900000)
                 throw new AppError('Validation du lot absente.', 409, 'social_approval_required');
-            await authorize(item.workspace_id, b.approved_by, 'approve');
+            await authorize(item.workspace_id, item.approved_by, 'approve');
             if (item.approved_digest !== await approvedPostDigest(item, a, recipe))
                 throw new AppError('Le contenu, le compte ou la capacité a changé.', 409, 'social_stale_approval');
             if (item.status === 'approved' && Date.now() > item.scheduled_at + 900000) {
@@ -270,9 +272,10 @@ export async function runSocialTick() {
             let last: unknown;
             for (let ordinal = 0; ordinal < recipe.publish.steps.length; ordinal++) {
                 const current = await post(item.workspace_id, item.id);
+                if(Date.now()>(item.approval_expires_at||0))throw new AppError('Le créneau autorisé est dépassé.',409,'schedule_elapsed');const freshAccount=await account(item.workspace_id,item.account_id);if(current.approved_digest!==await approvedPostDigest(current,freshAccount,adapter(freshAccount.network)))throw new AppError('Le compte ou la capacité a changé.',409,'social_stale_approval');
                 if (current.lease_token !== token || current.status !== 'publishing')
                     throw new AppError('L’envoi a été suspendu.', 409, 'social_state_changed');
-                await authorize(item.workspace_id, b.approved_by, 'approve');
+                await authorize(item.workspace_id, item.approved_by, 'approve');
                 await authorize(item.workspace_id, a.actor_id, 'write');
                 const step = recipe.publish.steps[ordinal], args = argumentsFor(step.arguments, context), argsHash = await digest(args);
                 await q("INSERT INTO social_delivery_steps(delivery_id,ordinal,tool_slug,payload_digest,status,updated_at) VALUES (?,?,?,?,'submitting',?)", deliveryId, ordinal, step.toolSlug, argsHash, Date.now()).run();
@@ -346,7 +349,7 @@ export async function listComments(tenant: string, accountId?: string) { const r
 export async function syncComments(who: BillingIdentity, accountId: string, postExternalId?: string) {
     await authorize(who.tenant, who.user.userId, 'write');
     const a = await account(who.tenant, accountId), recipe = adapter(a.network);
-    if (a.actor_id !== who.user.userId || !recipe.comments || !JSON.parse(a.capabilities).comments)
+    if (a.actor_id !== who.user.userId || !recipe.comments || config().SOCIAL_COMMENTS_ENABLED!=='true'|| !JSON.parse(a.capabilities).comments)
         throw new AppError('La lecture des commentaires n’est pas disponible pour ce compte.', 409, 'social_comments_unavailable');
     const args = argumentsFor(recipe.comments.arguments, { account: { targetId: a.target_id }, post: { externalId: postExternalId || '' } }), result = await socialConnectorCall(who, { toolkit: recipe.toolkit, toolSlug: recipe.comments.toolSlug, arguments: args, accountId: a.connected_account_id });
     if (result.resultType !== 'completed')
@@ -360,7 +363,7 @@ export async function syncComments(who: BillingIdentity, accountId: string, post
         const external = at(value, recipe.comments.idPath), text = at(value, recipe.comments.textPath), parent = at(value, recipe.comments.parentPath), postId = at(value, recipe.comments.postPath) || postExternalId, authorLabel = at(value, recipe.comments.authorPath);
         if (typeof external !== 'string' || typeof text !== 'string' || typeof postId !== 'string')
             continue;
-        const id = 'comment:' + await digest([a.id, external]), hash = await digest([external, text, parent || null]), now = Date.now();
+        const id = 'comment:' + await digest([a.id, external]), hash = await digest([external, text, parent || null,recipe.comments.contextPath?at(value,recipe.comments.contextPath):null]), now = Date.now();
         await q("INSERT INTO social_comments(id,workspace_id,account_id,external_id,post_external_id,parent_external_id,author_label,text,digest,synced_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET text=excluded.text,digest=excluded.digest,status=CASE WHEN digest!=excluded.digest THEN 'unread' ELSE status END,synced_at=excluded.synced_at", id, who.tenant, a.id, external, postId, typeof parent === 'string' ? parent : null, typeof authorLabel === 'string' ? authorLabel.slice(0, 160) : 'Utilisateur', text.slice(0, 12000), hash, now).run();
         seenIds.push(id);
         count++;
@@ -387,7 +390,7 @@ export async function decideReply(who: BillingIdentity, id: string, input: unkno
     if (!c)
         throw new AppError('Commentaire introuvable.', 404);
     const a = await account(who.tenant, c.account_id), recipe = adapter(a.network), sender = await actor(who.tenant, r.actor_id);
-    if (!socialReadiness(a.network).ready || !recipe.reply)
+    if (!socialReadiness(a.network).ready || config().SOCIAL_COMMENTS_ENABLED!=='true'||!recipe.comments?.contextPath||!recipe.reply)
         throw new AppError('L’envoi de réponses attend sa validation.', 503, 'social_not_ready');
     const refreshed = await syncComments(sender, a.id, c.post_external_id);
     if (!refreshed.seenIds.includes(c.id))
@@ -427,7 +430,7 @@ export async function socialInsights(tenant: string, accountId?: string) { if (a
     network: SocialNetwork;
 }>(); return { items: rows.results.map(row => ({ id: row.id, accountId: row.account_id, accountLabel: row.account_label, network: row.network, postId: row.external_post_id, periodStart: row.period_start, periodEnd: row.period_end, metrics: JSON.parse(row.metrics), source: row.source, fetchedAt: row.fetched_at })), notice: 'Statistiques organiques. Les clics et interactions ne prouvent pas des ventes.' }; }
 export async function syncInsights(who: BillingIdentity, input: unknown) { await authorize(who.tenant, who.user.userId, 'write'); const p = z.object({ accountId: z.string().min(1).max(160), start: z.number().int().positive(), end: z.number().int().positive() }).strict().parse(input); if (p.end <= p.start || p.end > Date.now() || p.end - p.start > 90 * 86400000)
-    throw new AppError('Choisissez une période terminée de quatre-vingt-dix jours maximum.'); const a = await account(who.tenant, p.accountId), recipe = adapter(a.network); if (a.actor_id !== who.user.userId || !recipe.insights || !JSON.parse(a.capabilities).insights)
+    throw new AppError('Choisissez une période terminée de quatre-vingt-dix jours maximum.'); const a = await account(who.tenant, p.accountId), recipe = adapter(a.network); if (a.actor_id !== who.user.userId || !recipe.insights || config().SOCIAL_INSIGHTS_ENABLED!=='true'||!JSON.parse(a.capabilities).insights)
     throw new AppError('Les statistiques ne sont pas accessibles sur ce compte.', 409); const args = argumentsFor(recipe.insights.arguments, { account: { targetId: a.target_id }, period: { start: p.start, end: p.end } }), result = await socialConnectorCall(who, { toolkit: recipe.toolkit, toolSlug: recipe.insights.toolSlug, arguments: args, accountId: a.connected_account_id }); if (result.resultType !== 'completed')
     throw new AppError('La lecture des statistiques a échoué.', 502); const items = at(result.data, recipe.insights.itemsPath); if (!Array.isArray(items) || items.length > 200)
     throw new AppError('Le relevé statistique doit être vérifié.', 502); for (const item of items) {
