@@ -56,16 +56,16 @@ html[data-design-system="muse"] {
   --accent: var(--ds-accent);
   --blue: var(--ds-action);
   --font: var(--ds-font);
-  --aira-main-bg: var(--ds-bg);
-  --aira-sidebar-bg: var(--ds-bg);
-  --aira-sidebar-border: var(--ds-line-quiet);
-  --aira-sidebar-divider: var(--ds-line-quiet);
-  --aira-sidebar-hover: var(--ds-fill);
-  --aira-sidebar-active: var(--ds-fill);
-  --aira-sidebar-text: var(--ds-text);
-  --aira-sidebar-active-text: var(--ds-text);
-  --aira-sidebar-muted: var(--ds-muted);
-  --aira-sidebar-quiet: var(--ds-muted);
-  --aira-sidebar-accent: var(--ds-accent);
-  --aira-sidebar-focus: var(--ds-focus);
+  --braand-main-bg: var(--ds-bg);
+  --braand-sidebar-bg: var(--ds-bg);
+  --braand-sidebar-border: var(--ds-line-quiet);
+  --braand-sidebar-divider: var(--ds-line-quiet);
+  --braand-sidebar-hover: var(--ds-fill);
+  --braand-sidebar-active: var(--ds-fill);
+  --braand-sidebar-text: var(--ds-text);
+  --braand-sidebar-active-text: var(--ds-text);
+  --braand-sidebar-muted: var(--ds-muted);
+  --braand-sidebar-quiet: var(--ds-muted);
+  --braand-sidebar-accent: var(--ds-accent);
+  --braand-sidebar-focus: var(--ds-focus);
 }

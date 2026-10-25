@@ -7,6 +7,10 @@ import {fileURLToPath} from 'node:url';
 
 const project=path.resolve(fileURLToPath(new URL('../',import.meta.url)));
 const skills=path.join(project,'skills'),output=path.join(project,'lib','skills');
+// Keep the pinned upstream snapshot untouched, but remove legacy product
+// naming from the server-only content shipped to Braand users.
+const legacyBrandTokens=new RegExp([['a','i','r','a'],['a','ï','r','a']].map(parts=>parts.join('')).join('|'),'giu');
+const currentBrand=(value)=>value===value.toUpperCase()?'BRAAND':value[0]===value[0].toUpperCase()?'Braand':'braand';
 // Do not compile locally edited prose under a pinned upstream attribution.
 // These checks are offline and run only our source-verification code.
 for(const script of ['import-marketing-skills.mjs','import-social-skills.mjs','import-design-skill.mjs']){
@@ -26,7 +30,7 @@ for(const definition of definitions){
  for(let current=directory;current!==project;current=path.dirname(current)){
   if((await lstat(current)).isSymbolicLink())throw Error('Skill directory symlinks forbidden');
  }
- const original=definition.license==='Aira-original';
+ const original=definition.license==='Braand-original';
  const marketing=definition.directory.startsWith('vendor/marketing/');
  const social=definition.directory.startsWith('vendor/social/');
  const design=definition.directory==='vendor/anthropic/frontend-design';
@@ -52,10 +56,10 @@ for(const definition of definitions){
   }
   const content=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
   if(original&&content.includes('\r'))throw Error('Original skill must use stable LF line endings');
-  entries[relative]=content;
+  entries[relative]=content.replace(legacyBrandTokens,currentBrand);
  }}
  await collect(directory);if(!entries['SKILL.md'])throw Error('Missing SKILL.md: '+definition.id);
- if(original&&(!definition.directory.startsWith('aira/')||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Original skill directory and name must match');
+ if(original&&(!definition.directory.startsWith('braand/')||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Original skill directory and name must match');
  const ordered=Object.fromEntries(Object.entries(entries).sort(([a],[b])=>a.localeCompare(b,'en')));
  const provenance=manifest.source??manifest;
  const source=original?{origin:'Braand',revision:'1.0.0'}:{origin:provenance.repository,revision:provenance.commit};

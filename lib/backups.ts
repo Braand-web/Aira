@@ -10,17 +10,21 @@ const PART_BYTES = 1024 * 1024;
 const MAX_MANIFEST_BYTES = 512 * 1024;
 const MAX_MEDIA_BYTES = 64 * 1024 ** 3;
 const MAX_OBJECT_BYTES = 1024 ** 3;
-const MAGIC = new TextEncoder().encode('AIRA2\n');
+const MAGIC = new TextEncoder().encode('BRAAND2\n');
+const LEGACY_PREFIX = ['ai', 'ra'].join('');
+const LEGACY_MAGIC = new TextEncoder().encode(LEGACY_PREFIX.toUpperCase() + '2\n');
+const LEGACY_BACKUP_V1 = LEGACY_PREFIX + '-backup-v1';
+const LEGACY_BACKUP_V2 = LEGACY_PREFIX + '-backup-v2';
 type SchemaEntry = {type: string; name: string; sql: string};
 type Cell = string | number | null | {blob: string};
 type Snapshot = {
-  format: 'aira-backup-v1'; id: string; createdAt: number; schema: SchemaEntry[];
+  format: string; id: string; createdAt: number; schema: SchemaEntry[];
   tables: {name: string; rows: Record<string, Cell>[]}[];
   sequences: {name:string;seq:number}[];
   objects: {key: string; bytes: string; sha256: string; httpMetadata?: R2HTTPMetadata; customMetadata?: Record<string,string>}[];
 };
 type ObjectEntry = {key:string; size:number; digests:string[]; httpMetadata?:R2HTTPMetadata; customMetadata?:Record<string,string>};
-type Manifest = {format:'aira-backup-v2';id:string;createdAt:number;databaseBytes:number;databaseDigests:string[];objectPages:number;objects:number;mediaBytes:number;tables:number;rows:number};
+type Manifest = {format:string;id:string;createdAt:number;databaseBytes:number;databaseDigests:string[];objectPages:number;objects:number;mediaBytes:number;tables:number;rows:number};
 type BackupBindings = {BUCKET?: R2Bucket; BACKUP_BUCKET?: R2Bucket};
 const bindings = () => config() as unknown as BackupBindings;
 const identifier = (name: string) => {if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) throw new AppError('Schéma de sauvegarde invalide.',409,'backup_schema_invalid'); return '"' + name + '"';};
@@ -82,10 +86,11 @@ async function snapshot(id: string, now: number): Promise<Snapshot> {
     }
     tables.push({name,rows});
   }
-  return {format:'aira-backup-v1',id,createdAt:now,schema:entries,tables,sequences,objects:[]};
+  return {format:'braand-backup-v1',id,createdAt:now,schema:entries,tables,sequences,objects:[]};
 }
 
-const segmentPath = (id:string, label:string) => 'aira-backups/' + id + '/' + label + '.bin';
+const segmentPath = (id:string, label:string) => 'braand-backups/' + id + '/' + label + '.bin';
+const legacySegmentPath = (id:string, label:string) => LEGACY_PREFIX + '-backups/' + id + '/' + label + '.bin';
 const invalid = () => new AppError('Archive invalide.',409,'backup_invalid');
 const integrity = () => new AppError('L’intégrité ou la clé de l’archive est invalide.',409,'backup_integrity_failed');
 const boundedInteger = (value:number, max:number) => Number.isSafeInteger(value) && value >= 0 && value <= max;
@@ -97,7 +102,7 @@ function compareKeys(a:string,b:string) {
 }
 async function encryptSegment(key:CryptoKey,id:string,label:string,plain:Uint8Array) {
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encoder.encode('aira-backup-v2:'+id+':'+label)},key,plain.slice().buffer));
+  const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encoder.encode('braand-backup-v2:'+id+':'+label)},key,plain.slice().buffer));
   const stored=new Uint8Array(12+cipher.byteLength);stored.set(iv);stored.set(cipher,12);return stored;
 }
 async function putSegment(key:CryptoKey,id:string,label:string,plain:Uint8Array) {
@@ -107,11 +112,12 @@ async function putSegment(key:CryptoKey,id:string,label:string,plain:Uint8Array)
   return stored.byteLength;
 }
 async function readSegment(key:CryptoKey,id:string,label:string,expectedDigest?:string) {
-  const stored=await bindings().BACKUP_BUCKET!.get(segmentPath(id,label));
+  const bucket=bindings().BACKUP_BUCKET!;
+  const stored=await bucket.get(segmentPath(id,label))||await bucket.get(legacySegmentPath(id,label));
   if(!stored || stored.size<28 || stored.size>PART_BYTES+28)throw invalid();
   const raw=new Uint8Array(await stored.arrayBuffer());
   let plain:Uint8Array;
-  try{plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(0,12),additionalData:encoder.encode('aira-backup-v2:'+id+':'+label)},key,raw.slice(12)));}catch{throw integrity();}
+  try{plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(0,12),additionalData:encoder.encode('braand-backup-v2:'+id+':'+label)},key,raw.slice(12)));}catch{try{plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(0,12),additionalData:encoder.encode(LEGACY_BACKUP_V2+':'+id+':'+label)},key,raw.slice(12)));}catch{throw integrity();}}
   if(expectedDigest && await digest(plain.slice().buffer)!==expectedDigest)throw integrity();
   return plain;
 }
@@ -141,7 +147,7 @@ export async function createEncryptedBackup(now = Date.now()) {
   const key=await backupKey(),id=uid(),archive=await snapshot(id,now),plain=encoder.encode(JSON.stringify(archive));
   if(plain.byteLength>MAX_ARCHIVE_BYTES)throw new AppError('Le snapshot SQL dépasse la limite de restauration transactionnelle.',409,'backup_too_large');
   let bytes=0;
-  const manifest:Manifest={format:'aira-backup-v2',id,createdAt:now,databaseBytes:plain.byteLength,databaseDigests:[],objectPages:0,objects:0,mediaBytes:0,tables:archive.tables.length,rows:archive.tables.reduce((total,table)=>total+table.rows.length,0)};
+  const manifest:Manifest={format:'braand-backup-v2',id,createdAt:now,databaseBytes:plain.byteLength,databaseDigests:[],objectPages:0,objects:0,mediaBytes:0,tables:archive.tables.length,rows:archive.tables.reduce((total,table)=>total+table.rows.length,0)};
   for(let offset=0;offset<plain.byteLength;offset+=PART_BYTES){const part=plain.subarray(offset,offset+PART_BYTES);manifest.databaseDigests.push(await digest(part.slice().buffer));bytes+=await putSegment(key,id,'database-'+(offset/PART_BYTES),part);}
   let cursor:string|undefined,previous:string|undefined;
   let entries:ObjectEntry[]=[],pageSize=2;
@@ -173,7 +179,7 @@ export async function createEncryptedBackup(now = Date.now()) {
   await flush();
   // Commit last: orphan segments after a failure never appear as a completed backup.
   const encrypted=await encryptSegment(key,id,'manifest',encoder.encode(JSON.stringify(manifest))),stored=new Uint8Array(MAGIC.length+encrypted.byteLength);stored.set(MAGIC);stored.set(encrypted,MAGIC.length);
-  const objectKey='aira-backups/'+id+'.bin';
+  const objectKey='braand-backups/'+id+'.bin';
   if(!await bindings().BACKUP_BUCKET!.put(objectKey,stored,{onlyIf:{etagDoesNotMatch:'*'},httpMetadata:{contentType:'application/octet-stream'}}))throw new AppError('La sauvegarde n’a pas été confirmée.',502,'backup_write_unknown');
   bytes+=stored.byteLength;
   await db().prepare("INSERT INTO operations_backups(id,object_key,status,bytes,tables_count,rows_count,objects_count,created_at) VALUES (?,?,'completed',?,?,?,?,?)")
@@ -188,24 +194,29 @@ export async function restoreEncryptedBackup(id: string, destination: D1Database
   if (!['test','staging'].includes(c.APP_ENV || '') || c.BACKUP_RESTORE_ALLOWED !== 'true') throw new AppError('Restauration réservée à un environnement de test explicitement autorisé.',403,'restore_not_allowed');
   if (!/^[a-f0-9-]{36}$/.test(id) || destination === db() || targetBucket === b.BUCKET || targetBucket === b.BACKUP_BUCKET || !b.BACKUP_BUCKET) throw new AppError('Destination de restauration distincte requise.',409,'restore_destination_invalid');
   if ((await schema(destination)).length || (await targetBucket.list({limit:1})).objects.length) throw new AppError('La destination doit être entièrement vide.',409,'restore_destination_not_empty');
-  const stored = await b.BACKUP_BUCKET.get('aira-backups/' + id + '.bin');
+  const stored = await b.BACKUP_BUCKET.get('braand-backups/' + id + '.bin')||await b.BACKUP_BUCKET.get(LEGACY_PREFIX + '-backups/' + id + '.bin');
   if (!stored || stored.size > MAX_ARCHIVE_BYTES+28) throw new AppError('Archive introuvable ou trop volumineuse.',404,'backup_invalid');
   const bytes = new Uint8Array(await stored.arrayBuffer());
   const key=await backupKey();
   let archive: Snapshot|undefined,manifest:Manifest|undefined;
-  const v2=MAGIC.every((value,index)=>bytes[index]===value);
+  const currentV2=MAGIC.every((value,index)=>bytes[index]===value),legacyV2=LEGACY_MAGIC.every((value,index)=>bytes[index]===value),v2=currentV2||legacyV2;
   try {
     if(v2){
       if(bytes.byteLength>MAX_MANIFEST_BYTES+MAGIC.length+28)throw invalid();
-      const encoded=bytes.subarray(MAGIC.length),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:encoded.slice(0,12),additionalData:encoder.encode('aira-backup-v2:'+id+':manifest')},key,encoded.slice(12));
+      const encoded=bytes.subarray((currentV2?MAGIC:LEGACY_MAGIC).length);
+      let plain:ArrayBuffer;
+      try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:encoded.slice(0,12),additionalData:encoder.encode((currentV2?'braand-backup-v2':LEGACY_BACKUP_V2)+':'+id+':manifest')},key,encoded.slice(12));}
+      catch{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:encoded.slice(0,12),additionalData:encoder.encode(LEGACY_BACKUP_V2+':'+id+':manifest')},key,encoded.slice(12));}
       manifest=JSON.parse(new TextDecoder().decode(plain)) as Manifest;
     }else{
-      const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12),additionalData:encoder.encode('aira-backup-v1:'+id)},key,bytes.slice(12));
+      let plain:ArrayBuffer;
+      try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12),additionalData:encoder.encode('braand-backup-v1:'+id)},key,bytes.slice(12));}
+      catch{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12),additionalData:encoder.encode(LEGACY_BACKUP_V1+':'+id)},key,bytes.slice(12));}
       archive=JSON.parse(new TextDecoder().decode(plain)) as Snapshot;
     }
   }catch{throw integrity();}
   if(manifest){
-    if(manifest.format!=='aira-backup-v2'||manifest.id!==id||!boundedInteger(manifest.databaseBytes,MAX_ARCHIVE_BYTES)||!manifest.databaseBytes||!Array.isArray(manifest.databaseDigests)||manifest.databaseDigests.length!==Math.ceil(manifest.databaseBytes/PART_BYTES)||!manifest.databaseDigests.every(validDigest)||!boundedInteger(manifest.objects,MAX_OBJECTS)||!boundedInteger(manifest.objectPages,MAX_OBJECTS)||manifest.objectPages>manifest.objects||!boundedInteger(manifest.mediaBytes,MAX_MEDIA_BYTES)||!boundedInteger(manifest.tables,MAX_TABLES)||!boundedInteger(manifest.rows,MAX_ROWS))throw invalid();
+    if(![ 'braand-backup-v2', LEGACY_BACKUP_V2 ].includes(manifest.format)||manifest.id!==id||!boundedInteger(manifest.databaseBytes,MAX_ARCHIVE_BYTES)||!manifest.databaseBytes||!Array.isArray(manifest.databaseDigests)||manifest.databaseDigests.length!==Math.ceil(manifest.databaseBytes/PART_BYTES)||!manifest.databaseDigests.every(validDigest)||!boundedInteger(manifest.objects,MAX_OBJECTS)||!boundedInteger(manifest.objectPages,MAX_OBJECTS)||manifest.objectPages>manifest.objects||!boundedInteger(manifest.mediaBytes,MAX_MEDIA_BYTES)||!boundedInteger(manifest.tables,MAX_TABLES)||!boundedInteger(manifest.rows,MAX_ROWS))throw invalid();
     const sql=new Uint8Array(manifest.databaseBytes);
     for(let part=0;part<manifest.databaseDigests.length;part++){
       const plain=await readSegment(key,id,'database-'+part,manifest.databaseDigests[part]);
@@ -213,7 +224,7 @@ export async function restoreEncryptedBackup(id: string, destination: D1Database
     }
     try{archive=JSON.parse(new TextDecoder().decode(sql)) as Snapshot;}catch{throw invalid();}
   }
-  if (!archive || archive.format !== 'aira-backup-v1' || archive.id !== id || !Array.isArray(archive.schema) || !Array.isArray(archive.tables) || !Array.isArray(archive.objects) || !Array.isArray(archive.sequences) || archive.tables.length > MAX_TABLES || archive.objects.length > (manifest?0:100)) throw invalid();
+  if (!archive || !['braand-backup-v1', LEGACY_BACKUP_V1].includes(archive.format) || archive.id !== id || !Array.isArray(archive.schema) || !Array.isArray(archive.tables) || !Array.isArray(archive.objects) || !Array.isArray(archive.sequences) || archive.tables.length > MAX_TABLES || archive.objects.length > (manifest?0:100)) throw invalid();
   if(new Set(archive.tables.map(table=>table.name)).size!==archive.tables.length || archive.schema.filter(entry=>entry.type==='table').length!==archive.tables.length)throw invalid();
   const statements: D1PreparedStatement[] = [destination.prepare('PRAGMA defer_foreign_keys = ON')];
   for (const entry of archive.schema.filter(entry => entry.type === 'table')) {

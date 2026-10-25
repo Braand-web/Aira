@@ -33,7 +33,7 @@ export function useOfficePreview(mime: string, contentUrl: string, onError: (mes
       if (!active) return;
       if (bytes.byteLength === 0 || bytes.byteLength > FILE_POLICY.maxFileBytes) throw new Error("FILE_TOO_LARGE");
       requestId = crypto.randomUUID();
-      worker = new Worker(new URL("./office-preview.worker.ts", import.meta.url), { type: "module", name: "aira-office-preview" });
+      worker = new Worker(new URL("./office-preview.worker.ts", import.meta.url), { type: "module", name: "braand-office-preview" });
       worker.onmessage = event => {
         if (!active || event.data?.id !== requestId) return;
         stop();

@@ -10,7 +10,7 @@ import {CATALOG_VERSION,PLANS,PACKS,topupPrice,quoteTax} from '../lib/billing-co
 import {demoAnalytics,DEMO_AD_ACCOUNT} from '../scripts/demo/analytics.mjs';
 
 const require=createRequire(import.meta.url);
-const playwright=process.env.AIRA_PLAYWRIGHT_MODULE;
+const playwright=process.env.BRAAND_PLAYWRIGHT_MODULE;
 const {chromium}=await import(playwright?pathToFileURL(path.resolve(playwright)).href:require.resolve('playwright'));
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const output=path.join(root,'.tmp','agent-ui-browser');
@@ -154,7 +154,7 @@ try{
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Braand'}).waitFor();
   assert.equal(await page.locator('.brand-lockup').innerText(),'Braand');
   assert.ok(await page.locator('.sidebar-brand').evaluate(element=>element.scrollWidth<=element.clientWidth),'Braand wordmark must fit beside navigation controls');
-  assert.ok(!(await page.locator('body').innerText()).includes('Aïra'),'Visible application keeps the new product name');
+  assert.ok(!(await page.locator('body').innerText()).includes('Braand'),'Visible application keeps the new product name');
   checks.push('Braand identity fits the existing sidebar without changing technical storage or session identifiers');
   await page.locator('.welcome-symbol canvas[data-bot-avatar="clover"][data-state="default"]').waitFor();
   const composer=page.getByRole('textbox',{name:'Votre demande à Braand'});
@@ -267,7 +267,7 @@ try{
   checks.push('Opening settings preserves the composer draft and current analytics route');
   const workspaceReadsBeforeSwitch=workspaceReads,mutationsBeforeSwitch={chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length};
   const reloadedWorkspace=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/workspace'&&response.request().method()==='GET');
-  await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.evaluate(()=>window.dispatchEvent(new StorageEvent('storage',{key:'aira.workspace',oldValue:'fixture',newValue:'fixture-other',storageArea:localStorage,url:location.href})))]);
+  await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.evaluate(()=>window.dispatchEvent(new StorageEvent('storage',{key:'braand.workspace',oldValue:'fixture',newValue:'fixture-other',storageArea:localStorage,url:location.href})))]);
   await reloadedWorkspace;assert.ok(workspaceReads>workspaceReadsBeforeSwitch);assert.equal(new URL(page.url()).searchParams.get('view'),'analytics');
   assert.deepEqual({chatCalls,approvals,authorizationCalls:authorizationRequests.length,revocationCalls:revocationRequests.length},mutationsBeforeSwitch);
   checks.push('A workspace change in another tab reloads its snapshot without running model, generation or connector mutations');
@@ -432,7 +432,7 @@ try{
   await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=analyzing]').waitFor();
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
-  assert.equal(await page.locator('.message.assistant .aira-avatar[data-state="working"]').count(),1);
+  assert.equal(await page.locator('.message.assistant .braand-avatar[data-state="working"]').count(),1);
   await page.locator('.message.assistant canvas[data-bot-avatar="clover"][data-state="working"]').waitFor();
   await capture({path:path.join(output,'desktop-writing.png'),fullPage:true});
   assert.equal(await page.locator('[data-slot=ai-status][data-state=done]').count(),0);
@@ -449,7 +449,7 @@ try{
   checks.push('An open settings wallet refreshes its real balance when a conversation run settles');
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();
   await page.locator('.message.assistant canvas[data-bot-avatar="clover"][data-state="default"]').first().waitFor();
-  assert.equal(await page.locator('.aira-avatar[data-state="working"]').count(),0);
+  assert.equal(await page.locator('.braand-avatar[data-state="working"]').count(),0);
   checks.push('Clover avatar works during the current response and returns to its resting state after completion');
   assert.equal(chatCalls,1);checks.push('Chat: real stream states, one request, completion only after done');
   const response=page.locator('[data-slot=streaming-response]').first();
@@ -507,7 +507,7 @@ try{
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
   await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).click();
   await page.locator('[data-slot=ai-status][data-state=cancelled]').waitFor();assert.equal(stops,1);checks.push('Stop remains distinct from failure and cancels the existing run');
-  assert.equal(await page.locator('.aira-avatar[data-state="working"]').count(),0);
+  assert.equal(await page.locator('.braand-avatar[data-state="working"]').count(),0);
   await page.getByRole('button',{name:'Rechercher',exact:true}).click();
   await page.getByRole('textbox',{name:'Rechercher dans votre espace'}).fill(proposal.title);
   await page.locator('.search-results button').filter({hasText:proposal.title}).click();

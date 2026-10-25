@@ -108,9 +108,9 @@ export async function revokeConnector(who:BillingIdentity,accountId:string){
 }
 
 export const connectorActionTools=[
- {name:'aira_connector_receipt',description:'Read the authoritative status and actual result of this user’s previously proposed connector action after approval. A pending or uncertain receipt never proves success.',input_schema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false}},
- {name:'aira_connect_toolkit',description:'Generate the user authorization link for a discovered toolkit. User must click and consent. Never create auth configs or handle tokens.',input_schema:{type:'object',properties:{toolkit:{type:'string'}},required:['toolkit'],additionalProperties:false}},
- {name:'aira_connector_action',description:'Use a discovered app tool with this user’s connected account. Only verified read-only tools run immediately. Every write/unknown operation and every paid Instant call creates an exact-arguments approval card, and does NOT execute. Read its schema first. Instant is only available for administrator-verified priced tools. Never pass credentials or account overrides.',input_schema:{type:'object',properties:{toolkit:{type:'string'},toolSlug:{type:'string'},arguments:{type:'object'},mode:{type:'string',enum:['connected','instant']}},required:['toolkit','toolSlug','arguments'],additionalProperties:false}}
+ {name:'braand_connector_receipt',description:'Read the authoritative status and actual result of this user’s previously proposed connector action after approval. A pending or uncertain receipt never proves success.',input_schema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false}},
+ {name:'braand_connect_toolkit',description:'Generate the user authorization link for a discovered toolkit. User must click and consent. Never create auth configs or handle tokens.',input_schema:{type:'object',properties:{toolkit:{type:'string'}},required:['toolkit'],additionalProperties:false}},
+ {name:'braand_connector_action',description:'Use a discovered app tool with this user’s connected account. Only verified read-only tools run immediately. Every write/unknown operation and every paid Instant call creates an exact-arguments approval card, and does NOT execute. Read its schema first. Instant is only available for administrator-verified priced tools. Never pass credentials or account overrides.',input_schema:{type:'object',properties:{toolkit:{type:'string'},toolSlug:{type:'string'},arguments:{type:'object'},mode:{type:'string',enum:['connected','instant']}},required:['toolkit','toolSlug','arguments'],additionalProperties:false}}
 ];
 export async function connectorAgentTools(who:BillingIdentity,conversationId:string){
  if(!connectorConfigured())return [];
@@ -188,13 +188,13 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
 }
 export async function executeConnectorAgentTool(who:BillingIdentity,conversationId:string,name:string,input:unknown){
  await authorize(who.tenant,who.user.userId,'write');
- if(name==='aira_connector_receipt'){
+ if(name==='braand_connector_receipt'){
   const {id}=z.object({id:z.string().uuid()}).strict().parse(input);
   const row=await query('SELECT status,result,log_id FROM connector_actions WHERE id=? AND workspace_id=? AND user_id=?',id,who.tenant,who.user.userId).first<{status:string;result:string|null;log_id:string|null}>();
   if(!row)throw new AppError('Action introuvable pour cet utilisateur.',404);
   return {id,status:row.status,result:row.result?JSON.parse(row.result):null,logId:row.log_id};
  }
- if(name==='aira_connect_toolkit')return authorizeConnector(who,z.object({toolkit:toolkitSchema}).strict().parse(input).toolkit);
+ if(name==='braand_connect_toolkit')return authorizeConnector(who,z.object({toolkit:toolkitSchema}).strict().parse(input).toolkit);
  const {sdk,session}=await connectorSession(who,conversationId);
  if(SAFE_META.has(name)){
   try{
@@ -203,7 +203,7 @@ export async function executeConnectorAgentTool(who:BillingIdentity,conversation
    await log(who,name,result.resultType,result.logId);return result;
   }catch{await log(who,name,'failed');throw providerError();}
  }
- if(name!=='aira_connector_action')throw new AppError('Cet outil ne peut pas contourner les validations Braand.',403,'connector_tool_denied');
+ if(name!=='braand_connector_action')throw new AppError('Cet outil ne peut pas contourner les validations Braand.',403,'connector_tool_denied');
  const call=callSchema.parse(input);
  if(canonicalJSON(call.arguments).length>50000)throw new AppError('Les paramètres sont trop volumineux.',400);
  const tool=await metadata(sdk,call);

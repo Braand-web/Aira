@@ -8,11 +8,11 @@ const entry = {toolkit: 'example', toolSlug: 'EXAMPLE_READ', maxCostUsd: '0.05',
 
 test('Composio identity is stable, tenant-scoped, and contains no original identity', async () => {
   const actual = await safeComposioUserId('org-a', 'user-private');
-  assert.equal(actual, 'aira_' + createHash('sha256').update('org-a\0user-private').digest('hex'));
+  assert.equal(actual, 'braand_' + createHash('sha256').update('org-a\0user-private').digest('hex'));
   assert.equal(await safeComposioUserId('org-a', 'user-private'), actual);
   assert.notEqual(await safeComposioUserId('org-b', 'user-private'), actual);
   assert.notEqual(await safeComposioUserId('org-a', 'other-user'), actual);
-  assert.match(actual, /^aira_[0-9a-f]{64}$/);
+  assert.match(actual, /^braand_[0-9a-f]{64}$/);
 });
 
 test('malformed identity cannot create delimiter or Unicode hashing collisions', async () => {

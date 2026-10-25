@@ -1,7 +1,7 @@
-// Requires an isolated dev-local server with an empty AIRA_CONFIG_FILE, never production.
+// Requires an isolated dev-local server with an empty BRAAND_CONFIG_FILE, never production.
 import assert from 'node:assert/strict';
-const base=process.env.AIRA_TEST_URL;
-if(!base||!/^http:\/\/127\.0\.0\.1:\d+$/.test(base))throw new Error('Set AIRA_TEST_URL to the isolated localhost test server.');
+const base=process.env.BRAAND_TEST_URL;
+if(!base||!/^http:\/\/127\.0\.0\.1:\d+$/.test(base))throw new Error('Set BRAAND_TEST_URL to the isolated localhost test server.');
 let cookie='';
 async function request(endpoint,method='GET',body,origin){
  return fetch(base+endpoint,{method,headers:{...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json'}:{}),...(origin?{Origin:origin}:{})},...(body?{body:JSON.stringify(body)}:{}),redirect:'manual'});

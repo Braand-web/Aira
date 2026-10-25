@@ -24,7 +24,7 @@ const localBindingConfig = {
     ? [
         {
           binding: d1,
-          database_name: "aira-local-d1",
+          database_name: "braand-local-d1",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
         },
       ]
@@ -33,7 +33,7 @@ const localBindingConfig = {
     ? [
         {
           binding: r2,
-          bucket_name: "aira-local-files",
+          bucket_name: "braand-local-files",
         },
       ]
     : [],

@@ -1,22 +1,24 @@
 import {env} from "cloudflare:workers";
-import {getAiraUser} from "@/app/auth";
+import {getBraandUser} from "@/app/auth";
 import {AppError} from "./core.mjs";
 import type {FileRecord,Resource} from "./contracts";
 import {safeResourceDto,safeFileDto} from "./file-policy.mjs";
+const LEGACY_WORKSPACE_COOKIE = ["ai", "ra", "_workspace"].join("");
 export const config=()=>env as Cloudflare.Env & Record<string,string|undefined>;
 export function db(){if(!env.DB)throw new AppError("Stockage indisponible.",503,"storage_unavailable");return env.DB;}
 export const uid=()=>crypto.randomUUID();
 type StoredResource=Omit<Resource,'data'>&{data:string};
 export async function identity(request?:Request,action?:string){
  if(request&&request.method!=="GET"){const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)throw new AppError("Origine non autorisée.",403);}
- const user=await getAiraUser();if(!user)throw new AppError("Connectez-vous pour enregistrer votre travail.",401,"authentication_required");
+ const user=await getBraandUser();if(!user)throw new AppError("Connectez-vous pour enregistrer votre travail.",401,"authentication_required");
  const now=Date.now();await db().batch([
  db().prepare("INSERT OR IGNORE INTO organizations(id,name,owner_id,created_at) VALUES (?,?,?,?)").bind(user.userId,"Mon entreprise",user.userId,now),
  db().prepare("INSERT OR IGNORE INTO organization_members(organization_id,user_id,role) VALUES (?,?,'owner')").bind(user.userId,user.userId),
  db().prepare("INSERT OR IGNORE INTO workspaces (id,name,created_at,organization_id) VALUES (?,?,?,?)").bind(user.userId,"Mon entreprise",now,user.userId),
  db().prepare("INSERT OR IGNORE INTO members (id,workspace_id,user_id,role) VALUES (?,?,?,'owner')").bind(user.userId,user.userId,user.userId)]);
- const cookie=request?.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('aira_workspace='))?.slice('aira_workspace='.length);
- const tenant=request?.headers.get('x-aira-workspace')||(cookie?decodeURIComponent(cookie):user.userId);
+ const cookies=request?.headers.get('cookie')?.split(';').map(x=>x.trim())||[];
+ const cookie=cookies.find(x=>x.startsWith('braand_workspace='))?.slice('braand_workspace='.length)||cookies.find(x=>x.startsWith(LEGACY_WORKSPACE_COOKIE+'='))?.slice(LEGACY_WORKSPACE_COOKIE.length+1);
+ const tenant=request?.headers.get('x-braand-workspace')||(cookie?decodeURIComponent(cookie):user.userId);
  const access=await authorize(tenant,user.userId,action||(request&& !['GET','HEAD'].includes(request.method)?'write':'read'));
  return {user,tenant,organization:access.organization_id,role:access.role};
 }

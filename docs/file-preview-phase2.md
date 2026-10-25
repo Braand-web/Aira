@@ -1,4 +1,4 @@
-# Aïra — rapport de la Phase 2 : aperçu universel
+# Braand — rapport de la Phase 2 : aperçu universel
 
 ## Résumé
 
@@ -48,7 +48,7 @@ Un dialogue plein écran commun ouvre les fichiers depuis le panneau de fichiers
 ## Étapes de test manuel
 
 1. Dans un environnement local isolé, définir `FILE_PREVIEW_V1=true` et une clé de signature de test d’au moins 32 caractères ; ne pas réutiliser de clé de production.
-2. Ouvrir Aïra, importer un PNG, un TXT et un PDF, puis ouvrir chaque fichier depuis le panneau latéral et le compositeur.
+2. Ouvrir Braand, importer un PNG, un TXT et un PDF, puis ouvrir chaque fichier depuis le panneau latéral et le compositeur.
 3. Vérifier le zoom image/PDF, la sélection de texte et le changement de page PDF, le téléchargement, Échap et le bouton Retour.
 4. Ajouter un fichier de la liste au compositeur ; saisir un brouillon, ouvrir puis fermer l’aperçu et confirmer que le brouillon est conservé.
 5. Après `npm run build`, exécuter `npm run test:file-preview-bundle`.

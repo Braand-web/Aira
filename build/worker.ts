@@ -19,7 +19,7 @@ async function runScheduledTasks(
 ) {
   const secret = env.SCHEDULER_SECRET;
   if (!secret || secret.length < 32) {
-    console.error("Aïra scheduled tasks are not configured.");
+    console.error("Braand scheduled tasks are not configured.");
     return;
   }
   if(cron==='* * * * *'){
@@ -29,13 +29,13 @@ async function runScheduledTasks(
     return;
   }
   const slot = Math.floor(scheduledTime / 300_000);
-  try {await cleanupAuth(env);} catch {console.error("Aïra auth housekeeping failed.");}
+  try {await cleanupAuth(env);} catch {console.error("Braand auth housekeeping failed.");}
   for (const task of scheduledTasks) {
     // A deliberately closed feature is not a failed job. Keep billing/file
     // housekeeping and monitoring running even while autonomy is disabled.
     if (task.name === "missions" && env.AUTONOMY_ENABLED !== "true") continue;
     try {
-      const request = new Request(`https://aira.internal${task.path}`, {
+      const request = new Request(`https://braand.internal${task.path}`, {
         method: "POST",
         headers: { authorization: `Bearer ${secret}` },
       });
@@ -48,7 +48,7 @@ async function runScheduledTasks(
         "scheduled_task_failed",
         task.name,
       );
-      console.error("Aïra scheduled task returned an error.", task.name, response.status);
+      console.error("Braand scheduled task returned an error.", task.name, response.status);
     } catch {
       try {
         await raiseOperationalAlert(
@@ -59,7 +59,7 @@ async function runScheduledTasks(
       } catch {
         // If storage itself is unavailable, keep only a sanitized platform log.
       }
-      console.error("Aïra scheduled task failed.", task.name);
+      console.error("Braand scheduled task failed.", task.name);
     }
   }
 }

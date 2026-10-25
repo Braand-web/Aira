@@ -7,8 +7,8 @@ import type { TooltipValueType } from "recharts"
 import { cn } from "@/lib/utils"
 
 const THEMES = {
-  light: null,
-  dark: "(prefers-color-scheme: dark)",
+  light: "",
+  dark: ".dark",
 } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
@@ -96,9 +96,9 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
-          .map(([theme, media]) => {
+          .map(([theme, prefix]) => {
             const rule = `
-[data-chart=${id}] {
+${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
@@ -109,7 +109,7 @@ ${colorConfig
   .join("\n")}
 }
 `
-            return media ? `@media ${media} {\n${rule}}\n` : rule
+            return rule
           })
           .join("\n"),
       }}

@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
-const project=path.resolve(import.meta.dirname,'..'),runtime=process.env.AIRA_TOOLCHAIN||path.join(project,'node_modules');
+const project=path.resolve(import.meta.dirname,'..'),runtime=process.env.BRAAND_TOOLCHAIN||path.join(project,'node_modules');
 const {build}=createRequire(path.join(runtime,'package.json'))('esbuild');
 const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');
 for(const file of readdirSync(path.join(project,'drizzle')).filter(name=>name.endsWith('.sql')).sort())sql.exec(readFileSync(path.join(project,'drizzle',file),'utf8'));
@@ -47,7 +47,7 @@ function makeSession(id,userId,options){
   return {resultType:executionResult,logId:'log_execution_fixture',data:executionResult==='failed'?{}:{data:[{id:'act_fixture',name:'Fictional test account'}]},error:executionResult==='failed'?'Simulated provider refusal':null,...(executionOptions?.account==='instant_account'&&actualCharge!==null?{instantCharge:{amount:actualCharge,currency:'USD',chargedBy:'composio'}}:{})};
  }};sessions.set(id,session);return session;
 }
-globalThis.__composioTest={NativeInputRequiredError,env:{DB,COMPOSIO_API_KEY:'fixture_project_key_not_a_real_secret'},headers:new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'}),makeClient(options){assert.equal(options.apiKey,'fixture_project_key_not_a_real_secret');return {
+globalThis.__composioTest={NativeInputRequiredError,env:{DB,COMPOSIO_API_KEY:'fixture_project_key_not_a_real_secret'},headers:new Headers({'x-braand-identity-id':'owner','x-braand-identity-email':'owner@test.invalid'}),makeClient(options){assert.equal(options.apiKey,'fixture_project_key_not_a_real_secret');return {
  sessions:{async create(userId,config){const id='session_fixture_'+(created.length+1);created.push({id,userId,config});return makeSession(id,userId,config);},async use(id){assert.ok(sessions.has(id),'A session must be persisted before reuse');return sessions.get(id);}},
  tools:{async getRawComposioTools({tools}){return tools.map(slug=>metadata.get(slug)).filter(Boolean);}},
  connectedAccounts:{async list({userIds}){assert.ok(userIds?.length===1,'Account listing must be scoped to one Braand user');return {items:[...accounts.values()].filter(account=>userIds.includes(account.userId))};},async revoke(id){revoked.push(id);accounts.get(id).status='REVOKED';return {};}}
@@ -60,17 +60,17 @@ await build({stdin:{contents:Object.entries(modules).map(([name,file])=>'export 
 const {connectors:c,server:s,billing:b,route}=await import(pathToFileURL(out).href),env=globalThis.__composioTest.env;
 let checks=0;const failures=[];
 async function check(name,fn){try{await fn();checks++;console.log('PASS '+name);}catch(error){failures.push({name,error});console.error('FAIL '+name+': '+error.message);}}
-const request=(method='GET',body,space='owner',origin='https://aira.test')=>new Request('https://aira.test/api/connectors/toolkits',{method,headers:{'Content-Type':'application/json','x-aira-workspace':space,...(origin?{origin}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+const request=(method='GET',body,space='owner',origin='https://braand.test')=>new Request('https://braand.test/api/connectors/toolkits',{method,headers:{'Content-Type':'application/json','x-braand-workspace':space,...(origin?{origin}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
 const context=(...segments)=>({params:Promise.resolve({path:segments})});
 const who=await s.identity(request());
 const call=(toolSlug='METAADS_CREATE_CAMPAIGN',arguments_={name:'Fictional test campaign',status:'PAUSED'})=>({toolkit:'metaads',toolSlug,arguments:arguments_});
 const countExecutions=()=>calls.filter(item=>item.kind==='execute').length;
-async function proposal(args=call()){return c.executeConnectorAgentTool(who,'chat-fixture','aira_connector_action',args);}
-async function secondUser(){globalThis.__composioTest.headers=new Headers({'x-aira-identity-id':'other','x-aira-identity-email':'other@test.invalid'});try{return await s.identity(request('GET',undefined,'other'));}finally{globalThis.__composioTest.headers=new Headers({'x-aira-identity-id':'owner','x-aira-identity-email':'owner@test.invalid'});}}
+async function proposal(args=call()){return c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_action',args);}
+async function secondUser(){globalThis.__composioTest.headers=new Headers({'x-braand-identity-id':'other','x-braand-identity-email':'other@test.invalid'});try{return await s.identity(request('GET',undefined,'other'));}finally{globalThis.__composioTest.headers=new Headers({'x-braand-identity-id':'owner','x-braand-identity-email':'owner@test.invalid'});}}
 
 await check('Sessions are tenant-scoped, persist across turns, and explicitly disable Instant, sandbox and proxy',async()=>{
  const first=await c.connectorSession(who,'chat-fixture'),again=await c.connectorSession(who,'chat-fixture');
- assert.equal(first.session.sessionId,again.session.sessionId);assert.match(first.scopeUser,/^aira_[a-f0-9]{64}$/);
+ assert.equal(first.session.sessionId,again.session.sessionId);assert.match(first.scopeUser,/^braand_[a-f0-9]{64}$/);
  const other=await secondUser(),foreign=await c.connectorSession(other,'chat-fixture');assert.notEqual(first.scopeUser,foreign.scopeUser);assert.notEqual(first.session.sessionId,foreign.session.sessionId);
  const config=created.find(item=>item.id===first.session.sessionId).config;
  assert.equal(config.instant,false);assert.deepEqual(config.sandbox,{enable:false});assert.equal(config.proxyExecute,false);
@@ -80,7 +80,7 @@ await check('Sessions are tenant-scoped, persist across turns, and explicitly di
 });
 await check('Agent receives dynamic discovery and guarded adapters, never raw writes, batch, sandbox or proxy',async()=>{
  const tools=await c.connectorAgentTools(who,'chat-fixture');
- assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','aira_connect_toolkit','aira_connector_action','aira_connector_receipt'].sort());
+ assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','braand_connect_toolkit','braand_connector_action','braand_connector_receipt'].sort());
  for(const name of ['COMPOSIO_MULTI_EXECUTE_TOOL','COMPOSIO_REMOTE_WORKBENCH','COMPOSIO_REMOTE_BASH_TOOL','COMPOSIO_PROXY_EXECUTE','METAADS_CREATE_CAMPAIGN'])await assert.rejects(()=>c.executeConnectorAgentTool(who,'chat-fixture',name,{}));
 });
 await check('SEARCH result including long skill, plan, pitfalls and schemas reaches agent intact',async()=>{
@@ -123,7 +123,7 @@ await check('Connected catalogue isolates other users and a second workspace bel
  }finally{sql.prepare('DELETE FROM connector_sessions WHERE workspace_id=?').run(space);sql.prepare('DELETE FROM workspaces WHERE id=?').run(space);}
 });
 await check('Catalogue HTTP query accepts only connected=true and validates filters before contacting the SDK',async()=>{
- const catalogueRequest=query=>new Request('https://aira.test/api/connectors/toolkits?'+query,{headers:request().headers});
+ const catalogueRequest=query=>new Request('https://braand.test/api/connectors/toolkits?'+query,{headers:request().headers});
  const response=await route.GET(catalogueRequest('connected=true&search=Meta'),context('toolkits'));
  assert.equal(response.status,200);assert.deepEqual((await response.json()).items.map(item=>item.slug),['metaads']);assert.equal(calls.at(-1).params.isConnected,true);assert.equal(calls.at(-1).params.search,'Meta');
  const before=calls.length,sessionCount=created.length;
@@ -179,14 +179,14 @@ await check('Revoked membership is checked again before a native approved call c
  assert.equal(effects.length,beforeEffects);assert.equal(countExecutions(),beforeRequests+1);
 });
 await check('Receipt returns authoritative persisted status and result without a new provider execution or cross-user disclosure',async()=>{
- const pending=await proposal(),pendingReceipt=await c.executeConnectorAgentTool(who,'chat-fixture','aira_connector_receipt',{id:pending.id});assert.deepEqual(pendingReceipt,{id:pending.id,status:'pending',result:null,logId:null});
+ const pending=await proposal(),pendingReceipt=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_receipt',{id:pending.id});assert.deepEqual(pendingReceipt,{id:pending.id,status:'pending',result:null,logId:null});
  const finished=await c.decideConnectorAction(who,pending.id,'approve'),before=countExecutions();
  // A resource projection cannot make the model invent a successful provider result.
  await s.updateResource(who.tenant,finished.id,finished.version,{data:{...finished.data,result:{tampered:true}}});
- const receipt=await c.executeConnectorAgentTool(who,'chat-fixture','aira_connector_receipt',{id:pending.id});
+ const receipt=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_receipt',{id:pending.id});
  assert.equal(receipt.status,'completed');assert.equal(receipt.logId,'log_execution_fixture');assert.equal(receipt.result.resultType,'completed');assert.deepEqual(receipt.result.data,{data:[{id:'act_fixture',name:'Fictional test account'}]});assert.equal(receipt.result.tampered,undefined);assert.equal(countExecutions(),before);
- const other=await secondUser();await assert.rejects(()=>c.executeConnectorAgentTool(other,'chat-fixture','aira_connector_receipt',{id:pending.id}));
- await assert.rejects(()=>c.executeConnectorAgentTool(who,'chat-fixture','aira_connector_receipt',{id:pending.id,arguments:{tampered:true}}));assert.equal(countExecutions(),before);
+ const other=await secondUser();await assert.rejects(()=>c.executeConnectorAgentTool(other,'chat-fixture','braand_connector_receipt',{id:pending.id}));
+ await assert.rejects(()=>c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_receipt',{id:pending.id,arguments:{tampered:true}}));assert.equal(countExecutions(),before);
 });
 await check('Competing approval and rejection preserve one authoritative decision and never execute after a rejection wins',async()=>{
  for(const decisions of [['approve','reject'],['reject','approve']]){

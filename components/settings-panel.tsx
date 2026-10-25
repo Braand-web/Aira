@@ -7,6 +7,7 @@ import {api} from "@/lib/client-api";
 import "./settings-panel.css";
 import {LEGAL_LINKS} from '@/lib/legal-links.mjs';
 import {MemoryPanel} from './memory-panel';
+import {AppearanceSettings} from '@/components/appearance-settings';
 
 export type SettingsTab = "general" | "connections" | "skills" | "credits" | "billing" | "team" | "storage" | "permissions" | "help" | "legal";
 
@@ -122,7 +123,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
 
  return <div className="settings-shell">
   <aside className="settings-sidebar">
-   <h2 id="aira-dialog-title">Paramètres</h2>
+   <h2 id="braand-dialog-title">Paramètres</h2>
    <nav ref={navigation} className="settings-navigation" aria-label="Catégories des paramètres">
     {sections.map(({id, label, icon: Icon}) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => onTabChange(id)}><Icon size={18} aria-hidden="true"/><span>{label}</span></button>)}
    </nav>
@@ -151,6 +152,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
       <h4 id="settings-preferences-title">Préférences</h4>
       <div className="settings-card"><dl className="settings-details"><div className="settings-row"><dt>Langue de l’interface</dt><dd>Français</dd></div></dl><button type="button" className="settings-row settings-row-link" onClick={() => onTabChange("help")}><span>Aide et raccourcis</span><ChevronRight size={16} aria-hidden="true"/></button></div>
      </section>
+     <AppearanceSettings/>
     </>}
     {tab === "connections" && (signedIn ? <ConnectorsPanel embedded onChange={onRefresh}/> : <div className="settings-card settings-guest"><h4>Connectez vos applications</h4><p>Connectez-vous à Braand pour accéder aux intégrations de votre espace.</p>{signIn}</div>)}
     {privateTab && !signedIn && <div className="settings-card settings-guest"><p>Connectez-vous pour accéder à la rubrique {heading.toLocaleLowerCase("fr")} de votre espace.</p>{signIn}</div>}

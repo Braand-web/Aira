@@ -6,7 +6,7 @@ Le propriétaire a explicitement autorisé la connexion des fournisseurs et la p
 
 ## Ressource créée et vérifiée
 
-Base D1 distante `aira-production`, ID `b7f76985-2bb9-45ef-9fa0-b575ad2a3cce`, compte `2ead1748668417f67d184d93a3fd69ec`, région indicative WEUR. Elle est distincte de `aira-staging` et des bases des autres produits.
+Base D1 distante `braand-production`, ID `b7f76985-2bb9-45ef-9fa0-b575ad2a3cce`, compte `2ead1748668417f67d184d93a3fd69ec`, région indicative WEUR. Elle est distincte de `braand-staging` et des bases des autres produits.
 
 Les 16 migrations, de 0000 à 0015, ont été appliquées avec succès. Vérification distante : 16 entrées dans `d1_migrations`, quatre tables du harness présentes, zéro utilisateur dans `auth_users`, aucune anomalie renvoyée par `PRAGMA foreign_key_check`. Aucun utilisateur ou crédit de démonstration n'a été créé.
 

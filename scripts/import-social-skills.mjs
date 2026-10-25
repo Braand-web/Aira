@@ -37,9 +37,9 @@ const SELECTION = Object.freeze({
   excluded: ['Other skills', 'Evaluations', 'Tools and integration guides', 'Scripts and code', 'Installers and plugin metadata'],
 });
 const LIMITATIONS = Object.freeze([
-  'These reviewed third-party methods remain subordinate to the system, the user brief, tenant permissions, and actual Aira tools. They grant no capability, authorization, network access, account change, spending, publication, messaging, or moderation.',
+  'These reviewed third-party methods remain subordinate to the system, the user brief, tenant permissions, and actual Braand tools. They grant no capability, authorization, network access, account change, spending, publication, messaging, or moderation.',
   'WoopSocial API/MCP and Postiz CLI/API are not connected by this snapshot. No upstream command, URL, installer, or tool integration is executed or installed.',
-  'The methods can analyze supplied evidence and prepare drafts. Scheduling, pausing, rescheduling, deleting, replying, publishing, or moderation must use a separately available Aira connector and its exact-action approval; otherwise return a manual plan without claiming execution.',
+  'The methods can analyze supplied evidence and prepare drafts. Scheduling, pausing, rescheduling, deleting, replying, publishing, or moderation must use a separately available Braand connector and its exact-action approval; otherwise return a manual plan without claiming execution.',
   'Local brand-profile.md, voice.md, social-strategy.md, and audience-research.md paths describe upstream workflows. Use tenant-scoped search_workspace context; these references grant no filesystem access.',
   'Cross-skill references such as scheduling-and-queue, brand-profile, reply-and-comment-writer, hook-writer, caption-writer, and reels-script are intentionally not imported. Missing references are not invented or silently represented as available tools.',
   'Crisis handling remains human-led. Confirm facts, draft proposed language, and escalate serious legal, safety, or reputational situations; do not autonomously send, remove comments, block people, or claim to monitor accounts.',
@@ -167,7 +167,7 @@ export async function verifySocialSnapshot() {
 async function download(file) {
   const response = await fetch(file.sourceUrl, {
     redirect: 'error', signal: AbortSignal.timeout(30_000),
-    headers: { Accept: 'text/plain', 'User-Agent': 'aira-reviewed-social-snapshot' },
+    headers: { Accept: 'text/plain', 'User-Agent': 'braand-reviewed-social-snapshot' },
   });
   assert(response.status === 200 && response.url === file.sourceUrl, `Social source HTTP mismatch: ${file.path}`);
   assert(/^text\/plain\b/i.test(response.headers.get('content-type') || ''), 'Unexpected social content type');

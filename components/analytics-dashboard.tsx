@@ -61,7 +61,7 @@ export default function AnalyticsDashboard({ready,connected,onConnect,onAnalyze,
  };
  const download=()=>{
   if(!report)return;const url=URL.createObjectURL(new Blob([analyticsCSV(campaigns.map(item=>item.row),report.account,report.range)],{type:'text/csv;charset=utf-8;'}));
-  const link=document.createElement('a');link.href=url;link.download='aira-campagnes-'+report.range.until+'.csv';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const link=document.createElement('a');link.href=url;link.download='braand-campagnes-'+report.range.until+'.csv';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
  const loading=!ready||accountsBusy||busy;
  return <div className={styles.dashboard}>

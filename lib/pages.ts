@@ -10,7 +10,7 @@ const publicationSchema=z.object({page:pageSchema,form:formSchema.optional()});
 type Publication={id:string;workspace_id:string;organization_id:string;resource_id:string;resource_version:number;snapshot:string;digest:string;status:string};
 export function pagesOrigin(){
  const raw=config().PAGES_ORIGIN;if(!raw)throw new AppError('L’hébergement public des pages n’est pas configuré.',503,'pages_not_configured');
- const url=new URL(raw),local=config().AIRA_DEVELOPMENT==='true'&&['127.0.0.1','localhost'].includes(url.hostname);
+ const url=new URL(raw),local=config().BRAAND_DEVELOPMENT==='true'&&['127.0.0.1','localhost'].includes(url.hostname);
  if((url.protocol!=='https:'&&!local)||url.pathname!=='/'||url.search||url.hash||url.username||url.password)throw new AppError('Origine publique des pages invalide.',503,'pages_not_configured');
  return url.origin;
 }
@@ -69,7 +69,7 @@ export async function submitPageLead(request:Request,id:string){
  const fields=z.object({name:z.string().trim().min(1).max(160),email:z.string().trim().email().max(254),message:z.string().trim().min(1).max(3000),consent:z.literal('yes')}).parse(Object.fromEntries(form));
  const secret=config().PAGE_FORM_SECRET;if(!secret||secret.length<32)throw new AppError('Protection du formulaire indisponible.',503);
  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
- const address=request.headers.get('cf-connecting-ip')||(config().AIRA_DEVELOPMENT==='true'?'local':null);if(!address)throw new AppError('Protection du formulaire indisponible.',503);
+ const address=request.headers.get('cf-connecting-ip')||(config().BRAAND_DEVELOPMENT==='true'?'local':null);if(!address)throw new AppError('Protection du formulaire indisponible.',503);
  const signed=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(p.id+':'+address)),hash=Array.from(new Uint8Array(signed),b=>b.toString(16).padStart(2,'0')).join(''),now=Date.now(),bucket=Math.floor(now/3600000);
  const count=await db().prepare('INSERT INTO page_form_limits(key,bucket,count) VALUES (?,?,1) ON CONFLICT(key,bucket) DO UPDATE SET count=count+1 WHERE count<5').bind(hash,bucket).run();if(!count.meta.changes)throw new AppError('Trop de demandes. Réessayez plus tard.',429);
  await db().batch([db().prepare('INSERT INTO page_leads VALUES (?,?,?,?,?,?,?)').bind(uid(),p.id,p.workspace_id,fields.name,fields.email,fields.message,now),db().prepare('DELETE FROM page_form_limits WHERE bucket<?').bind(bucket-48)]);

@@ -5,7 +5,7 @@ import path from "node:path";
 import {FILE_POLICY,OFFICE_MIME_TYPES} from "../lib/file-policy.mjs";
 import {createDocxPreviewFixture} from "./office-preview-fixtures.mjs";
 
-const base=process.env.AIRA_TEST_URL||"http://127.0.0.1:4199";
+const base=process.env.BRAAND_TEST_URL||"http://127.0.0.1:4199";
 if(!/^http:\/\/127\.0\.0\.1:\d+$/u.test(base))throw new Error("File-preview integration tests only run against local development.");
 let cookie="";
 async function request(path,method="GET",body,extra={}){
@@ -32,7 +32,7 @@ assert.equal(r.response.headers.get("content-type"),"text/plain");assert.equal(r
 assert.equal(r.response.headers.get("content-security-policy"),"default-src 'none'; sandbox");assert.match(r.response.headers.get("content-disposition"),/^inline;/u);
 const badTokenURL=new URL(contentURL);badTokenURL.searchParams.set("token","invalid.signature");r=await request(badTokenURL.pathname+badTokenURL.search);assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
 r=await request(contentURL.pathname.replace(fileId,"another-workspace-file")+contentURL.search);assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
-r=await request(contentURL.pathname+contentURL.search,"GET",undefined,{"x-aira-workspace":"workspace-not-owned"});assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
+r=await request(contentURL.pathname+contentURL.search,"GET",undefined,{"x-braand-workspace":"workspace-not-owned"});assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
 r=await request("/api/files?id="+fileId,"DELETE");assert.equal(r.status,200);assert.equal(r.data.deleted,true);
 r=await request(`/api/resources/${fileId}`);assert.equal(r.data.title,"Fichier supprimé");assert.equal(r.data.status,"deleted");
 r=await request(contentURL.pathname+contentURL.search);assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
@@ -48,7 +48,7 @@ const multipartBytes=Buffer.alloc(FILE_POLICY.chunkBytes+37,0x61),wholeHash=crea
 r=await request("/api/files/uploads","POST",{name:"trop-grand.txt",size:FILE_POLICY.maxFileBytes+1,mime:"text/plain",sha256:"0".repeat(64)});assert.equal(r.status,400);
 r=await request("/api/files/uploads","POST",{name:"reprise-grand-fichier.txt",size:multipartBytes.length,mime:"text/plain",sha256:wholeHash});assert.equal(r.status,201);const uploadId=r.data.upload.uploadId;
 r=await request("/api/files/uploads?uploadId="+uploadId);assert.equal(r.status,200);assert.equal(r.data.upload.uploadedParts.length,0);assert.equal(r.data.upload.size,multipartBytes.length);assert.equal(r.data.upload.storage_key,undefined);assert.equal(r.data.upload.multipart_upload_id,undefined);
-r=await request("/api/files/uploads?uploadId="+uploadId,"GET",undefined,{"x-aira-workspace":"workspace-not-owned"});assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
+r=await request("/api/files/uploads?uploadId="+uploadId,"GET",undefined,{"x-braand-workspace":"workspace-not-owned"});assert.equal(r.status,404);assert.equal(r.data.code,"file_not_found");
 const partOne=multipartBytes.subarray(0,FILE_POLICY.chunkBytes),partTwo=multipartBytes.subarray(FILE_POLICY.chunkBytes),partOneHash=createHash("sha256").update(partOne).digest("hex"),partTwoHash=createHash("sha256").update(partTwo).digest("hex");
 r=await rawRequest(`/api/files/uploads?uploadId=${uploadId}&partNumber=1`,`PUT`,partOne,{"X-Chunk-SHA256":"0".repeat(64)});assert.equal(r.status,400);assert.equal(r.data.code,"upload_checksum_mismatch");
 r=await rawRequest(`/api/files/uploads?uploadId=${uploadId}&partNumber=1`,`PUT`,partOne,{"X-Chunk-SHA256":partOneHash});assert.equal(r.status,200);assert.equal(r.data.size,FILE_POLICY.chunkBytes);
@@ -65,9 +65,9 @@ r=await request("/api/files/uploads","POST",{name:"annulation.txt",size:abortByt
 r=await request("/api/files/uploads?uploadId="+abortUploadId,"DELETE");assert.equal(r.status,200);assert.equal(r.data.aborted,true);
 r=await request("/api/files/uploads?uploadId="+abortUploadId);assert.equal(r.status,404);assert.equal(r.data.code,"upload_not_found");
 checks+=36;
-if(process.env.AIRA_TEST_SQLITE_PATH&&process.env.AIRA_TEST_SCHEDULER_SECRET){
+if(process.env.BRAAND_TEST_SQLITE_PATH&&process.env.BRAAND_TEST_SCHEDULER_SECRET){
  const workspace=await request("/api/workspace");assert.equal(workspace.status,200);
- const localDb=new DatabaseSync(path.join(process.env.AIRA_TEST_SQLITE_PATH,"aira.sqlite"));
+ const localDb=new DatabaseSync(path.join(process.env.BRAAND_TEST_SQLITE_PATH,"braand.sqlite"));
  const now=Date.now(),conversationId="retention-test-conversation";
  const staleBytes=Buffer.from("incomplete temporary upload"),staleHash=createHash("sha256").update(staleBytes).digest("hex");
  r=await request("/api/files/uploads","POST",{name:"expiration.txt",size:staleBytes.length,mime:"text/plain",sha256:staleHash});assert.equal(r.status,201);const staleUploadId=r.data.upload.uploadId,staleFileId=r.data.upload.fileId;
@@ -76,9 +76,9 @@ if(process.env.AIRA_TEST_SQLITE_PATH&&process.env.AIRA_TEST_SCHEDULER_SECRET){
  localDb.prepare("UPDATE files SET deleted_at=? WHERE id=?").run(now-31*24*60*60*1000,fileId);
  localDb.prepare("UPDATE file_upload_sessions SET expires_at=? WHERE id=?").run(now-1,staleUploadId);
  localDb.close();
- r=await request("/api/internal/billing-tick","POST",undefined,{Authorization:`Bearer ${process.env.AIRA_TEST_SCHEDULER_SECRET}`});
+ r=await request("/api/internal/billing-tick","POST",undefined,{Authorization:`Bearer ${process.env.BRAAND_TEST_SCHEDULER_SECRET}`});
  assert.equal(r.status,200);assert.ok(r.data.filesPurged>=1);assert.ok(r.data.uploadsPurged>=1);
- const after=new DatabaseSync(path.join(process.env.AIRA_TEST_SQLITE_PATH,"aira.sqlite"));
+ const after=new DatabaseSync(path.join(process.env.BRAAND_TEST_SQLITE_PATH,"braand.sqlite"));
  const file=after.prepare("SELECT storage_key FROM files WHERE id=?").get(fileId);assert.equal(file.storage_key,null);
  assert.equal(after.prepare("SELECT id FROM file_upload_sessions WHERE id=?").get(staleUploadId),undefined);assert.equal(after.prepare("SELECT id FROM files WHERE id=?").get(staleFileId),undefined);
  const message=after.prepare("SELECT content,attachments FROM messages WHERE id=?").get("retention-test-message");

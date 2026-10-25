@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 
 const project=path.resolve(import.meta.dirname,'..');
-const runtime=process.env.AIRA_TOOLCHAIN||path.join(project,'node_modules');
+const runtime=process.env.BRAAND_TOOLCHAIN||path.join(project,'node_modules');
 const {build}=createRequire(path.join(runtime,'package.json'))('esbuild');
 const sql=new DatabaseSync(':memory:');
 sql.exec('PRAGMA foreign_keys=ON');
@@ -20,7 +20,7 @@ function statement(query,args=[]){return {
  _run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};},
 };}
 const DB={prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const results=statements.map(item=>item._run());sql.exec('COMMIT');return results;}catch(error){sql.exec('ROLLBACK');throw error;}}};
-const fixture={env:{DB},headers:new Headers({'x-aira-identity-id':'skills-integration-owner','x-aira-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
+const fixture={env:{DB},headers:new Headers({'x-braand-identity-id':'skills-integration-owner','x-braand-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
 globalThis.__skillsAgentTest=fixture;
 const out=path.join(project,'.local-build','skills-agent-test.mjs');
 mkdirSync(path.dirname(out),{recursive:true});
@@ -43,7 +43,7 @@ await build({
  }}],
 });
 const {agent,server,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
-const who=await server.identity(new Request('https://aira.test/api/chat'));
+const who=await server.identity(new Request('https://braand.test/api/chat'));
 globalThis.fetch=async()=>{fixture.external.push('network');throw Error('Network forbidden in skills integration tests');};
 const emit=async(type,data)=>{fixture.events.push({type,data});};
 const signal=()=>new AbortController().signal;
@@ -54,7 +54,7 @@ function stream(blocks){return [
 ].map(event=>'event: '+event.type+'\ndata: '+JSON.stringify(event)+'\n\n').join('');}
 const text=value=>stream([{type:'text',text:value}]);
 const tool=(id,name,input)=>({type:'tool_use',id,name,input});
-const read=(id,skill='aira-pdf',extra={})=>tool(id,'read_skill',{id:skill,...extra});
+const read=(id,skill='braand-pdf',extra={})=>tool(id,'read_skill',{id:skill,...extra});
 function toolResult(request,id){
  const block=request.body.messages.flatMap(message=>Array.isArray(message.content)?message.content:[]).find(block=>block.type==='tool_result'&&block.tool_use_id===id);
  assert.ok(block,`Missing result for ${id}`);
@@ -118,12 +118,12 @@ await check('master discovers metadata, explicitly reads a method and receives i
 
 await check('delegated extraction reads the method using the same hold and shared reading allowance, without writing tools',async()=>{
  const execution=await setup(),before=mutationCount();
- fixture.responses=[stream([read('master-method'),tool('delegate','delegate_specialist',{role:'extraction',task:'Structurer les données fournies',context:'Données confirmées uniquement'})]),stream([read('specialist-method','aira-xlsx')]),text('Les champs manquants sont identifiés.'),text('La structure est prête à relire.')];
+ fixture.responses=[stream([read('master-method'),tool('delegate','delegate_specialist',{role:'extraction',task:'Structurer les données fournies',context:'Données confirmées uniquement'})]),stream([read('specialist-method','braand-xlsx')]),text('Les champs manquants sont identifiés.'),text('La structure est prête à relire.')];
  await run(execution);
  const specialistRequests=fixture.requests.filter(request=>request.role==='specialist');assert.equal(specialistRequests.length,2);
  for(const request of specialistRequests){assert.deepEqual(request.body.tools.map(item=>item.name),['search_skills','read_skill']);assert.equal(request.budget,execution.budget);}
  const loaded=parsedResult(specialistRequests[1],'specialist-method');
- assert.ok(loaded.content.includes('name: aira-xlsx'));
+ assert.ok(loaded.content.includes('name: braand-xlsx'));
  assert.equal(loaded.budget.remainingReads,SKILL_POLICY.maxReadCalls-2);
  const masterLoaded=parsedResult(fixture.requests.at(-1),'master-method');
  assert.equal(loaded.budget.remainingChars,masterLoaded.budget.remainingChars-loaded.chars);
@@ -137,17 +137,17 @@ await check('reading a method never grants a specialist media preparation or ano
  fixture.responses=[stream([read('specialist-read')]),stream([tool('forged-media','prepare_media',{title:'Interdit',rationale:'Une méthode ne donne aucun droit',task:'image',input:{},maxCredits:120})])];
  await assert.rejects(()=>specialist(execution),/Outil interdit au spécialiste/);
  assert.equal(fixture.requests.length,2);
- assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: aira-pdf'));
+ assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: braand-pdf'));
  assert.ok(fixture.requests.every(request=>request.budget===execution.budget&&!request.body.tools.some(item=>item.name==='prepare_media')));
  assert.equal(skillAudits().length,1);assertNoExternalOrMutation(before);
 });
 
 await check('autonomous planning can read methods but cannot obtain or invoke prepare_media',async()=>{
  const execution=await setup(),before=mutationCount();
- fixture.responses=[stream([read('autonomous-method','aira-media-pipeline')]),stream([tool('autonomous-media','prepare_media',{title:'Interdit',rationale:'Validation exacte requise',task:'image',input:{},maxCredits:120})]),text('La création attendra une proposition accompagnée et sa validation.')];
+ fixture.responses=[stream([read('autonomous-method','braand-media-pipeline')]),stream([tool('autonomous-media','prepare_media',{title:'Interdit',rationale:'Validation exacte requise',task:'image',input:{},maxCredits:120})]),text('La création attendra une proposition accompagnée et sa validation.')];
  await run(execution,'autonomous');
  for(const request of fixture.requests){assert.ok(request.body.tools.some(item=>item.name==='read_skill'));assert.ok(!request.body.tools.some(item=>['prepare_media','propose_media','delegate_specialist'].includes(item.name)));assert.equal(request.budget,execution.budget);}
- assert.ok(parsedResult(fixture.requests[1],'autonomous-method').content.includes('name: aira-media-pipeline'));
+ assert.ok(parsedResult(fixture.requests[1],'autonomous-method').content.includes('name: braand-media-pipeline'));
  const rejection=toolResult(fixture.requests[2],'autonomous-media');assert.equal(rejection.is_error,true);assert.match(rejection.content,/mode Autonome/);
  assert.equal(skillAudits().length,1);assertNoExternalOrMutation(before);
 });
@@ -167,7 +167,7 @@ await check('invalid references are rejected before content, audit, mutation or 
 
 await check('master and delegated specialist exhaust one read-call allowance before any mutation or external access',async()=>{
  const execution=await setup(),before=mutationCount();
- const pdf=readFileSync(path.join(project,'skills/aira/documents/aira-pdf/SKILL.md'),'utf8');
+ const pdf=readFileSync(path.join(project,'skills/braand/documents/braand-pdf/SKILL.md'),'utf8');
  assert.ok(pdf.length*SKILL_POLICY.maxReadCalls<SKILL_POLICY.maxRunChars,'Fixture must exercise calls before character exhaustion');
  const masterReads=Array.from({length:SKILL_POLICY.maxReadCalls-1},(_,index)=>read('bounded-'+index));
  fixture.responses=[stream([...masterReads,tool('bounded-delegation','delegate_specialist',{role:'extraction',task:'Dernière lecture bornée',context:'Méthodes déjà consultées'})]),stream([read('last-allowed'),read('over-limit')]),text('Je termine avec la méthode disponible.'),text('La limite de lecture est atteinte.')];

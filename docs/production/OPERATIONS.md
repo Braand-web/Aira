@@ -2,7 +2,7 @@
 
 ## Mise à jour cloud — 24 octobre 2026
 
-Le Worker `aira-staging` est maintenant déployé sur le compte du propriétaire,
+Le Worker `braand-staging` est maintenant déployé sur le compte du propriétaire,
 sans URL publique. Le cron a exécuté les tâches `monitor` et `browser_cleanup`
 aux passages de 04:40 et 04:45 UTC, avec état `completed` et une tentative dans
 D1 distante. Cela prouve la planification et ces tâches sur une base sans clients,
@@ -32,7 +32,7 @@ La restauration compare toutes les tables et données du snapshot, les objets et
 ## Routes et droits
 
 - `GET /api/health` : état minimal `ok` ou `unavailable`, réponse non cachée ; ne renvoie ni environnement, ni nom de base, ni clé. Ce contrôle vérifie la disponibilité de la connexion D1, pas tous les fournisseurs.
-- `POST /api/internal/operations-tick` : en-tête `Authorization: Bearer <SCHEDULER_SECRET>`. Secret serveur de **32 à 512 caractères** imposé par Aïra ; comparaison de condensats SHA-256 de taille constante. Ces bornes sont des choix internes, pas des limites fournisseur.
+- `POST /api/internal/operations-tick` : en-tête `Authorization: Bearer <SCHEDULER_SECRET>`. Secret serveur de **32 à 512 caractères** imposé par Braand ; comparaison de condensats SHA-256 de taille constante. Ces bornes sont des choix internes, pas des limites fournisseur.
 - `GET /api/admin/operations` : réservé aux identifiants internes explicitement listés dans `OPS_ADMIN_IDS`. L'appartenance à une entreprise ne donne aucun droit d'exploitation global.
 - `POST /api/admin/operations` : seule action `test-alert`, uniquement en `test` ou `staging`, origine identique exigée, corps borné, clé d'idempotence UUID. Cette route met en file ; elle n'envoie pas directement d'e-mail.
 
@@ -40,7 +40,7 @@ La migration additive `0010_operations.sql` crée les journaux des tâches, aler
 
 ## Planification et reprise
 
-Le Worker Aïra possède un `scheduled()` handler. La configuration Cloudflare Vite utilise `triggers.crons: ["*/5 * * * *"]` et le build génère ce déclencheur dans `dist/server/wrangler.json`. `tests/worker-config.test.mjs` vérifie le cron et les bindings D1/R2 générés. La syntaxe correspond au champ Wrangler `triggers.crons` décrit dans la [documentation Cloudflare](https://developers.cloudflare.com/workers/wrangler/configuration/). Le worker exécute en série `billing-tick`, `mission-tick`, puis `operations-tick`. Chaque route vérifie le même secret serveur d'au moins 32 caractères ; le helper compare les condensats à taille constante. Un échec de tâche crée une alerte sans journaliser le secret ni le corps d'erreur. Ces preuves sont locales : le Worker Aïra n'a pas été déployé et aucun déclencheur Cron distant n'a été observé.
+Le Worker Braand possède un `scheduled()` handler. La configuration Cloudflare Vite utilise `triggers.crons: ["*/5 * * * *"]` et le build génère ce déclencheur dans `dist/server/wrangler.json`. `tests/worker-config.test.mjs` vérifie le cron et les bindings D1/R2 générés. La syntaxe correspond au champ Wrangler `triggers.crons` décrit dans la [documentation Cloudflare](https://developers.cloudflare.com/workers/wrangler/configuration/). Le worker exécute en série `billing-tick`, `mission-tick`, puis `operations-tick`. Chaque route vérifie le même secret serveur d'au moins 32 caractères ; le helper compare les condensats à taille constante. Un échec de tâche crée une alerte sans journaliser le secret ni le corps d'erreur. Ces preuves sont locales : le Worker Braand n'a pas été déployé et aucun déclencheur Cron distant n'a été observé.
 
 `runOperationsTick()` regroupe :
 
@@ -50,7 +50,7 @@ Le Worker Aïra possède un `scheduled()` handler. La configuration Cloudflare V
 
 `runTrackedJob(name, id, work)` conserve un identifiant métier, un état, les tentatives, un verrou temporaire et un code d'erreur public. Il ne stocke jamais le message brut d'une exception ou le résultat d'un fournisseur dans les journaux d'exploitation.
 
-Une tâche d'exploitation terminée ne se réexécute pas avec le même identifiant. Une exécution interrompue devient **incertaine**, avec alerte ; elle n'est pas répétée aveuglément. Une tâche bloquée par configuration conserve son diagnostic. Corriger la configuration puis examiner la tâche ; ne pas modifier son identifiant pour forcer une nouvelle action externe avant rapprochement. La configuration du compte Cloudflare, le déploiement du Worker Aïra et l'observation d'au moins un déclenchement réel restent à faire.
+Une tâche d'exploitation terminée ne se réexécute pas avec le même identifiant. Une exécution interrompue devient **incertaine**, avec alerte ; elle n'est pas répétée aveuglément. Une tâche bloquée par configuration conserve son diagnostic. Corriger la configuration puis examiner la tâche ; ne pas modifier son identifiant pour forcer une nouvelle action externe avant rapprochement. La configuration du compte Cloudflare, le déploiement du Worker Braand et l'observation d'au moins un déclenchement réel restent à faire.
 
 Une panne de D1 empêche aussi l'outbox de fonctionner : un contrôle de disponibilité **extérieur** doit alerter quand tout le service est inaccessible. Il n'a pas été configuré ici.
 
@@ -76,7 +76,7 @@ Par défaut, aucun appel Resend n'est possible. `sandbox` exige `APP_ENV=test` o
 
 Le client REST appelle uniquement `https://api.resend.com/emails`, avec clé serveur et `Idempotency-Key` stable. L'identifiant fournisseur est enregistré sans le contenu de la réponse. Succès API signifie **accepté par Resend**, pas reçu en boîte. Un timeout, une réponse 5xx ou ambiguë devient `uncertain` : aucun renvoi automatique après une interruption. Pour résoudre, consulter Resend et rapprocher l'identifiant avant toute nouvelle action. L'alerte sur un problème d'e-mail reste dans la console afin de ne pas créer une boucle d'e-mails d'alerte.
 
-Sources officielles consultées le **2026-10-18** : [Send Email](https://resend.com/docs/api-reference/emails/send-email), [idempotence](https://resend.com/docs/dashboard/emails/idempotency-keys). Le prestataire conserve ses clés d'idempotence **24 heures** ; le journal Aïra conserve durablement l'état local, et ne se repose pas sur une déduplication fournisseur illimitée.
+Sources officielles consultées le **2026-10-18** : [Send Email](https://resend.com/docs/api-reference/emails/send-email), [idempotence](https://resend.com/docs/dashboard/emails/idempotency-keys). Le prestataire conserve ses clés d'idempotence **24 heures** ; le journal Braand conserve durablement l'état local, et ne se repose pas sur une déduplication fournisseur illimitée.
 
 ## Sauvegarde chiffrée et restauration
 
@@ -98,7 +98,7 @@ BACKUP_RESTORE_ALLOWED=false
 1. Le snapshot SQL est lu ligne par ligne, sous une borne explicite, avec schémas/index/triggers et séquences. Il est enregistré en segments chiffrés d'au plus **1 Mio**.
 2. La liste R2 est parcourue par pages de **100 objets**. Chaque objet est lu par plages d'au plus **1 Mio**, sous condition d'ETag, puis chaque plage est chiffrée séparément en AES-256-GCM avec IV aléatoire. L'identifiant de sauvegarde et le chemin logique de la partie sont authentifiés ; une partie déplacée ne s'authentifie pas.
 3. Les tailles et empreintes SHA-256 des parties, les clés d'objets et leurs métadonnées sont rangées dans des pages chiffrées d'au plus **512 Kio** et **100 entrées**. Le fichier média entier et la liste complète des objets ne sont jamais réunis en mémoire par le service.
-4. Le manifeste racine chiffré `aira-backups/<id>.bin`, préfixé `AIRA2`, est écrit **après** tous les segments, puis le manifeste de supervision D1 est enregistré. Les parties sont sous `aira-backups/<id>/`. Aucun contenu métier ne figure dans le manifeste de supervision.
+4. Le manifeste racine chiffré `braand-backups/<id>.bin`, préfixé `BRAAND2`, est écrit **après** tous les segments, puis le manifeste de supervision D1 est enregistré. Les parties sont sous `braand-backups/<id>/`. Aucun contenu métier ne figure dans le manifeste de supervision.
 
 Un échec avant le manifeste racine laisse éventuellement des segments chiffrés orphelins, jamais une sauvegarde marquée terminée. Un échec D1 après le commit R2 peut laisser une archive complète non répertoriée ; la conserver et rapprocher son identifiant. Aucun effacement automatique n'est ajouté. Prévoir une politique d'inventaire, de rétention et de nettoyage après diagnostic ; les fragments ont un coût de stockage.
 

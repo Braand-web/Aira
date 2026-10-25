@@ -9,7 +9,7 @@ import {seedDemo,DEMO_FILES} from './demo/seed.mjs';
 import {demoAnalytics,DEMO_AD_ACCOUNT} from './demo/analytics.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
-const port = Number(process.env.AIRA_DEMO_PORT || 4202);
+const port = Number(process.env.BRAAND_DEMO_PORT || 4202);
 const backendPort = port + 1;
 if (!Number.isInteger(port) || port < 1024 || port > 65533) throw Error('Invalid local demo port.');
 const origin = 'http://127.0.0.1:' + port;
@@ -25,7 +25,7 @@ const data = path.join(root, '.local-data', 'maison-naya-demo');
 const build = path.join(root, '.local-build', 'maison-naya-demo');
 await mkdir(data, {recursive:true});
 await mkdir(build, {recursive:true});
-const sql = new DatabaseSync(path.join(data, 'aira.sqlite'));
+const sql = new DatabaseSync(path.join(data, 'braand.sqlite'));
 sql.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS _local_migrations(name TEXT PRIMARY KEY)');
 for (const migration of (await readdir(path.join(root, 'drizzle'))).filter(name => name.endsWith('.sql')).sort()) {
   if (sql.prepare('SELECT name FROM _local_migrations WHERE name=?').get(migration)) continue;
@@ -50,9 +50,9 @@ await writeFile(configFile, '# Explicit empty configuration for an isolated offl
 // Never inherit provider credentials or the user's .dev.vars file.
 const env = {...process.env};
 for (const key of Object.keys(env)) {
-  if (/^(?:WORK_|RESEARCH_|TAVILY_|SOCIAL_|MEDIA_|AIRA_|APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|BILLING_|COMPOSIO_|FAL_|META_|OPENAI_|MODEL_ROUTING_|OPENROUTER_|ANTHROPIC_|SASPAY_|RESEND_|OPS_|TOKEN_ENCRYPTION_KEY$|FILE_|SCHEDULER_SECRET$|PAGE_FORM_SECRET$|LLM_PROVIDER$|FREE_DAILY_CREDITS$|PAGES_ORIGIN$|NODE_OPTIONS$)/u.test(key)) delete env[key];
+  if (/^(?:WORK_|RESEARCH_|TAVILY_|SOCIAL_|MEDIA_|BRAAND_|APP_ENV$|BROWSER_|AUTONOMY_|BACKUP_|BILLING_|COMPOSIO_|FAL_|META_|OPENAI_|MODEL_ROUTING_|OPENROUTER_|ANTHROPIC_|SASPAY_|RESEND_|OPS_|TOKEN_ENCRYPTION_KEY$|FILE_|SCHEDULER_SECRET$|PAGE_FORM_SECRET$|LLM_PROVIDER$|FREE_DAILY_CREDITS$|PAGES_ORIGIN$|NODE_OPTIONS$)/u.test(key)) delete env[key];
 }
-Object.assign(env, {APP_ENV:'development', PORT:String(backendPort), AIRA_DATA_DIR:data, AIRA_BUILD_DIR:build, AIRA_CONFIG_FILE:configFile, FILE_PREVIEW_V1:'true', FILE_URL_SIGNING_SECRET:randomBytes(32).toString('hex'), NODE_OPTIONS:'--max-old-space-size=1536 --max-semi-space-size=8'});
+Object.assign(env, {APP_ENV:'development', PORT:String(backendPort), BRAAND_DATA_DIR:data, BRAAND_BUILD_DIR:build, BRAAND_CONFIG_FILE:configFile, FILE_PREVIEW_V1:'true', FILE_URL_SIGNING_SECRET:randomBytes(32).toString('hex'), NODE_OPTIONS:'--max-old-space-size=1536 --max-semi-space-size=8'});
 const child = spawn(process.execPath, ['--import', new URL('./demo/offline.mjs', import.meta.url).href, path.join(root, 'scripts', 'dev-local.mjs')], {cwd:root, env, stdio:['ignore','pipe','pipe'], windowsHide:true});
 let childExited = false;
 child.stdout.on('data', bytes => {if (bytes.toString().includes('Braand local')) console.log('Demo data adapter ready.');});
@@ -110,7 +110,7 @@ const server = createServer(async (request, response) => {
     const upstream = await fetch(backendOrigin + url.pathname + url.search, {method:request.method, headers, body, redirect:'manual'});
     const outgoing = new Headers(upstream.headers);
     outgoing.delete('set-cookie'); outgoing.delete('content-length'); outgoing.delete('content-encoding');
-    outgoing.set('Cache-Control','no-store'); outgoing.set('X-Aira-Demonstration','fictitious-data');
+    outgoing.set('Cache-Control','no-store'); outgoing.set('X-Braand-Demonstration','fictitious-data');
     if (url.pathname === '/api/workspace' && upstream.ok) {
       const workspace = await upstream.json();
       workspace.demonstration = true;
@@ -144,7 +144,7 @@ try {
     if (childExited) throw Error('Demo adapter failed to start.');
     try {
       const signIn = await fetch(backendOrigin + '/auth/sign-in', {redirect:'manual'});
-      if (signIn.status === 302 && signIn.headers.get('set-cookie')?.startsWith('aira_local_session=')) {cookie = signIn.headers.get('set-cookie').split(';')[0]; ready = true; break;}
+      if (signIn.status === 302 && signIn.headers.get('set-cookie')?.startsWith('braand_local_session=')) {cookie = signIn.headers.get('set-cookie').split(';')[0]; ready = true; break;}
     } catch { /* Wait for the local bundle, without using live credentials. */ }
     await new Promise(resolve => setTimeout(resolve, 200));
   }

@@ -1,6 +1,6 @@
 # Tarifs, marge et dépendances — relevé du 18 octobre 2026
 
-Ce relevé est documentaire. Il ne configure aucune clé, ne lance aucune génération, ne remplace pas les contrats marchands et n'active aucune vente. Les tarifs publics ne constituent pas des factures réelles d'Aïra. Les plafonds et prix Aïra proviennent du catalogue interne `lib/billing-core.mjs`, version `2026-10-16.1` ; ce ne sont pas des quotas fournisseurs.
+Ce relevé est documentaire. Il ne configure aucune clé, ne lance aucune génération, ne remplace pas les contrats marchands et n'active aucune vente. Les tarifs publics ne constituent pas des factures réelles d'Braand. Les plafonds et prix Braand proviennent du catalogue interne `lib/billing-core.mjs`, version `2026-10-16.1` ; ce ne sont pas des quotas fournisseurs.
 
 ## Modèle conversationnel
 
@@ -14,7 +14,7 @@ La documentation n'est pas une preuve d'appel réussi avec la clé du client. Le
 
 Sources officielles consultées le **2026-10-18** : [tarifs fal](https://fal.ai/pricing), [API de tarifs](https://fal.ai/docs/platform-apis/v1/models/pricing).
 
-Exemples de tarifs publics USD, **candidats à évaluation et non modèles validés dans Aïra** : `fal-ai/nano-banana-2` **0,08/image** ; `fal-ai/nano-banana` **0,0398/image** ; `fal-ai/z-image/turbo` **0,005/mégapixel** ; `fal-ai/kling-video/v2.5-turbo/pro/image-to-video` **0,07/seconde** ; `minimax/h3-max/text-to-video` **0,05/seconde**. Les paramètres, la résolution et la durée peuvent modifier le coût final. Aucun de ces prix n'est une enveloppe universelle par requête.
+Exemples de tarifs publics USD, **candidats à évaluation et non modèles validés dans Braand** : `fal-ai/nano-banana-2` **0,08/image** ; `fal-ai/nano-banana` **0,0398/image** ; `fal-ai/z-image/turbo` **0,005/mégapixel** ; `fal-ai/kling-video/v2.5-turbo/pro/image-to-video` **0,07/seconde** ; `minimax/h3-max/text-to-video` **0,05/seconde**. Les paramètres, la résolution et la durée peuvent modifier le coût final. Aucun de ces prix n'est une enveloppe universelle par requête.
 
 L'API authentifiée `GET https://api.fal.ai/v1/models/pricing?endpoint_id=...` retourne unité, devise et tarif du compte. Elle est à relever pour chaque modèle et ensemble de paramètres réellement activé, puis à comparer aux événements de facturation. `FAL_CATALOG_JSON` reste vide tant que schéma, qualité et coût maximal ne sont pas validés. Aucun rendu réel effectué ici.
 
@@ -22,7 +22,7 @@ L'API authentifiée `GET https://api.fal.ai/v1/models/pricing?endpoint_id=...` r
 
 Sources officielles consultées le **2026-10-18** : [tarifs plateforme](https://composio.dev/pricing), [Instant](https://docs.composio.dev/docs/instant-tools).
 
-Le catalogue public distingue les appels avec sa propre application des applications OAuth gérées et des outils Instant. Pour une application propre, le niveau Hobby affiche **100 000 appels/mois**, puis le niveau Pro **0,0003 USD/appel** au-delà de l'inclus ; Pro affiche **29 USD/mois** avec crédit d'usage. Les applications gérées affichent une sous-allocation de **20 000 appels**, puis **0,0005 USD/appel**. Ce sont des règles globales du compte, pas une allocation garantie par utilisateur Aïra. La recherche par méta-outils est annoncée gratuite ; l'exécution, les options et les déclencheurs nécessitent leur imputation réelle.
+Le catalogue public distingue les appels avec sa propre application des applications OAuth gérées et des outils Instant. Pour une application propre, le niveau Hobby affiche **100 000 appels/mois**, puis le niveau Pro **0,0003 USD/appel** au-delà de l'inclus ; Pro affiche **29 USD/mois** avec crédit d'usage. Les applications gérées affichent une sous-allocation de **20 000 appels**, puis **0,0005 USD/appel**. Ce sont des règles globales du compte, pas une allocation garantie par utilisateur Braand. La recherche par méta-outils est annoncée gratuite ; l'exécution, les options et les déclencheurs nécessitent leur imputation réelle.
 
 **Instant doit rester désactivé.** Ses prix dépendent de l'outil et ses descriptions ne garantissent pas un plafond machine. Une simple bannière « 1 500+ » n'est pas un forfait gratuit. Aucune dépense Instant ni activation payante n'a eu lieu durant cet audit.
 
@@ -32,7 +32,7 @@ Sources officielles consultées le **2026-10-18** : [SasPay](https://www.saspay.
 
 La page publique SasPay mentionne le Cameroun, MTN MoMo, Orange Money, un taux « dès **1,75 %** » et carte bancaire **5 %**. Le minimum affiché ne constitue pas le coût de chaque méthode ; il ne prouve pas l'activation du compte marchand. Les frais réellement déduits, de retrait, de conversion, les taxes, les remboursements et contestations doivent être confirmés dans le contrat/compte. Les frais inconnus bloquent la preuve de marge. Le checkout ne doit pas devenir une source de taux supposés.
 
-La diffusion Meta est facturée selon le marché publicitaire et le compte de l'annonceur : aucun CPC/CPA fixe n'est inventé. Les dépenses publicitaires du client payées directement à Meta restent hors du revenu et du coût d'exécution Aïra ; les appels Composio et le travail IA pour gérer ces campagnes restent des coûts Aïra. L'accès à certaines pages d'aide Meta redirige vers la connexion : aucune affirmation de gratuité générale de la Marketing API n'est fondée sur ce relevé.
+La diffusion Meta est facturée selon le marché publicitaire et le compte de l'annonceur : aucun CPC/CPA fixe n'est inventé. Les dépenses publicitaires du client payées directement à Meta restent hors du revenu et du coût d'exécution Braand ; les appels Composio et le travail IA pour gérer ces campagnes restent des coûts Braand. L'accès à certaines pages d'aide Meta redirige vers la connexion : aucune affirmation de gratuité générale de la Marketing API n'est fondée sur ce relevé.
 
 ## Hébergement et notifications
 

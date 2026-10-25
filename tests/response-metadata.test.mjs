@@ -62,7 +62,7 @@ test("real chat handlers persist run metadata and user feedback in isolated SQLi
     return { bind(...next) { return statement(query, next); }, async first(column) { const row = sql.prepare(query).get(...args); return column ? row?.[column] ?? null : row ?? null; }, async all() { return { results: sql.prepare(query).all(...args) }; }, async run() { return this._run(); }, _run() { const result = sql.prepare(query).run(...args); return { meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid) } }; } };
   }
   const DB = { prepare: query => statement(query), async batch(statements) { sql.exec("BEGIN"); try { const result = statements.map(s => s._run()); sql.exec("COMMIT"); return result; } catch (error) { sql.exec("ROLLBACK"); throw error; } } };
-  const fixture = { env: { DB, ANTHROPIC_API_KEY: "fixture-unused-local-key" }, headers: new Headers({ "x-aira-identity-id": "owner", "x-aira-identity-email": "owner@test.invalid" }), responses: [], requests: [] };
+  const fixture = { env: { DB, ANTHROPIC_API_KEY: "fixture-unused-local-key" }, headers: new Headers({ "x-braand-identity-id": "owner", "x-braand-identity-email": "owner@test.invalid" }), responses: [], requests: [] };
   globalThis.__responseMetadataTest = fixture;
   const outfile = path.join(project, ".local-build", "response-metadata-test.mjs");
   mkdirSync(path.dirname(outfile), { recursive: true });
@@ -130,12 +130,12 @@ test("real chat handlers persist run metadata and user feedback in isolated SQLi
     sql.prepare("INSERT INTO organization_members(organization_id,user_id,role,active) VALUES ('owner','reviewer','editor',1)").run();
     sql.prepare("INSERT INTO members(id,workspace_id,user_id,role) VALUES ('reviewer-member','owner','reviewer','editor')").run();
     sql.prepare("INSERT INTO billing_subscriptions(id,organization_id,plan,cycle,start_at,end_at,status,order_id) VALUES ('feedback-business','owner','business','period',?,?,'active','feedback-order')").run(Date.now() - 1000, Date.now() + 86400000);
-    fixture.headers = new Headers({ "x-aira-identity-id": "reviewer", "x-aira-identity-email": "reviewer@test.invalid" });
-    const reviewerLoad = await route.GET(request("GET", undefined, { "x-aira-workspace": "owner" }, `?conversationId=${conversation.id}`));
+    fixture.headers = new Headers({ "x-braand-identity-id": "reviewer", "x-braand-identity-email": "reviewer@test.invalid" });
+    const reviewerLoad = await route.GET(request("GET", undefined, { "x-braand-workspace": "owner" }, `?conversationId=${conversation.id}`));
     assert.equal((await reviewerLoad.json()).messages.find(message => message.id === messageId).feedback, null);
-    assert.equal((await route.PATCH(request("PATCH", { messageId, feedback: "down" }, { "x-aira-workspace": "owner" }))).status, 200);
+    assert.equal((await route.PATCH(request("PATCH", { messageId, feedback: "down" }, { "x-braand-workspace": "owner" }))).status, 200);
     assert.equal(sql.prepare("SELECT COUNT(*) n FROM response_feedback WHERE message_id=?").get(messageId).n, 2);
-    fixture.headers = new Headers({ "x-aira-identity-id": "owner", "x-aira-identity-email": "owner@test.invalid" });
+    fixture.headers = new Headers({ "x-braand-identity-id": "owner", "x-braand-identity-email": "owner@test.invalid" });
     assert.equal((await load()).feedback, "up");
     assert.equal((await route.PATCH(request("PATCH", { messageId, feedback: null }))).status, 200);
     assert.equal((await load()).feedback, null);
@@ -155,7 +155,7 @@ test("real chat handlers persist run metadata and user feedback in isolated SQLi
     assert.throws(() => sql.prepare("INSERT INTO response_feedback(workspace_id,user_id,message_id,feedback,created_at,updated_at) VALUES ('legacy','owner',?,'up',0,0)").run(messageId), /FOREIGN KEY/u);
     fixture.headers = new Headers();
     assert.equal((await route.PATCH(request("PATCH", { messageId, feedback: "up" }))).status, 401);
-    fixture.headers = new Headers({ "x-aira-identity-id": "owner", "x-aira-identity-email": "owner@test.invalid" });
+    fixture.headers = new Headers({ "x-braand-identity-id": "owner", "x-braand-identity-email": "owner@test.invalid" });
   });
 
   await t.test("migration preserves old messages, linked status is truthful, feedback deletion cascades", async () => {

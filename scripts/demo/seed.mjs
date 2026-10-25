@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 
 const DAY = 86_400_000;
-export const DEMO_WORKSPACE_ID = "aira_local_preview";
+export const DEMO_WORKSPACE_ID = "braand_local_preview";
 export const DEMO_BRAND = "Maison Naya";
 export const DEMO_SEED_VERSION = "maison-naya-1";
 
@@ -13,17 +13,17 @@ export const DEMO_ASSETS = Object.freeze([
 export const DEMO_FILES = Object.freeze([
   {
     id: "demo-file-brand", name: "brief-marque.md", mime: "text/markdown",
-    storageKey: "aira_local_preview/demo/files/brief-marque.md",
+    storageKey: "braand_local_preview/demo/files/brief-marque.md",
     content: "# Maison Naya — brief de marque\n\nDOCUMENT FICTIF · DÉMONSTRATION BRAAND\n\n## Notre idée\nDes saveurs simples et des moments de partage : cacao, café et hibiscus. Maison Naya est une marque imaginaire utilisée pour présenter votre espace de travail.\n\n## Notre voix\nChaleureuse, concrète et accueillante. Parler des gestes, des saveurs et des petites attentions. Éviter les promesses de santé, les urgences inventées et les faux témoignages.\n\n## Notre offre\nCollection Origines : trois saveurs, trois rituels. Coffret Découverte : exemple fictif à 18 000 FCFA.\n\n## Avant toute publication réelle\nConfirmer les caractéristiques des produits, les prix, le stock, les modalités de livraison et les droits des visuels. Aucun élément de ce document ne prouve leur disponibilité.\n",
   },
   {
     id: "demo-file-calendar", name: "calendrier-editorial.csv", mime: "text/csv",
-    storageKey: "aira_local_preview/demo/files/calendrier-editorial.csv",
+    storageKey: "braand_local_preview/demo/files/calendrier-editorial.csv",
     content: "semaine;jour;canal;theme;format;statut\nDémonstration;Lundi;Instagram;Le rituel du matin;Visuel café;Brouillon fictif\nDémonstration;Mercredi;Instagram;Trois gestes pour son cacao;Carrousel;Brouillon fictif\nDémonstration;Vendredi;Facebook;Coffret Découverte;Visuel collection;Brouillon fictif\nDémonstration;Dimanche;Instagram;Quelle est votre saveur ?;Story;Brouillon fictif\nDémonstration;Mardi;Email;Bienvenue chez Maison Naya;Email de bienvenue;Aucun envoi\n",
   },
   {
     id: "demo-file-catalog", name: "catalogue-produits.txt", mime: "text/plain",
-    storageKey: "aira_local_preview/demo/files/catalogue-produits.txt",
+    storageKey: "braand_local_preview/demo/files/catalogue-produits.txt",
     content: "MAISON NAYA · CATALOGUE DE DÉMONSTRATION\n\nTous les produits, prix et références ci-dessous sont fictifs.\n\nORIGINES CACAO\nUne pause douce et généreuse. Référence de démonstration : NY-CA-01.\n\nORIGINES CAFÉ\nPour les matins tranquilles. Référence de démonstration : NY-CF-01.\n\nORIGINES HIBISCUS\nUne parenthèse fraîche à partager. Référence de démonstration : NY-HI-01.\n\nCOFFRET DÉCOUVERTE\nLes trois saveurs réunies et une carte à personnaliser. Prix illustratif : 18 000 FCFA.\n\nDisponibilités, quantités, ingrédients, conditions de conservation et livraisons : à confirmer avant tout usage commercial. Aucun achat n’est possible dans cette démonstration.\n",
   },
 ].map(file => Object.freeze({ ...file, size: Buffer.byteLength(file.content, "utf8"), sha256: createHash("sha256").update(file.content, "utf8").digest("hex") })));
@@ -31,8 +31,8 @@ export const DEMO_FILES = Object.freeze([
 /** Seed only a fresh SQLite database, or this exact marked demo database. */
 export function seedDemo(sql, { now = Date.now() } = {}) {
   if (!Number.isSafeInteger(now) || now <= 0) throw new Error("Invalid demo seed date.");
-  const markerExists = sql.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_aira_demo_seed'").get();
-  const prior = markerExists ? sql.prepare("SELECT version,created_at FROM _aira_demo_seed WHERE id='local-demo'").get() : undefined;
+  const markerExists = sql.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='_braand_demo_seed'").get();
+  const prior = markerExists ? sql.prepare("SELECT version,created_at FROM _braand_demo_seed WHERE id='local-demo'").get() : undefined;
   if (prior && prior.version !== DEMO_SEED_VERSION) throw new Error("This database belongs to another demo seed version.");
   if (!prior) {
     for (const table of ["organizations", "workspaces", "resources", "messages", "credit_lots"]) {
@@ -54,8 +54,8 @@ export function seedDemo(sql, { now = Date.now() } = {}) {
 
   sql.exec("BEGIN IMMEDIATE");
   try {
-    sql.exec("CREATE TABLE IF NOT EXISTS _aira_demo_seed (id TEXT PRIMARY KEY, version TEXT NOT NULL, created_at INTEGER NOT NULL)");
-    run("INSERT OR IGNORE INTO _aira_demo_seed VALUES ('local-demo',?,?)", DEMO_SEED_VERSION, anchor);
+    sql.exec("CREATE TABLE IF NOT EXISTS _braand_demo_seed (id TEXT PRIMARY KEY, version TEXT NOT NULL, created_at INTEGER NOT NULL)");
+    run("INSERT OR IGNORE INTO _braand_demo_seed VALUES ('local-demo',?,?)", DEMO_SEED_VERSION, anchor);
     run("INSERT OR IGNORE INTO organizations(id,name,owner_id,created_at) VALUES (?,?,?,?)", workspace, "Maison Naya · Démonstration", workspace, time(8));
     run("INSERT OR IGNORE INTO workspaces(id,name,organization_id,created_at) VALUES (?,?,?,?)", workspace, "Maison Naya", workspace, time(8));
     run("INSERT OR IGNORE INTO organization_members(organization_id,user_id,role) VALUES (?,?,'owner')", workspace, workspace);
