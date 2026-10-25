@@ -54,6 +54,13 @@ export default function PublicationsHub({ role, ready = true, demonstration = fa
     const canWrite = !demonstration && ['owner', 'admin', 'editor'].includes(role || ''), canApprove = !demonstration && ['owner', 'admin', 'approver'].includes(role || '');
     const [accounts, setAccounts] = useState<SocialAccountDTO[]>([]), [items, setItems] = useState<CalendarPost[]>([]), [assets, setAssets] = useState<Asset[]>([]), [mode, setMode] = useState<'calendar' | 'list' | 'comments'>('calendar'), [month, setMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; }), [zone, setZone] = useState(localTimezone), [accountFilter, setAccountFilter] = useState(''), [statusFilter, setStatusFilter] = useState(''), [dayFilter, setDayFilter] = useState(''), [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [before, setBefore] = useState<number | null>(null), [selected, setSelected] = useState<SocialBatchDTO | null>(null), [selection, setSelection] = useState<string[]>([]), [creating, setCreating] = useState(false), [editing, setEditing] = useState<string | null>(null), [editor, setEditor] = useState<Editor>(initialEditor), [title, setTitle] = useState(''), [ambiguous, setAmbiguous] = useState(false);
+    useEffect(() => {
+        const mobile = window.matchMedia('(max-width:700px)');
+        const sync = () => { if (mobile.matches) setMode(current => current === 'calendar' ? 'list' : current); };
+        sync();
+        mobile.addEventListener('change', sync);
+        return () => mobile.removeEventListener('change', sync);
+    }, []);
     const restoreEditor = useCallback((content: string) => { if (!content)
         return; try {
         const value = JSON.parse(content);
