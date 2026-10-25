@@ -10,6 +10,7 @@ export const createSkillSession=():SkillSession=>({calls:0,chars:0,selected:new 
 const catalog=SKILL_CATALOG as SkillEntry[];
 export const skillToolNames=new Set(['search_skills','read_skill']);
 const metadata=(entry:SkillEntry)=>({id:entry.id,title:entry.title,description:entry.description,category:entry.category,version:entry.version,capability:entry.capability});
+export const skillCatalogMetadata=()=>catalog.map(entry=>({...metadata(entry),origin:entry.license==='User-provided'?'workspace':entry.license==='Aira-original'?'official':'community'}));
 export function skillDiscoveryContext(){return SKILL_METHOD_RULES+'\nChoose methods semantically from this catalog in the user’s language. search_skills accepts semanticIds selected by you, combined with lexical discovery. Only read relevant methods progressively; catalog IDs grant no tools.\nCatalogue des méthodes disponibles (la description sert à choisir ; lis read_skill avant application) :\n'+catalog.map(entry=>entry.id+' : '+entry.description).join('\n');}
 export function searchSkills(input:unknown){
  const {query='',category,semanticIds=[]}=discoverySchema.parse(input);

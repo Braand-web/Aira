@@ -92,5 +92,37 @@ await check('simultaneous model calls cannot race the same reserved credits',asy
 await check('a validation escalation is allowed once across the shared durable budget',async()=>{
  mode='success';const b=await budget(),route={task:'conversation',escalation:{reason:'validation_failed',attempt:1}};await (await meter.meteredMessage(b,'master',body,new AbortController().signal,route)).text();assert.equal(JSON.parse(rows(b)[0].rate).model,'gpt-6-astra');const before=calls.length;await assert.rejects(()=>meter.meteredMessage(b,'master',body,new AbortController().signal,route),error=>error.code==='model_escalation_limit');assert.equal(calls.length,before);
 });
+env.MODEL_ROUTING_POLICY='adaptive';env.OPENROUTER_API_KEY=secret;
+const adaptiveCatalog=Object.fromEntries(['haiku','sonnet','opus'].map((key,index)=>[key,{enabled:true,transport:'openrouter',maxInputTokens:90000,maxOutputTokens:8192,rate:{model:`anthropic/claude-${key}-5.5`,provider:'openrouter',input:index+1,output:(index+1)*5,cacheWrite:(index+1)*1.25,cacheRead:(index+1)*.1,usdXaf:600,overheadXaf:0,fundingFeeBps:0,verifiedAt:new Date().toISOString()}}]));
+env.MODEL_ROUTING_CATALOG_JSON=JSON.stringify(adaptiveCatalog);
+await check('production adaptive catalogue selects only explicitly configured models and transport',async()=>{
+ assert.equal(router.routedModel(env).key,'haiku');assert.equal(router.routedModel(env,{task:'orchestration'}).key,'sonnet');assert.equal(router.routedModel(env,{task:'analysis'}).key,'opus');
+ assert.equal(router.routedModel(env,{task:'conversation',escalation:{reason:'validation_failed',attempt:1}}).key,'sonnet');
+ const selected=router.routedModel(env);assert.equal(selected.provider,'openrouter');assert.equal(selected.url,'https://openrouter.ai/api/v1/messages');
+ const wire=JSON.parse(client.routedRequest(selected,body,new AbortController().signal).init.body);assert.deepEqual(wire.provider,{require_parameters:true,allow_fallbacks:false});assert.equal(wire.model,adaptiveCatalog.haiku.rate.model);
+ assert.throws(()=>router.routedModel({...env,OPENROUTER_API_KEY:undefined}),error=>error.code==='model_not_configured');
+ assert.throws(()=>router.routedModel({...env,MODEL_ROUTING_CATALOG_JSON:JSON.stringify({...adaptiveCatalog,haiku:{...adaptiveCatalog.haiku,rate:{...adaptiveCatalog.haiku.rate,model:'unapproved/model'}}})}),error=>error.code==='rate_unverified');
+});
+let receiptReady=true,paidCalls=0,receiptCalls=0;
+globalThis.fetch=async(url,init={})=>{
+ const requestUrl=new URL(url);assert.equal(requestUrl.hostname,'openrouter.ai');assert.equal(new Headers(init.headers).get('authorization'),'Bearer '+secret);
+ if(requestUrl.pathname==='/api/v1/generation'){receiptCalls++;if(!receiptReady)return Response.json({error:'Receipt pending'},{status:503});return Response.json({data:{id:requestUrl.searchParams.get('id'),model:adaptiveCatalog.haiku.rate.model,total_cost:.004,provider_name:'Fixture'}});}
+ assert.equal(requestUrl.pathname,'/api/v1/messages');paidCalls++;const request=JSON.parse(init.body);assert.equal(request.model,adaptiveCatalog.haiku.rate.model);
+ return new Response(encode([{type:'message_start',message:{id:`gen-fixture-${paidCalls}`,model:request.model,content:[],usage:{input_tokens:100}}},{type:'content_block_delta',index:0,delta:{type:'text_delta',text:'OK'}},{type:'message_delta',usage:{output_tokens:2}},{type:'message_stop'}]),{headers:{'content-type':'text/event-stream'}});
+};
+await check('stream generation ID without an HTTP ID settles a real wallet debit exactly once from the receipt',async()=>{
+ const b=await budget(),before=sql.prepare('SELECT sum(balance) value FROM credit_lots WHERE organization_id=?').get(who.organization).value;
+ await (await meter.meteredMessage(b,'master',body,new AbortController().signal)).text();const row=rows(b)[0];assert.match(row.request_id,/^gen-fixture-/);assert.equal(row.status,'complete');assert.equal(row.cost_xaf,2.4);
+ sql.prepare("UPDATE runs SET status='completed' WHERE id=?").run(b.runId);await meter.finishRunBudget(b);await meter.finishRunBudget(b);
+ const hold=sql.prepare('SELECT * FROM credit_holds WHERE id=?').get(b.holdId),debits=sql.prepare("SELECT * FROM credit_ledger WHERE reference=? AND kind='consume' AND units>0").all(b.holdId);
+ assert.equal(hold.status,'settled');assert.equal(hold.actual,60);assert.equal(debits.length,1);assert.equal(debits[0].units,60);assert.equal(before-sql.prepare('SELECT sum(balance) value FROM credit_lots WHERE organization_id=?').get(who.organization).value,60);
+ assert.equal(sql.prepare('SELECT sum(reserved) value FROM credit_lots WHERE organization_id=?').get(who.organization).value>=0,true);
+});
+await check('late cost receipt settles reserved credits without issuing or charging another generation',async()=>{
+ receiptReady=false;const b=await budget();await (await meter.meteredMessage(b,'master',body,new AbortController().signal)).text();const generationCalls=paidCalls;assert.equal(rows(b)[0].status,'estimated');
+ sql.prepare("UPDATE runs SET status='completed' WHERE id=?").run(b.runId);await meter.finishRunBudget(b);assert.equal(sql.prepare('SELECT status FROM credit_holds WHERE id=?').get(b.holdId).status,'needs_reconciliation');
+ receiptReady=true;await meter.reconcileOpenRouterUsage(who.organization,100);await meter.reconcileOpenRouterUsage(who.organization,100);
+ assert.equal(paidCalls,generationCalls);assert.equal(rows(b)[0].status,'complete');assert.equal(sql.prepare('SELECT actual FROM credit_holds WHERE id=?').get(b.holdId).actual,60);assert.equal(sql.prepare("SELECT count(*) n FROM credit_ledger WHERE reference=? AND kind='consume' AND units>0").get(b.holdId).n,1);assert.ok(receiptCalls>=3);
+});
 assert.equal(JSON.stringify(sql.prepare('SELECT rate,usage FROM provider_usage').all()).includes(secret),false);
-console.log('11 model routing integration checks passed. Provider APIs simulated; no paid calls.');
+console.log('14 model routing integration checks passed. Provider APIs simulated; no paid calls.');

@@ -6,6 +6,7 @@ import ConnectorsPanel from "@/app/connectors-panel";
 import {api} from "@/lib/client-api";
 import "./settings-panel.css";
 import {LEGAL_LINKS} from '@/lib/legal-links.mjs';
+import {MemoryPanel} from './memory-panel';
 import {AppearanceSettings} from '@/components/appearance-settings';
 
 export type SettingsTab = "general" | "connections" | "skills" | "credits" | "billing" | "team" | "storage" | "permissions" | "help" | "legal";
@@ -133,6 +134,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
    <div className="settings-content" data-settings-section={tab} aria-busy={dataTab && loading}>
     {dataTab && (visibleSummaryError || visibleOrganizationError) && <div className="settings-error" role="alert"><p>{visibleSummaryError && visibleOrganizationError ? "Le portefeuille et les droits de l’organisation n’ont pas pu être chargés." : visibleSummaryError ? "Le portefeuille n’a pas pu être chargé." : "Les droits de l’organisation n’ont pas pu être chargés."}</p><button type="button" className="settings-button" disabled={loading} onClick={() => setRevision(value => value + 1)}><RefreshCw size={14} aria-hidden="true"/>Réessayer</button></div>}
     {tab === "general" && <>
+     {signedIn&&<MemoryPanel/>}
      <section className="settings-section" aria-labelledby="settings-account-title">
       <h4 id="settings-account-title">Mon compte</h4>
       {signedIn ? <dl className="settings-card settings-details"><div className="settings-row"><dt>Nom</dt><dd>{user?.name || "Indisponible"}</dd></div><div className="settings-row"><dt>Adresse e-mail</dt><dd>{user?.email || "Indisponible"}</dd></div></dl> : <div className="settings-card settings-guest"><p>Connectez-vous pour retrouver votre compte et votre espace.</p>{signIn}</div>}

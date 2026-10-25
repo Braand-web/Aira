@@ -19,20 +19,29 @@ export function deploymentConfig(environment, input, built, root=process.cwd(), 
     if (input[other+suffix] && input[prefix+suffix]===input[other+suffix]) throw new Error('Staging and production must not share resources.');
   }
   if (built.main!=='index.js' || !built.durable_objects?.bindings?.some(b=>b.class_name==='BrowserSession')) throw new Error('Build the current Braand Worker before deploying.');
+  const queue=input[prefix+'WORK_QUEUE'],deadLetter=input[prefix+'WORK_DEAD_LETTER_QUEUE'];
+  if(!!queue!==!!deadLetter || [queue,deadLetter].some(name=>name&&!/^[a-z0-9][a-z0-9-]{2,62}$/.test(name)))throw new Error('Choose both environment-specific work queues.');
+  const publicZone=input.BRAAND_PRODUCTION_PUBLIC_ZONE_ID;
+  if(publicZone&&!/^[a-f0-9]{32}$/.test(publicZone))throw new Error('A verified production public zone is required.');
   return {
     name:'braand-'+environment,account_id:account,main:path.join(root,'dist/server/index.js'),
     compatibility_date:built.compatibility_date,compatibility_flags:built.compatibility_flags,
     no_bundle:true,rules:built.rules,assets:{directory:path.join(root,'dist/client')},
-    workers_dev:false,preview_urls:false,routes:[],
+    workers_dev:false,preview_urls:false,routes:environment==='production'&&publicZone?[{pattern:'braand.fun/*',zone_id:publicZone}]:[],
     d1_databases:[{binding:'DB',database_name:'braand-'+environment,database_id:database,migrations_dir:path.join(root,'drizzle')}],
     r2_buckets:databaseOnly?[]:[{binding:'BUCKET',bucket_name:files},{binding:'BACKUP_BUCKET',bucket_name:backups}],
     durable_objects:built.durable_objects,migrations:built.migrations,browser:built.browser,
-    triggers:{crons:['*/5 * * * *']},observability:{enabled:false},
+    triggers:{crons:['*/5 * * * *','* * * * *']},observability:{enabled:false},
+    ...(queue?{queues:{producers:[{binding:'WORK_QUEUE',queue}],consumers:[{queue,max_batch_size:1,max_retries:3,dead_letter_queue:deadLetter}]}}:{}),
     // Never claim an unperformed acceptance test by enabling a readiness flag.
     vars:{APP_ENV:environment,AUTH_ENABLED:'false',BILLING_ENABLED:'false',SASPAY_ENV:'sandbox',
       RESEND_MODE:'disabled',RESEND_LIVE_APPROVED:'false',MODEL_ROUTING_ENABLED:'false',
       COMPOSIO_INSTANT_ENABLED:'false',BROWSER_ENABLED:'false',AUTONOMY_ENABLED:'false',
-      BACKUP_ENABLED:'false',FREE_DAILY_CREDITS:'0',FILE_PREVIEW_V1:'false'},
+      BACKUP_ENABLED:'false',FREE_DAILY_CREDITS:'0',FILE_PREVIEW_V1:'false',
+      WORK_ENABLED:'false',WORK_STAGING_VERIFIED:'false',WORK_SCHEDULER_VERIFIED:'false',
+      RESEARCH_ENABLED:'false',RESEARCH_STAGING_VERIFIED:'false',SOCIAL_ENABLED:'false',SOCIAL_PUBLISHING_ENABLED:'false',SOCIAL_SCHEDULING_ENABLED:'false',SOCIAL_COMMENTS_ENABLED:'false',SOCIAL_INSIGHTS_ENABLED:'false',SOCIAL_STAGING_VERIFIED:'false',
+      SOCIAL_INSTAGRAM_ENABLED:'false',SOCIAL_FACEBOOK_ENABLED:'false',SOCIAL_LINKEDIN_ENABLED:'false',SOCIAL_TIKTOK_ENABLED:'false',
+      MEDIA_PERSIST_ENABLED:'false',MEDIA_RENDER_ENABLED:'false',MEDIA_RENDER_STAGING_VERIFIED:'false'},
   };
 }
 async function main() {

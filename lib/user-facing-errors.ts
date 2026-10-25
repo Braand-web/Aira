@@ -1,6 +1,7 @@
 // Presentation only. Provider URLs, accounting, error codes and tool arguments stay unchanged.
 export function userFacingError(error: unknown, fallback = "Impossible de terminer cette opération. Réessayez."): string {
  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+ if (/modèle requis.*tarif|tarif.*(?:modèle|taux de change)|fournisseur IA requis|catalogue IA invalide/i.test(message)) return "L’assistant est temporairement indisponible. Votre brouillon est conservé. Réessayez dans quelques instants.";
  if (/saspay/i.test(message)) return /commande.*enregistr/i.test(message)
   ? "Le service de paiement est indisponible. Votre commande reste enregistrée."
   : "Le service de paiement est indisponible. Réessayez ou contactez le support Braand.";

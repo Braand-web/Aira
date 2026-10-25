@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {userFacingError} from '../lib/user-facing-errors.ts';
 
 test('Technical service errors become useful product messages without naming suppliers',()=>{
- for(const input of ['SasPay est indisponible. La commande reste enregistrée.','Ajoutez OPENROUTER_API_KEY','Ajoutez la clé Anthropic','fal.ai indisponible','Configurez COMPOSIO_API_KEY']) {
+ for(const input of ['SasPay est indisponible. La commande reste enregistrée.','Ajoutez OPENROUTER_API_KEY','Ajoutez la clé Anthropic','fal.ai indisponible','Configurez COMPOSIO_API_KEY','Le modèle requis et son tarif doivent être configurés.','Le tarif exact du modèle et le taux de change doivent être vérifiés.']) {
   const output=userFacingError(new Error(input));
   assert.doesNotMatch(output,/saspay|openrouter|anthropic|fal\.ai|composio|api_key/i);
   assert.match(output,/indisponible/);

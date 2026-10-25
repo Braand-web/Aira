@@ -63,6 +63,10 @@ export async function scanOperationalIncidents(now = Date.now()) {
     {category:'payment_event_failed',query:"SELECT id FROM billing_events WHERE status='dead' ORDER BY created_at LIMIT 50",args:[]},
     {category:'provider_cost_unknown',query:"SELECT id FROM provider_usage WHERE status IN ('unknown','pending') AND created_at<? ORDER BY created_at LIMIT 50",args:[now-3600000]},
     {category:'job_interrupted',query:"SELECT id FROM operations_jobs WHERE status='uncertain' ORDER BY updated_at LIMIT 50",args:[]},
+    {category:'job_interrupted',query:"SELECT 'work:'||id id FROM agent_work WHERE status='needs_reconciliation' ORDER BY updated_at LIMIT 50",args:[]},
+    {category:'job_interrupted',query:"SELECT 'work-outbox:'||id id FROM agent_work_outbox WHERE status='failed' ORDER BY created_at LIMIT 50",args:[]},
+    {category:'job_interrupted',query:"SELECT 'social:'||id id FROM social_posts WHERE status='uncertain' ORDER BY updated_at LIMIT 50",args:[]},
+    {category:'provider_cost_unknown',query:"SELECT 'tool:'||id id FROM agent_tool_usage WHERE status IN ('unknown','pending') AND created_at<? ORDER BY created_at LIMIT 50",args:[now-3600000]},
     {category:'email_delivery_unknown',query:"SELECT id FROM notification_outbox WHERE status IN ('uncertain','failed') ORDER BY created_at LIMIT 50",args:[]},
   ];
   let observed = 0;
