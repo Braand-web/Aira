@@ -133,10 +133,10 @@ await check('delegated extraction reads the method using the same hold and share
 
 await check('reading a method never grants a specialist media preparation or another mutation',async()=>{
  const execution=await setup(),before=mutationCount();
- fixture.responses=[stream([read('specialist-read')]),stream([tool('forged-media','prepare_media',{title:'Interdit',rationale:'Une méthode ne donne aucun droit',task:'image',input:{},maxCredits:120})])];
+ fixture.responses=[stream([read('specialist-read','braand-campaign-operations')]),stream([tool('forged-media','prepare_media',{title:'Interdit',rationale:'Une méthode ne donne aucun droit',task:'image',input:{},maxCredits:120})])];
  await assert.rejects(()=>specialist(execution),/Outil interdit au spécialiste/);
  assert.equal(fixture.requests.length,2);
- assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: braand-pdf'));
+ assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: braand-campaign-operations'));
  assert.ok(fixture.requests.every(request=>request.budget===execution.budget&&!request.body.tools.some(item=>item.name==='prepare_media')));
  assert.equal(skillAudits().length,1);assertNoExternalOrMutation(before);
 });
@@ -206,7 +206,7 @@ await check('settings metadata requires identity and workspace access and never 
  try{
   const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
   assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
-  const dto=await response.json();assert.equal(dto.skills.length,31);
+  const dto=await response.json();assert.equal(dto.skills.length,36);
   assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
   assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
   const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);
@@ -234,5 +234,5 @@ await check('an adapted meeting method produces a real private artifact with an 
  assert.equal(skillAudits().length,1);assert.deepEqual(fixture.external,[]);assert.equal(fixture.responses.length,0);
 });
 
-console.log(count+' skills agent integration checks passed; no external model, provider or mutation calls.');
+console.log(count+' skills agent integration checks passed; private artifacts verified with SQLite, no external model or provider calls.');
 sql.close();

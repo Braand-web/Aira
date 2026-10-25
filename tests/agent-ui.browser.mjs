@@ -279,7 +279,7 @@ try{
   checks.push('A workspace change in another tab reloads its snapshot without running model, generation or connector mutations');
   await page.goto(origin+'/?view=knowledge');await settings.waitFor();await settings.getByRole('heading',{name:'Compétences',exact:true}).waitFor();
   await settings.getByRole('heading',{name:'Pilotage opérationnel des publicités',exact:true}).waitFor();
-  assert.equal(await settings.locator('.skill-card').count(),31);
+  assert.equal(await settings.locator('.skill-card').count(),SKILL_CATALOG.length);
   assert.ok(skillReads>0);assert.equal(await settings.getByRole('heading',{name:'Auditer une campagne Meta',exact:true}).count(),0);
   const methodSearch=settings.getByRole('textbox',{name:'Rechercher des compétences'});
   await methodSearch.fill('Réunions');const meetingCard=settings.locator('.skill-card');assert.equal(await meetingCard.count(),1);

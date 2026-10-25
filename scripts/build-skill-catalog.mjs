@@ -59,6 +59,10 @@ for(const definition of definitions){
   entries[relative]=content.replace(legacyBrandTokens,currentBrand);
  }}
  await collect(directory);if(!entries['SKILL.md'])throw Error('Missing SKILL.md: '+definition.id);
+ if(adapted){
+  const pinned=manifest.files.filter(file=>file.path.startsWith(sourcePrefix)).map(file=>file.path.slice(sourcePrefix.length));
+  if(pinned.length!==Object.keys(entries).length||pinned.some(file=>!Object.hasOwn(entries,file)))throw Error('Missing reviewed adapted content: '+definition.id);
+ }
  if((original||adapted)&&((original&&!definition.directory.startsWith('braand/'))||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Reviewed skill directory and name must match');
  const ordered=Object.fromEntries(Object.entries(entries).sort(([a],[b])=>a.localeCompare(b,'en')));
  const provenance=manifest.source??manifest;

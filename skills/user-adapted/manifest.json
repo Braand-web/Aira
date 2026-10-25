@@ -2,9 +2,14 @@
   "version": "1.0.0",
   "source": {
     "repository": "user-provided://braand/2026-10-25",
-    "commit": "2fefa83a003768dce53bea1048e9c99ed000a92e0676034840d53bcdcf72655e"
+    "commit": "e9dce060d14905423edf1b69759cb2bc9bda5caa6ba20b5711d48a04a264aede"
   },
   "inputs": [
+    {
+      "name": "Hormozi_Growth_Agent_Skills_FR (1).zip",
+      "bytes": 52391,
+      "sha256": "0ed83c531ade776b70d8e93f3b5d595efb38e8d11893e88a100d0d57c8a310ba"
+    },
     {
       "name": "SKILL.md",
       "bytes": 52212,
@@ -124,9 +129,24 @@
       "sha256": "2f8d69867972b90ae168238de7388086c6abae4d3e145d9b85ad58fb07cc12fc"
     },
     {
+      "path": "braand-lead-magnets/SKILL.md",
+      "bytes": 2348,
+      "sha256": "cfbe53d25e356faa3a5133cbabd3baeb01a9218ba79f3b20e815aa96b512b338"
+    },
+    {
       "path": "braand-meeting-actions/SKILL.md",
       "bytes": 2130,
       "sha256": "8ec9c186b3bfc88afc492e3fc66399b015f46193d6e889d8bbc942ca4ead26b8"
+    },
+    {
+      "path": "braand-outbound-referrals/references/partners.md",
+      "bytes": 969,
+      "sha256": "c1bafd08c00d9da7f5c32c370fb949d12f2e2acc146f0248810fa71923bf0e6b"
+    },
+    {
+      "path": "braand-outbound-referrals/SKILL.md",
+      "bytes": 2188,
+      "sha256": "54c2248db510f43b8d9875733505020b9aa1ec1ed4fe257bebcde5ca33dead5e"
     },
     {
       "path": "braand-professional-writing/SKILL.md",
@@ -137,6 +157,31 @@
       "path": "braand-project-delivery/SKILL.md",
       "bytes": 2298,
       "sha256": "8e872f4f0eea87b209aa30ee44f5c09a101db8d7eef5535b451bcc53ed8b7fab"
+    },
+    {
+      "path": "braand-retention-economics/references/cohorts.md",
+      "bytes": 1854,
+      "sha256": "afa8f808b612b8094fdda57dda1aab52a8a842591a820098d8f15842f2c64f4b"
+    },
+    {
+      "path": "braand-retention-economics/SKILL.md",
+      "bytes": 2289,
+      "sha256": "a304455bd35469d75c616f5d6a1e54fb36da0c4af41379839b961b3011158e29"
+    },
+    {
+      "path": "braand-revenue-models/references/economics.md",
+      "bytes": 1649,
+      "sha256": "46ccfeea03786a33623f9ef9047ca1e2b5d5f30a417e23fcfe316cb67fbe818d"
+    },
+    {
+      "path": "braand-revenue-models/SKILL.md",
+      "bytes": 2295,
+      "sha256": "9ca5f5b5180e167c8fb701d22458dd4b6dda66014af7bc9667b10f41578283c3"
+    },
+    {
+      "path": "braand-sales-conversion/SKILL.md",
+      "bytes": 2566,
+      "sha256": "f958b161b44c1943abce3a2c857518b59bb1e4c6e8341ad5ca2e7251b423faa6"
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Adaptation des compétences fournies — 25 octobre 2026
 
-Six méthodes compactes complètent les 25 méthodes existantes. Le modèle principal
+Onze méthodes compactes complètent les 25 méthodes existantes. Le modèle principal
 et les spécialistes utilisent le même registre, sélectionnent les identifiants selon
 le sens de la demande et lisent seulement la méthode ou référence utile. Aucun
 routeur métier par mots-clés n'a été ajouté. La recherche lexicale reste un secours.
@@ -13,6 +13,26 @@ routeur métier par mots-clés n'a été ajouté. La recherche lexicale reste un
 - **Rédaction professionnelle** : fusion des méthodes 09 et 10.
 - **Réunions et actions** : méthode 12.
 
+## Ajout du pack de croissance fourni
+
+L'archive `Hormozi_Growth_Agent_Skills_FR (1).zip` contient douze méthodes, deux
+scripts d'aide et un installateur. Seul le Markdown est extrait pour inspection.
+Aucun installateur ou script fourni n'est exécuté dans Braand. Les méthodes sont
+adaptées à ses outils réels, sans présenter le pack comme officiel ou approuvé
+par la personnalité citée, et sans reprendre les livres ou supports tiers liés.
+
+Cinq méthodes apportent une capacité de travail distincte : découverte commerciale,
+ressources pour attirer des prospects, prospection/parrainage, modèles de revenus
+et fidélisation par cohortes. Trois références approfondissent les conditions
+partenaires et les calculs de séquence et de rétention, à charger si nécessaires.
+
+Les sept autres sont déjà couvertes : recherche client/documentée, construction
+d'offres, contenu social/déclinaisons, publicité/création/tests, copywriting/conversion,
+stratégie de croissance et priorisation/projets. Aucun second orchestrateur ni
+arbre de routage fixe n'est ajouté. Les durées, volumes de messages, scores et
+structures de restitution imposés par le pack deviennent des choix contextuels.
+Les modèles ne prennent pas les exemples pour des résultats de l'entreprise.
+
 Les méthodes de développement 01 à 05 sont exclues : Braand ne dispose pas d'un
 terminal général ou d'un environnement de programmation pour ses utilisateurs.
 Le fichier AGENTS.md de l'archive n'est pas adopté comme instruction du projet.
@@ -22,9 +42,10 @@ promesses de surveillance et parcours fixes des guides ne sont pas importés.
 ## Provenance et intégrité
 
 `skills/user-adapted/manifest.json` enregistre les empreintes des entrées disponibles
-et des neuf fichiers Markdown adaptés. L'archive initiale ayant été retirée du
+et des dix-sept fichiers Markdown adaptés. L'archive initiale ayant été retirée du
 dossier Downloads après inspection, sa provenance est représentée par l'empreinte
 du snapshot Markdown extrait et inspecté, et non par une empreinte ZIP supposée.
+L'empreinte de la seconde archive de croissance est conservée directement.
 Le marqueur `User-provided-adapted` décrit cette provenance ; il n'attribue pas une
 licence MIT ou Apache aux documents fournis. Les gros documents bruts, chemins
 personnels et éventuels scripts de l'archive ne sont pas distribués dans le produit.

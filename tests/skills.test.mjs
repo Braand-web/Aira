@@ -82,9 +82,29 @@ test('adapted methods support model-led multilingual selection and progressive r
 
 test('settings metadata matches the reviewed registry and rejects private prose or extra executable fields',()=>{
  const skills=reviewedSkillMetadata();const dto=reviewedSkillCatalogSchema.parse({skills});
- assert.equal(dto.skills.length,31);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,31);
+ assert.equal(dto.skills.length,36);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,36);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],content:'private instructions'}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],tools:['shell']}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],id:'../unreviewed'}]}).success,false);
  assert.ok(dto.skills.every(skill=>Object.keys(skill).sort().join(',')==='capability,category,description,id,title,version'));
+});
+
+test('growth pack adds focused sales and retention methods without a second router or assumed tools',async()=>{
+ const cases=[
+  ['braand-sales-conversion','Preparar una conversación de ventas'],
+  ['braand-lead-magnets','リード向けの役立つ資料'],
+  ['braand-outbound-referrals','Prospecter et préparer un parrainage'],
+  ['braand-revenue-models','Compare revenue and cash collection'],
+  ['braand-retention-economics','تحليل الاحتفاظ بالعملاء'],
+ ];
+ for(const [id,query]of cases){
+  const discovered=searchSkills({query,semanticIds:[id],category:'marketing'});
+  assert.equal(discovered.skills[0].id,id);assert.equal(discovered.skills[0].version,'1.0.0');
+  const session=createSkillSession(),method=await readSkill({id},session);
+  assert.equal(method.truncated,false);assert.ok(method.chars<4000);assert.equal(session.calls,1);
+  for(const reference of method.references){const detail=await readSkill({id,reference},session);assert.ok(detail.content.length>100);assert.ok(detail.budget.remainingChars>0);}
+  assert.ok(['text_draft','text_and_page_draft','provided_data_analysis'].includes(method.capability));
+ }
+ assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-growth-router'),false);
+ assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-paid-ads-lab'),false);
 });
