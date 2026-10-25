@@ -48,13 +48,15 @@ export async function POST(request:Request){try{
  }
  }catch(error){return failure(error);}}
 
-// Compatibility download route. New inline reads use the short-lived scoped URL route.
+// Compatibility download route; only validated raster images can opt into inline thumbnails.
 export async function GET(request:Request){try{
- const {tenant,organization}=await fileIdentity(request),id=new URL(request.url).searchParams.get("id");if(!id)throw new AppError("Fichier requis.");
+ const {tenant,organization}=await fileIdentity(request),params=new URL(request.url).searchParams,id=params.get("id");if(!id)throw new AppError("Fichier requis.");
  const file=await db().prepare("SELECT * FROM files WHERE id=? AND workspace_id=? AND status='ready'").bind(id,tenant).first<FileRecord>();if(!file)throw new AppError("Fichier introuvable.",404,"file_not_found");
+ const thumbnail=params.get("preview")==="thumbnail";
+ if(thumbnail&&!new Set(["image/png","image/jpeg","image/webp"]).has(file.detected_mime))throw new AppError("Aperçu indisponible pour ce fichier.",415,"file_preview_unsupported");
  if(!file.storage_key)throw new AppError("Fichier introuvable.",404,"file_not_found");const object=await env.BUCKET?.get(file.storage_key);if(!object)throw new AppError("Fichier introuvable.",404,"file_not_found");
  await db().prepare("INSERT INTO billing_meter VALUES (?,?,?,?,?)").bind(uid(),organization,"transfer",object.size,Date.now()).run();
- const headers:Record<string,string>={...contentSecurityHeaders(file.detected_mime,"attachment",file.display_name)};headers["Content-Length"]=String(object.size);
+ const headers:Record<string,string>={...contentSecurityHeaders(file.detected_mime,thumbnail?"inline":"attachment",file.display_name)};headers["Content-Length"]=String(object.size);
  return new Response(object.body,{headers});
  }catch(error){return failure(error);}}
 

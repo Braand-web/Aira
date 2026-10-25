@@ -4,7 +4,7 @@ import {reserve,settleHold,type BillingIdentity} from './billing';
 import {usageUnits} from './billing-core.mjs';
 import {modelConnection,modelRequest,estimateInputTokens,requestCostUnits,generationCost} from './llm';
 import {modelRateSchema,modelRecordSchema,modelEventSchema,type ModelRate,type ModelCostRow,type ModelUsage} from './model-protocol';
-import {routingEnabled,routedModel,type RoutingRequest,type RoutedModel} from './model-router';
+import {routingEnabled,routedModel,REASONING_MODELS,type RoutingRequest,type RoutedModel} from './model-router';
 import {routedRequest,normalizedResponses,anthropicBody} from './model-client';
 import {toolUsage} from './tool-usage';
 export type {ModelRate} from './model-protocol';
@@ -62,7 +62,7 @@ export async function meteredModel(b:RunBudget,role:string,url:string,init:Reque
  const auxiliary=await toolUsage(b.holdId);
  if(auxiliary.unresolved)throw new AppError('Un coût d’outil attend un rapprochement.',409,'tool_usage_unknown');
  await authorize(b.who.tenant,b.who.user.userId,'write');
- const connection=selected||modelConnection(),rate=selected?.rate||b.rate,body=selected?(selected.provider==='anthropic'?anthropicBody(originalBody||{},selected):{...originalBody,model:selected.model,stream:true}):modelRecordSchema.parse(JSON.parse(String(init.body))),countBody={model:body.model,messages:body.messages,system:body.system,tools:body.tools};
+ const connection=selected||modelConnection(),rate=selected?.rate||b.rate,body=selected?(selected.provider!=='openai'?anthropicBody(originalBody||{},selected):{...originalBody,model:selected.model,stream:true}):modelRecordSchema.parse(JSON.parse(String(init.body))),countBody={model:body.model,messages:body.messages,system:body.system,tools:body.tools};
  if(url!==connection.url||body.model!==connection.model||!selected&&rate.provider&&rate.provider!==connection.provider)throw new AppError('Le fournisseur ou le modèle a changé. Relancez la demande.',409);
  let inputTokens:number;
  if(connection.provider==='openrouter'||connection.provider==='openai')inputTokens=estimateInputTokens(body);
@@ -93,7 +93,7 @@ export async function meteredModel(b:RunBudget,role:string,url:string,init:Reque
  if(!claimed.meta.changes)throw new AppError('Le budget est utilisé par un autre appel ou attend un rapprochement.',409,'model_budget_busy');
  let response:Response;try{response=await fetch(url,init);}catch(error){await db().prepare("UPDATE provider_usage SET status='unknown' WHERE id=?").bind(id).run();throw error;}
  if(!response.ok||!response.body){await db().prepare("UPDATE provider_usage SET status=? WHERE id=?").bind(response.status>=500?'unknown':'rejected',id).run();return response;}
- const generationId=response.headers.get('x-generation-id');
+ let generationId=response.headers.get('x-generation-id');
  await db().prepare('UPDATE provider_usage SET request_id=? WHERE id=?').bind(connection.provider==='openrouter'?generationId:response.headers.get(connection.provider==='openai'?'x-request-id':'request-id'),id).run();
  const iterator=(selected?.provider==='openai'?normalizedResponses(response.body,selected):parseSSE(response.body))[Symbol.asyncIterator](),encoder=new TextEncoder();let usage:ModelUsage={},complete=false,finished=false;
  const save=async()=>{if(finished)return;finished=true;let cost:number|null=null,estimated=false;const streamComplete=complete;
@@ -104,7 +104,7 @@ export async function meteredModel(b:RunBudget,role:string,url:string,init:Reque
  const stream=new ReadableStream({async pull(controller){try{
   const item=await iterator.next();if(item.done){await save();controller.close();return;}
   const event=modelEventSchema.parse(item.value.data);
- if(event.type==='message_start'){const message=event.message===undefined?{}:modelRecordSchema.parse(event.message);if(selected&&message.model!==selected.model)throw new AppError('Le modèle fournisseur ne correspond pas au tarif autorisé.',409,'usage_unknown');usage={...(message.usage===undefined?{}:modelRecordSchema.parse(message.usage))};}
+ if(event.type==='message_start'){const message=event.message===undefined?{}:modelRecordSchema.parse(event.message);if(selected&&message.model!==selected.model&&!(selected.provider==='openrouter'&&message.model===REASONING_MODELS[selected.key].model))throw new AppError('Le modèle fournisseur ne correspond pas au tarif autorisé.',409,'usage_unknown');if(connection.provider==='openrouter'&&typeof message.id==='string'&&/^gen-[a-zA-Z0-9_-]+$/.test(message.id)){if(generationId&&generationId!==message.id)throw new AppError('Identifiant de consommation incohérent.',409,'usage_unknown');generationId=message.id;await db().prepare('UPDATE provider_usage SET request_id=? WHERE id=?').bind(generationId,id).run();}usage={...(message.usage===undefined?{}:modelRecordSchema.parse(message.usage))};}
   if(event.type==='message_delta'&&event.usage)usage={...usage,...modelRecordSchema.parse(event.usage)};
   if(event.type==='message_stop'){complete=true;await save();}
   controller.enqueue(encoder.encode('event: '+(item.value.event||event.type)+'\ndata: '+JSON.stringify(event)+'\n\n'));
