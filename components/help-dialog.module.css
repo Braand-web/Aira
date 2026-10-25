@@ -7,9 +7,9 @@
 .search:focus-within { outline:2px solid var(--ds-focus); outline-offset:2px; }
 .search input { min-width:0; border:0; outline:none; background:transparent; color:var(--ds-text); font:inherit; font-size:13px; }
 .search input::placeholder { color:var(--ds-muted); }
-.clear { display:grid; width:32px; height:32px; place-items:center; border:0; border-radius:8px; background:transparent; color:var(--ds-muted); cursor:pointer; }
+.clear { display:grid; width:44px; height:44px; place-items:center; border:0; border-radius:8px; background:transparent; color:var(--ds-muted); cursor:pointer; }
 .categories { display:flex; flex-wrap:wrap; gap:7px; }
-.category { min-height:36px; padding:0 11px; border:1px solid var(--ds-line); border-radius:999px; background:transparent; color:var(--ds-text); font:inherit; font-size:12px; cursor:pointer; transition:background-color 150ms ease,border-color 150ms ease; }
+.category { min-height:44px; padding:0 11px; border:1px solid var(--ds-line); border-radius:999px; background:transparent; color:var(--ds-text); font:inherit; font-size:12px; cursor:pointer; transition:background-color 150ms ease,border-color 150ms ease; }
 .category[aria-pressed="true"] { border-color:var(--ds-accent); background:color-mix(in srgb,var(--ds-accent) 16%,var(--ds-surface)); }
 .faqList { display:grid; gap:8px; }
 .faqCategory { margin:5px 0 0; color:var(--ds-muted); font-size:12px; font-weight:600; }
