@@ -34,4 +34,8 @@ for(const tab of ['help','legal']) assert.doesNotMatch(ui.settings({...base,tab,
 const form=ui.login();
 assert.match(form,/type="email"/);assert.match(form,/autocomplete="email"/i);assert.match(form,/Vérification de votre session/);
 assert.match(form,/<button[^>]+type="submit"[^>]+disabled/);
+assert.match(form,/Gardons vos idées ensemble\./);assert.match(form,/Choisir une option/);
+assert.match(form,/Se connecter/);assert.match(form,/Créer un compte/);
+assert.match(form,/Un lien à usage unique vérifie votre adresse/);
+assert.doesNotMatch(form,/Retrouvez votre espace|Recevez un lien personnel|email-sign-in/);
 console.log('PASS: unresolved sessions never masquerade as signed-out accounts; email submission waits for its secure browser binding.');

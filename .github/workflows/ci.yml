@@ -44,13 +44,17 @@ jobs:
       - name: Check desktop and mobile interactions without providers
         env:
           BRAAND_PLAYWRIGHT_MODULE: ${{ runner.temp }}/braand-browser/node_modules/playwright/index.mjs
-        run: node tests/agent-ui.browser.mjs
+        run: |
+          node tests/agent-ui.browser.mjs
+          node tests/auth-ui.browser.mjs
       - name: Keep fixture screenshots online
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-fixture-screenshots
-          path: .tmp/agent-ui-browser/*.png
+          path: |
+            .tmp/agent-ui-browser/*.png
+            .tmp/auth-ui/*.png
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
