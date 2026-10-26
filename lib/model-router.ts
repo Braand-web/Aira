@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {modelRateEnvironment} from './model-rate-refresh';
 import {AppError} from './core.mjs';
 import {modelRateSchema,type ModelRate} from './model-protocol';
 
@@ -24,6 +25,7 @@ export function routingEnabled(env:Record<string,string|undefined>){return env.M
 // One identified validation problem permits one higher-capability attempt. It is
 // not an automatic retry policy, especially after a tool has changed a service.
 export function routedModel(env:Record<string,string|undefined>,request:RoutingRequest={task:'conversation'},now=Date.now()):RoutedModel{
+ env=modelRateEnvironment(env,now);
  const decision=routingSchema.safeParse(request);if(!decision.success)throw new AppError('Contexte de routage invalide.',400,'model_route_invalid');
  const adaptive=env.MODEL_ROUTING_POLICY==='adaptive';
  const {task,escalation}=decision.data;let key=(adaptive?adaptiveTaskModel:taskModel)[task];
