@@ -4,6 +4,7 @@ import {AppError} from './core.mjs';
 import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,upgradePlan,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
 import {checkoutResponseSchema,sessionResponseSchema,sessionListSchema,transactionResponseSchema,type BillingProduct,type CreditAllocationRow,type CreditHoldRow,type CreditLotSummary,type Economics,type InvoiceDocument,type InvoiceSeller,type OrderRow,type PaymentSession,type QuoteInput,type QuoteRow,type SubscriptionRow,type TaxRule} from './billing-types';
 import type {ModelRate} from './model-protocol';
+import {WELCOME_CREDITS,WELCOME_DAYS,WELCOME_UNITS,WELCOME_TTL} from './welcome-credits.mjs';
 
 export type BillingIdentity={tenant:string;organization:string;user:{userId:string;email:string;displayName:string};role:string};
 const s=(q:string,...values:(string|number|null)[])=>db().prepare(q).bind(...values);
@@ -63,7 +64,7 @@ export function releaseReadiness(){
  const operational={payment:diagnostics.payment,environment:!!c.SASPAY_SECRET_KEY?.startsWith(c.SASPAY_ENV==='live'?'sk_live_':'sk_test_'),scheduler:!!c.SCHEDULER_SECRET&&c.SCHEDULER_SECRET.length>=32,enabled:diagnostics.enabled};
  return {enabled:mode==='hosted'?Object.values(operational).every(Boolean):checks.every(([,ok])=>ok),checks:diagnostics,operational,mode,environment:c.SASPAY_ENV==='live'?'live':'sandbox'};
 }
-export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period','annual'],annualAvailable:true,checkoutMode:hostedCheckout()?'hosted':'invoiced',tax:hostedCheckout()?{configured:false}:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
+export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period','annual'],annualAvailable:true,checkoutMode:hostedCheckout()?'hosted':'invoiced',tax:hostedCheckout()?{configured:false}:taxStatus(),readiness:releaseReadiness(),free:{credits:WELCOME_CREDITS,days:WELCOME_DAYS,enabled:Number(config().FREE_DAILY_CREDITS||0)>=WELCOME_CREDITS},renewal:'manual'};}
 export function requireBilling(who:BillingIdentity){if(!roleAllows(who.role,'billing'))throw new AppError('Seul le propriétaire peut gérer les paiements.',403);}
 export async function activeRights(org:string){const sub=await currentSubscription(org);return {subscription:sub,plan:sub?.plan||'free',limits:sub?PLANS[sub.plan as keyof typeof PLANS]:{members:1,spaces:1,projects:2,storage:256*1024**2,transfer:1024**3,concurrency:1}};}
 
@@ -84,11 +85,11 @@ export async function expireLots(org:string,now=Date.now()){
 }
 export async function claimFree(who:BillingIdentity){
  requireBilling(who);
- const daily=Math.floor(Number(config().FREE_DAILY_CREDITS||0)*100);if(daily<1000)throw new AppError('La découverte gratuite est actuellement indisponible.',409);
+ const daily=Math.floor(Number(config().FREE_DAILY_CREDITS||0)*100);if(daily<WELCOME_UNITS)throw new AppError('La découverte gratuite est actuellement indisponible.',409);
  const now=Date.now(),day=new Date(now).toISOString().slice(0,10),id='free:'+who.user.userId;
  await db().batch([
-  s('INSERT OR IGNORE INTO billing_claims SELECT ?,?,?,1000,? WHERE (SELECT COALESCE(SUM(units),0) FROM billing_claims WHERE day=?)+1000<=?',who.user.userId,who.organization,day,now,day,daily),
-  s("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT ?,organization_id,'free',user_id,1000,1000,?, ?,? FROM billing_claims WHERE user_id=? AND organization_id=?",id,now,now+7*DAY,now,who.user.userId,who.organization)
+  s('INSERT OR IGNORE INTO billing_claims SELECT ?,?,?,?,? WHERE (SELECT COALESCE(SUM(units),0) FROM billing_claims WHERE day=?)+?<=?',who.user.userId,who.organization,day,WELCOME_UNITS,now,day,WELCOME_UNITS,daily),
+  s("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT ?,organization_id,'free',user_id,units,units,created_at,created_at+?,created_at FROM billing_claims WHERE user_id=? AND organization_id=?",id,WELCOME_TTL,who.user.userId,who.organization)
  ]);
  if(!await s('SELECT id FROM credit_lots WHERE id=? AND organization_id=?',id,who.organization).first())throw new AppError('Le budget de découverte du jour est atteint.',429);
 }

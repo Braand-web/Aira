@@ -129,7 +129,7 @@ function CompactOffers({catalog,priceLabel,currentPlan,busy,owner,guest,signInHr
   {!guest&&!owner&&<p className={styles.compactNote}>Seul le propriétaire peut gérer les paiements.</p>}
   <p className={styles.compactNote}>Un seul solde pour la conversation, les créations, les outils et les missions. Les petits appels utilisent des fractions de crédit. Les crédits du forfait expirent à la fin de la période.</p>
   <p className={styles.compactNote}>Renouvellement volontaire, sans prélèvement automatique. Les dépenses publicitaires sont réglées séparément à leur plateforme.</p>
-  <div className={styles.discoveryRow}><div><h3>Découverte</h3><p>{number(catalog.free.credits)} crédits une seule fois, valables {catalog.free.days} jours.</p></div><button type="button" className="button secondary" disabled={busy||!catalog.free.enabled||!guest&&!owner} onClick={onDiscover}>{catalog.free.enabled?'Activer':'Indisponible'}</button></div>
+  <div className={styles.discoveryRow}><div><h3>Découverte</h3><p>{number(catalog.free.credits)} crédits offerts à l’inscription, une seule fois, valables {catalog.free.days} jours.</p></div><button type="button" className="button secondary" disabled={busy||!guest&&(!catalog.free.enabled||!owner)} onClick={onDiscover}>{guest?'Créer mon compte':catalog.free.enabled?'Activer':'Offerts à l’inscription'}</button></div>
   {onTeam&&<button type="button" className={'button secondary '+styles.teamLink} onClick={onTeam}>Gérer mon équipe<ArrowUpRight size={15}/></button>}
  </div>;
 }

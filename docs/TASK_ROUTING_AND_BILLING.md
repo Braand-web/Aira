@@ -15,7 +15,9 @@ The prices are catalogue bases: the validated tax rule determines the final tota
 
 No new annual sales. Existing annual allocations and prices, historical purchases,
 refunds and prorated upgrades retain their original contract. Discovery remains
-the existing gated, one-time 10-credit offer valid for seven days, not a daily gift.
+an automatic, one-time 15-credit grant at verified signup, valid for seven days.
+The grant commits with the account and personal workspace. Reconnecting cannot
+replenish it or extend its expiration; historical grants retain their terms.
 Top-ups do not extend a subscription's rights. Advertising spend is separate.
 
 One organization wallet pays for chat, specialist calls, media and browser use.

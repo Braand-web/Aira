@@ -1,7 +1,7 @@
 // Real SQLite + Web Crypto. Only the email provider is simulated.
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
-import {readFileSync,mkdirSync} from 'node:fs';
+import {readFileSync,readdirSync,mkdirSync} from 'node:fs';
 import {build} from 'esbuild';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
@@ -17,9 +17,10 @@ await build({entryPoints:['build/worker.ts'],outfile:workerFile,bundle:true,plat
 }}]});
 const worker=(await import(pathToFileURL(workerFile))).default;
 const sql=new DatabaseSync(':memory:');
-sql.exec(readFileSync('drizzle/0014_independent_auth.sql','utf8'));
+sql.exec('PRAGMA foreign_keys=ON');
+for(const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync('drizzle/'+file,'utf8'));
 function statement(query,args=[]){return {bind(...values){return statement(query,values);},async first(){return sql.prepare(query).get(...args)||null;},async run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};}};}
-const env={DB:{prepare:query=>statement(query),batch:async statements=>Promise.all(statements.map(s=>s.run()))},APP_ENV:'test',APP_ORIGIN:'https://braand.test',AUTH_ENABLED:'true',AUTH_HASH_SECRET:'offline-auth-fixture-'.repeat(3),RESEND_MODE:'sandbox',RESEND_FROM:'sender@braand.test',RESEND_TEST_RECIPIENT:'owner@braand.test',RESEND_API_KEY:'offline-email-key'};
+const env={DB:{prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const results=[];for(const s of statements)results.push(await s.run());sql.exec('COMMIT');return results;}catch(error){sql.exec('ROLLBACK');throw error;}}},APP_ENV:'test',APP_ORIGIN:'https://braand.test',AUTH_ENABLED:'true',AUTH_HASH_SECRET:'offline-auth-fixture-'.repeat(3),RESEND_MODE:'sandbox',RESEND_FROM:'sender@braand.test',RESEND_TEST_RECIPIENT:'owner@braand.test',RESEND_API_KEY:'offline-email-key'};
 const now=Date.now();
 let checks=0;
 const check=async(name,fn)=>{await fn();console.log('PASS '+name);checks++;};
@@ -45,6 +46,23 @@ try {
  await check('an existing session skips the sign-in form, preserves its cookies and uses only a safe return path',async()=>{for(const [destination,expected] of [['/?settings=billing','/?settings=billing'],['https://evil.test/','/'],['/auth/sign-in','/'],['/?auth=sign-in&return_to=%2F','/']]){const r=await auth.handleAuth(req('/auth/sign-in?return_to='+encodeURIComponent(destination),null,sessionCookie),env,now);assert.equal(r.status,303);assert.equal(r.headers.get('location'),expected);assert.equal(r.headers.getSetCookie().length,0);assert.equal(await r.text(),'');}assert.equal(mails.length,1);});
  await check('an authenticated dialog returns the safe destination without resetting login cookies',async()=>{const r=await auth.handleAuth(req('/auth/form?return_to=%2F%3Fsettings%3Dbilling',null,sessionCookie),env,now);assert.deepEqual(await r.json(),{authenticated:true,returnTo:'/?settings=billing'});assert.equal(r.headers.getSetCookie().length,0);});
  await check('reopening the dialog after an email keeps the same link valid',async()=>{const r=await auth.handleAuth(req('/auth/form',null,loginCookie),env,now);assert.equal((await r.json()).browser,browser);});
+ await check('verified signup automatically grants exactly 15 credits for seven days with personal ownership',async()=>{
+  const user=sql.prepare('SELECT id FROM auth_users').get(),lot=sql.prepare("SELECT * FROM credit_lots WHERE id=?").get('free:'+user.id);
+  assert.equal(lot.organization_id,user.id);assert.equal(lot.source_id,user.id);assert.equal(lot.granted,1500);assert.equal(lot.balance,1500);assert.equal(lot.starts_at,now);assert.equal(lot.expires_at,now+7*86400000);
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_claims').get().n,1);
+  assert.equal(sql.prepare('SELECT role FROM organization_members WHERE organization_id=? AND user_id=?').get(user.id,user.id).role,'owner');
+  assert.equal(sql.prepare('SELECT organization_id FROM workspaces WHERE id=?').get(user.id).organization_id,user.id);
+ });
+ await check('reconnecting after consumption or expiration cannot replenish or extend the welcome grant',async()=>{
+  const before=sql.prepare('SELECT * FROM credit_lots').get();sql.prepare('UPDATE credit_lots SET balance=0 WHERE id=?').run(before.id);
+  const later=now+8*86400000;
+  await auth.handleAuth(req('/auth/request',{email:'owner@braand.test',browser},loginCookie),env,later);
+  const nextLink=new URL(mails.at(-1).text.match(/https:\/\/[^\s]+/)[0]);
+  assert.equal((await auth.handleAuth(req('/auth/verify',Object.fromEntries(nextLink.searchParams),loginCookie),env,later)).status,303);
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n,1);
+  assert.deepEqual({...sql.prepare('SELECT * FROM credit_lots').get()},{...before,balance:0});
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_claims').get().n,1);
+ });
  await check('private session overrides spoofed headers and preserves a stable user',async()=>{const user=await auth.sessionIdentity(new Headers({cookie:sessionCookie}),env,now);assert.equal(user.email,'owner@braand.test');const r=await auth.authenticatedRequest(req('/',null,sessionCookie,{'x-braand-identity-id':'victim','oai-authenticated-user-email':'victim@braand.test'}),env);assert.equal(r.headers.get('x-braand-identity-id'),user.userId);assert.equal(r.headers.get('oai-authenticated-user-email'),null);});
  await check('legacy authenticated sessions remain usable during cookie migration',async()=>{const token=sessionCookie.slice(sessionCookie.indexOf('=')+1),legacyName='__Host-'+['ai','ra'].join('')+'_session',legacyCookie=legacyName+'='+token;const user=await auth.sessionIdentity(new Headers({cookie:legacyCookie}),env,now);assert.equal(user.email,'owner@braand.test');const request=await auth.authenticatedRequest(req('/',null,legacyCookie),env);assert.equal(request.headers.get('x-braand-identity-id'),user.userId);});
  await check('production Worker authenticates before routing and strips every supplied identity',async()=>{const extra={'x-braand-identity-id':'victim','x-braand-identity-email':'victim@braand.test','oai-authenticated-user-id':'victim'};let response=await worker.fetch(req('/api/workspace',null,'',extra),env,{});assert.deepEqual(await response.json(),{id:null,email:null,legacy:null});response=await worker.fetch(req('/api/workspace',null,sessionCookie,extra),env,{});assert.deepEqual(await response.json(),{id:sql.prepare('SELECT id FROM auth_users').get().id,email:'owner@braand.test',legacy:null});response=await worker.fetch(req('/api/workspace',null,sessionCookie,extra),{...env,DB:{prepare(){throw new Error('private-db-details');}}},{});assert.equal(response.status,503);assert.doesNotMatch(await response.text(),/private-db-details|victim/);});
@@ -52,6 +70,33 @@ try {
  await check('logout requires confirmation POST and revokes the server-side session',async()=>{assert.equal((await auth.handleAuth(req('/auth/sign-out',null,sessionCookie),env,now)).status,200);assert.ok(await auth.sessionIdentity(new Headers({cookie:sessionCookie}),env,now));assert.equal((await auth.handleAuth(req('/auth/sign-out',{confirm:'yes'},sessionCookie,{origin:'https://evil.test'}),env,now)).status,400);assert.equal((await auth.handleAuth(req('/auth/sign-out',{confirm:'yes'},sessionCookie),env,now)).status,303);assert.equal(await auth.sessionIdentity(new Headers({cookie:sessionCookie}),env,now),null);});
  await check('open redirects and host-header poisoning are blocked',async()=>{for(const value of ['//evil.test','https://evil.test','/\\evil.test','/auth/verify'])assert.equal(auth.safeAuthReturn(value),'/');const poisoned=new Request('https://evil.test/auth/sign-in');assert.equal((await auth.handleAuth(poisoned,env,now)).status,403);});
  await check('failed email invalidates the link and never leaks provider errors',async()=>{fail=true;const r=await auth.handleAuth(req('/auth/request',{email:'owner@braand.test',browser},loginCookie),env,now+60001);assert.equal(r.status,503);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_challenges').get().n,0);assert.doesNotMatch(await r.text(),/provider-secret/);});
- await check('expired auth metadata is removed, verified accounts are retained',async()=>{await auth.cleanupAuth(env,now+604800001);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_rate_limits').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n,1);});
+ await check('expired auth metadata is removed, verified accounts are retained',async()=>{await auth.cleanupAuth(env,now+9*86400000);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_rate_limits').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n,1);});
+ const register=async(email,at)=>{
+  env.RESEND_TEST_RECIPIENT=email;
+  const start=await auth.handleAuth(req('/auth/form'),env,at),cookie=start.headers.get('set-cookie').split(';')[0],nonce=cookie.split('=')[1];
+  await auth.handleAuth(req('/auth/request',{email,browser:nonce},cookie),env,at);
+  const sent=new URL(mails.at(-1).text.match(/https:\/\/[^\s]+/)[0]);
+  return auth.handleAuth(req('/auth/verify',Object.fromEntries(sent.searchParams),cookie),env,at);
+ };
+ await check('every new verified user receives a separate grant even when manual discovery is disabled',async()=>{
+  fail=false;env.FREE_DAILY_CREDITS='0';
+  for(const [index,email] of ['second@braand.test','third@braand.test'].entries()){
+   const at=now+(10+index)*86400000;
+   assert.equal((await register(email,at)).status,303);
+   const user=sql.prepare('SELECT id FROM auth_users WHERE email=?').get(email),lots=sql.prepare('SELECT * FROM credit_lots WHERE source_id=?').all(user.id);
+   assert.equal(lots.length,1);assert.equal(lots[0].balance,1500);assert.equal(lots[0].expires_at,at+7*86400000);
+  }
+ });
+ await check('a failed wallet insertion rolls back account creation and can be retried with a new link',async()=>{
+  const before=sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n;
+  sql.exec("CREATE TRIGGER fixture_fail_welcome BEFORE INSERT ON credit_lots BEGIN SELECT RAISE(ABORT,'fixture storage failure'); END");
+  await assert.rejects(()=>register('retry@braand.test',now+12*86400000));
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n,before);
+  assert.equal(sql.prepare("SELECT COUNT(*) n FROM billing_claims WHERE user_id NOT IN (SELECT id FROM auth_users)").get().n,0);
+  sql.exec('DROP TRIGGER fixture_fail_welcome');
+  assert.equal((await register('retry@braand.test',now+12*86400000+60001)).status,303);
+  const user=sql.prepare('SELECT id FROM auth_users WHERE email=?').get('retry@braand.test');
+  assert.equal(sql.prepare('SELECT balance FROM credit_lots WHERE source_id=?').get(user.id).balance,1500);
+ });
 } finally {globalThis.fetch=originalFetch;sql.close();}
 console.log(`${checks} independent authentication checks passed; zero real emails or payments.`);

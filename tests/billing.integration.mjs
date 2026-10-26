@@ -22,7 +22,25 @@ const request=(method='GET',body,space='owner')=>new Request('https://braand.tes
 const who=await s.identity(request());
 await check('Launch gates default closed, free quota defaults zero',async()=>{assert.equal(b.releaseReadiness().enabled,false);await assert.rejects(()=>b.claimFree(who));});
 await check('Anonymous catalogue is public; private summary requires identity',async()=>{const old=globalThis.__billingTest.headers;globalThis.__billingTest.headers=new Headers();assert.equal((await route.GET(request(),{params:Promise.resolve({path:['catalog']})})).status,200);assert.equal((await route.GET(request(),{params:Promise.resolve({path:['summary']})})).status,401);globalThis.__billingTest.headers=old;});
-await check('Free allocation is one-time and globally capped',async()=>{env.FREE_DAILY_CREDITS='10';await b.claimFree(who);await b.claimFree(who);assert.equal((await b.summary('owner')).wallet.available,10);assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_claims').get().n,1);});
+await check('Free allocation grants 15 once, keeps its seven-day expiry and enforces the manual daily cap',async()=>{
+ env.FREE_DAILY_CREDITS='15';assert.deepEqual(b.catalog().free,{credits:15,days:7,enabled:true});
+ const person={...who,organization:'newcomer',user:{...who.user,userId:'newcomer'}};
+ await Promise.all([b.claimFree(person),b.claimFree(person)]);
+ const lot=sql.prepare("SELECT * FROM credit_lots WHERE id='free:newcomer'").get();
+ assert.equal((await b.summary('newcomer')).wallet.available,15);assert.equal(lot.expires_at-lot.starts_at,7*86400000);
+ await assert.rejects(()=>b.claimFree({...person,organization:'other',user:{...person.user,userId:'other'}}));
+ await b.expireLots('newcomer',lot.expires_at);await b.claimFree(person);
+ assert.equal(sql.prepare("SELECT balance FROM credit_lots WHERE id='free:newcomer'").get().balance,0);
+ assert.equal(sql.prepare("SELECT expires_at FROM credit_lots WHERE id='free:newcomer'").get().expires_at,lot.expires_at);
+ assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_claims').get().n,1);
+});
+await check('Historical ten-credit grants retain their original amount and deadline',async()=>{
+ const issued=Date.now()-86400000;
+ sql.prepare('INSERT INTO billing_claims VALUES (?,?,?,?,?)').run('owner','owner',new Date(issued).toISOString().slice(0,10),1000,issued);
+ await b.claimFree(who);await b.claimFree(who);
+ const lot=sql.prepare("SELECT * FROM credit_lots WHERE id='free:owner'").get();
+ assert.equal(lot.granted,1000);assert.equal(lot.expires_at,issued+7*86400000);assert.equal((await b.summary('owner')).wallet.available,10);
+});
 await check('Reservations reject concurrent overspend and duplicate reference is idempotent',async()=>{const h=await b.reserve(who,'reservation-test',800);assert.equal((await b.reserve(who,'reservation-test',800)).id,h.id);await assert.rejects(()=>b.reserve(who,'overspend',300));await b.settleHold(h.id,500);await b.settleHold(h.id,900);assert.equal((await b.summary('owner')).wallet.available,5);});
 const economics={taxBps:0,feeBps:500,feeFixed:100,unitCost:4,monthlyServiceCost:300,riskBps:100};
 const taxRule={mode:'exclusive',rateBps:0,jurisdiction:'fixture:CM-test-rule',version:'fixture-tax-v1',validatedAt:'2026-10-22'};
