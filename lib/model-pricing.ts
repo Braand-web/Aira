@@ -1,4 +1,5 @@
 import {env} from 'cloudflare:workers';
+import {modelRateEnvironment} from './model-rate-refresh';
 import {z} from 'zod';
 import {AppError} from './core.mjs';
 import {modelRateSchema,type ModelRate} from './model-protocol';
@@ -14,7 +15,8 @@ type Quote=z.infer<typeof quoteSchema>;
 let memory:{policy:string;quote:Quote;loadedAt:number;retryAfter?:number}|undefined;
 let pending:{policy:string;work:Promise<void>}|undefined;
 function settings(){return env as Cloudflare.Env&Record<string,string|undefined>;}
-function policy(){const raw=settings().MODEL_PRICING_REFRESH_JSON;if(!raw)return null;try{return {raw,value:policySchema.parse(JSON.parse(raw))};}catch{throw new AppError('La politique de vérification des coûts est invalide.',503,'rate_unverified');}}
+// Prefer the production refresh snapshot when present; do not fetch or apply two competing quotes.
+function policy(){if(modelRateEnvironment(settings())!==settings())return null;const raw=settings().MODEL_PRICING_REFRESH_JSON;if(!raw)return null;try{return {raw,value:policySchema.parse(JSON.parse(raw))};}catch{throw new AppError('La politique de vérification des coûts est invalide.',503,'rate_unverified');}}
 function failure(){return new AppError('La vérification des coûts est temporairement indisponible. Votre demande est conservée.',503,'rate_unverified');}
 // BEAC publishes a dated buy/sell pair. An undated number elsewhere in the page
 // is never accepted; weekends/holidays retain the last published business date.
