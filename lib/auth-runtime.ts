@@ -1,4 +1,5 @@
 // Independent passwordless authentication. No trusted identity headers from clients.
+import {WELCOME_UNITS, WELCOME_TTL} from './welcome-credits.mjs';
 type AuthEnv = Pick<Cloudflare.Env, 'DB' | 'APP_ENV' | 'APP_ORIGIN' | 'AUTH_ENABLED' | 'AUTH_HASH_SECRET' | 'RESEND_MODE' | 'RESEND_API_KEY' | 'RESEND_FROM' | 'RESEND_TEST_RECIPIENT' | 'RESEND_LIVE_APPROVED'>;
 type Challenge = {id: string; email: string; browser_hash: string; return_to: string};
 export type BraandIdentity = {userId: string; email: string; displayName: string; fullName: null};
@@ -136,7 +137,17 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     const challenge = await env.DB!.prepare('DELETE FROM auth_challenges WHERE id=? AND token_hash=? AND browser_hash=? AND expires_at>? RETURNING id,email,browser_hash,return_to').bind(id,tokenHash,browserHash,now).first<Challenge>();
     if (!challenge) return denied();
     const userId = crypto.randomUUID();
-    await env.DB!.prepare('INSERT INTO auth_users(id,email,verified_at,created_at) VALUES (?,?,?,?) ON CONFLICT(email) DO NOTHING').bind(userId,challenge.email,now,now).run();
+    // Account, personal workspace and welcome grant commit together. Every SELECT
+    // is bound to the candidate ID: an existing email cannot receive another grant.
+    await env.DB!.batch([
+      env.DB!.prepare('INSERT INTO auth_users(id,email,verified_at,created_at) VALUES (?,?,?,?) ON CONFLICT(email) DO NOTHING').bind(userId,challenge.email,now,now),
+      env.DB!.prepare("INSERT OR IGNORE INTO organizations(id,name,owner_id,created_at) SELECT id,'Mon entreprise',id,created_at FROM auth_users WHERE id=?").bind(userId),
+      env.DB!.prepare("INSERT OR IGNORE INTO organization_members(organization_id,user_id,role) SELECT id,id,'owner' FROM auth_users WHERE id=?").bind(userId),
+      env.DB!.prepare("INSERT OR IGNORE INTO workspaces(id,name,created_at,organization_id) SELECT id,'Mon entreprise',created_at,id FROM auth_users WHERE id=?").bind(userId),
+      env.DB!.prepare("INSERT OR IGNORE INTO members(id,workspace_id,user_id,role) SELECT id,id,id,'owner' FROM auth_users WHERE id=?").bind(userId),
+      env.DB!.prepare('INSERT OR IGNORE INTO billing_claims(user_id,organization_id,day,units,created_at) SELECT id,id,?,?,created_at FROM auth_users WHERE id=?').bind(new Date(now).toISOString().slice(0,10),WELCOME_UNITS,userId),
+      env.DB!.prepare("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT 'free:'||user_id,organization_id,'free',user_id,units,units,created_at,created_at+?,created_at FROM billing_claims WHERE user_id=?").bind(WELCOME_TTL,userId),
+    ]);
     const user = await env.DB!.prepare('SELECT id FROM auth_users WHERE email=?').bind(challenge.email).first<{id:string}>();
     if (!user) return denied();
     const session = random();

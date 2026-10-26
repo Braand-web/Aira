@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {createServer} from 'node:https';
 import {execFileSync} from 'node:child_process';
-import {readFile,mkdir} from 'node:fs/promises';
+import {readFile,readdir,mkdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
@@ -14,7 +14,8 @@ await build({entryPoints:['lib/auth-runtime.ts'],outfile:path.join(output,'auth.
 const auth=await import(pathToFileURL(path.join(output,'auth.mjs')));
 const require=createRequire(import.meta.url),playwright=process.env.BRAAND_PLAYWRIGHT_MODULE;
 const {chromium}=await import(playwright?pathToFileURL(path.resolve(playwright)).href:require.resolve('playwright'));
-const sql=new DatabaseSync(':memory:');sql.exec(await readFile('drizzle/0014_independent_auth.sql','utf8'));
+const sql=new DatabaseSync(':memory:');
+for(const file of (await readdir('drizzle')).filter(f=>f.endsWith('.sql')).sort())sql.exec(await readFile('drizzle/'+file,'utf8'));
 function statement(query,args=[]){return {bind(...values){return statement(query,values);},async first(){return sql.prepare(query).get(...args)||null;},async run(){return sql.prepare(query).run(...args);}};}
 const env={DB:{prepare:q=>statement(q),batch:async rows=>Promise.all(rows.map(r=>r.run()))},APP_ENV:'test',APP_ORIGIN:'https://braand.test',AUTH_ENABLED:'true',AUTH_HASH_SECRET:'offline-browser-auth-fixture-'.repeat(2),RESEND_MODE:'sandbox',RESEND_FROM:'sender@braand.test',RESEND_TEST_RECIPIENT:'owner@braand.test',RESEND_API_KEY:'offline-only'};
 const originalFetch=globalThis.fetch;let link,mailCount=0,checks=0,browser;
@@ -65,6 +66,7 @@ try {
  await page.getByRole('button',{name:'Entrer dans mon espace'}).click();
  await page.getByRole('heading',{name:'Espace Braand'}).waitFor();
  const cookies=await context.cookies(env.APP_ORIGIN),session=cookies.find(c=>c.name==='__Host-braand_session');assert.ok(session?.httpOnly&&session?.secure);assert.ok(await auth.sessionIdentity(new Headers({cookie:session.name+'='+session.value}),env));check('Confirmed login sets a private Secure/HttpOnly cookie and a real revocable session');
+ const lot=sql.prepare("SELECT * FROM credit_lots WHERE source='free'").get();assert.equal(lot.balance,1500);assert.equal(lot.expires_at-lot.starts_at,7*86400000);assert.equal(sql.prepare('SELECT count(*) n FROM billing_claims').get().n,1);check('Browser signup automatically receives one 15-credit grant with a seven-day lifetime');
  await page.goto(env.APP_ORIGIN+'/auth/sign-out');await page.getByRole('button',{name:'Confirmer la déconnexion'}).click();await page.getByRole('heading',{name:'Espace Braand'}).waitFor();
  assert.equal(await auth.sessionIdentity(new Headers({cookie:session.name+'='+session.value}),env),null);check('Logout revokes the stored session and removes the browser cookie');
  assert.deepEqual(errors,[]);assert.deepEqual(requestFailures,[]);assert.equal(mailCount,1);check('No client errors and zero real provider or payment requests');
