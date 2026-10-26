@@ -19,4 +19,7 @@ test('public pages origin exposes only existing publication routes and strips ap
   assert.equal(response.status, 200);
   assert.equal(calls[1].headers.get('origin'), env.PAGES_ORIGIN);
   assert.equal(await calls[1].text(), 'consent=yes');
+  const oversized = await gateway.fetch(new Request(env.PAGES_ORIGIN + '/api/published/page', {method: 'POST', body: 'x'.repeat(8193)}), env);
+  assert.equal(oversized.status, 413);
+  assert.equal(calls.length, 2);
 });
