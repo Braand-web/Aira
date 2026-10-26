@@ -51,7 +51,7 @@ const server=createServer(async(req,res)=>{
    const current=drafts.get(body.context)||{version:0};if(body.version!==current.version){json(res,{error:'Conflit de version'},409);return;}
    const next={content:body.content,attachments:body.attachments||[],version:current.version+1,updatedAt:Date.now()};drafts.set(body.context,next);json(res,next);return;
   }
-  if(url.pathname==='/api/work'){json(res,{items:[],nextCursor:null});return;}
+  if(url.pathname==='/api/work'){json(res,{items:[],readiness:{enabled:false},nextCursor:null});return;}
   if(url.pathname==='/api/skills'){
 skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'});res.end(JSON.stringify({error:'Catalogue indisponible'}));return;}json(res,{skills:SKILL_CATALOG.map(({id,title,description,category,version,capability})=>({id,title,description,category,version,capability}))});return;}
   if(url.pathname==='/api/workspace'&&req.method==='POST'){
