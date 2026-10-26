@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { AppError } from './core.mjs';
 import { authorize, auditLog, config, createResource, db, getResource, uid } from './server';
 import type { BillingIdentity } from './billing';
-import { startRunBudget, finishRunBudget, type RunBudget } from './metering';
+import { startRunBudget, finishRunBudget, reconcileOpenRouterUsage, type RunBudget } from './metering';
 import { workInput, workCommand, validateDependencies, type WorkDTO, type WorkState } from './platform-contracts';
 type WorkRow = {
     id: string;
@@ -241,7 +241,7 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
         await q("UPDATE agent_work_steps SET status='uncertain' WHERE work_id=? AND status='running'", row.id).run();
         await setState(row.id, 'needs_reconciliation', 'worker_interrupted');
     }
-    const due = await q("SELECT * FROM agent_work WHERE status IN ('running','waiting_approval','waiting_external') AND next_at<=? AND lease_token IS NULL" + (workId ? ' AND id=?' : '') + " ORDER BY next_at,id LIMIT 3", now, ...(workId ? [workId] : [])).all<WorkRow>();
+    const due = await q("SELECT * FROM agent_work WHERE (status IN ('running','waiting_approval','waiting_external') OR (status='needs_reconciliation' AND error_code='usage_unknown')) AND next_at<=? AND lease_token IS NULL" + (workId ? ' AND id=?' : '') + " ORDER BY next_at,id LIMIT 3", now, ...(workId ? [workId] : [])).all<WorkRow>();
     let completed = 0;
     for (const row of due.results) {
         const token = uid(), claim = await q('UPDATE agent_work SET lease_token=?,lease_until=? WHERE id=? AND lease_token IS NULL AND status=?', token, now + 240000, row.id, row.status).run();
@@ -254,6 +254,28 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
                 continue;
             }
             const rights = await authorize(row.workspace_id, row.actor_id, 'write'), who: BillingIdentity = { tenant: row.workspace_id, organization: row.organization_id, role: rights.role, user: { userId: row.actor_id, email: '', displayName: '' } };
+            if (row.status === 'needs_reconciliation') {
+                // Only acknowledge a completed server run after its real cost
+                // settles. Never re-enter the model or replay any tool here.
+                await reconcileOpenRouterUsage(row.organization_id, 5);
+                const settled = await q("SELECT s.* FROM agent_work_steps s JOIN runs r ON r.id=s.run_id JOIN credit_holds h ON h.reference='chat:'||r.id AND h.workspace_id=r.workspace_id WHERE s.work_id=? AND s.status='uncertain' AND r.status='completed' AND r.workspace_id=? AND h.status='settled' ORDER BY s.ordinal LIMIT 1",row.id,row.workspace_id).first<StepRow>();
+                const pending = await q("SELECT 1 FROM agent_work_tool_receipts WHERE work_id=? AND status IN ('pending','uncertain') UNION ALL SELECT 1 FROM resources r JOIN agent_work_artifacts a ON a.resource_id=r.id WHERE a.work_id=? AND r.status IN ('uncertain','needs_reconciliation') LIMIT 1",row.id,row.id).first();
+                const costs = await workCosts(row.id);
+                const delivery = settled && await q("SELECT 1 FROM events WHERE run_id=? AND ((type='text_delta' AND length(trim(COALESCE(json_extract(data,'$.text'),'')))>0) OR (type='tool_result' AND json_extract(data,'$.result.id') IN (SELECT resource_id FROM agent_work_artifacts WHERE work_id=? AND step_id=?))) LIMIT 1",settled.run_id,row.id,settled.id).first();
+                if (!settled || pending || costs.unresolved || costs.reserved || !delivery) continue;
+                const waiting = await q("SELECT r.status FROM resources r JOIN agent_work_artifacts a ON a.resource_id=r.id WHERE a.work_id=? AND a.step_id=? AND r.status IN ('awaiting_approval','generating','pending','executing','waiting_input') LIMIT 1",row.id,settled.id).first<{status:string}>();
+                const nextStep = waiting ? waiting.status==='waiting_input'?'waiting_input':['generating','executing'].includes(waiting.status)?'waiting_external':'waiting_approval' : 'completed';
+                const remaining = await q("SELECT 1 FROM agent_work_steps WHERE work_id=? AND id!=? AND status!='completed' LIMIT 1",row.id,settled.id).first();
+                const nextWork = nextStep==='completed' ? remaining?'running':'completed' : nextStep;
+                const finished = Date.now();
+                const result = await db().batch([
+                    q("UPDATE agent_work_steps SET status=?,result=?,finished_at=? WHERE id=? AND status='uncertain' AND EXISTS(SELECT 1 FROM agent_work WHERE id=? AND status='needs_reconciliation' AND lease_token=?)",nextStep,JSON.stringify({runId:settled.run_id,deliveryConfirmed:true,costReconciled:true,semanticReview:'see_deliverable_receipts'}),finished,settled.id,row.id,token),
+                    q("UPDATE agent_work SET status=?,error_code=?,lease_token=NULL,lease_until=0,updated_at=? WHERE id=? AND status='needs_reconciliation' AND lease_token=?",nextWork,nextStep==='waiting_input'?'brief_required':null,finished,row.id,token),
+                    q("UPDATE resources SET status=?,updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM agent_work WHERE id=? AND status=? AND updated_at=?)",nextWork,finished,row.id,row.id,nextWork,finished),
+                ]);
+                if (result[1].meta.changes) {await workEvent(row.id,'cost_reconciled',{runId:settled.run_id,status:nextWork});if(nextWork==='running')await enqueue(row.id);completed++;}
+                continue;
+            }
             const costs = await workCosts(row.id);
             if (costs.unresolved) {
                 await setState(row.id, 'needs_reconciliation', 'usage_unknown');
