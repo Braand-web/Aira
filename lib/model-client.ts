@@ -29,20 +29,10 @@ export function responsesBody(body:RecordValue,model:RoutedModel){
  const tools=(Array.isArray(body.tools)?body.tools:[]).map(value=>{const tool=record(value);if(typeof tool.name!=='string'||!tool.input_schema)throw new AppError('Définition d’outil invalide.',500);return {type:'function',name:tool.name,description:tool.description,parameters:tool.input_schema,strict:false};});
  return {model:model.model,instructions,input,tools,max_output_tokens:body.max_tokens,stream:true,store:false,include:['reasoning.encrypted_content'],service_tier:'default'};
 }
-export function nativeMessageHistory(value:unknown,model:string,adaptive=false){
- return (Array.isArray(value)?value:[]).map(value=>{const message=record(value);return {...message,content:blocks(message.content).flatMap(block=>{
-  if(block.type==='provider_state'){if(block.provider==='anthropic_messages'&&block.model===model)return [record(block.item)];return [];}
-  // Old signed state has no model provenance. In adaptive mode it must not be
-  // submitted to a different model; visible text and complete tool pairs remain.
-  if(adaptive&&['thinking','redacted_thinking'].includes(String(block.type)))return [];
-  return [block];
- })};});
-}
 export function anthropicBody(body:RecordValue,model:RoutedModel):RecordValue{
- const messages=nativeMessageHistory(body.messages,model.model,Boolean(model.routing.tier));
+ const messages=(Array.isArray(body.messages)?body.messages:[]).map(value=>{const message=record(value);return {...message,content:blocks(message.content).filter(block=>block.type!=='provider_state')};});
  return {...body,messages,model:model.model,stream:true,...(model.provider==='openrouter'?{provider:{require_parameters:true,allow_fallbacks:false}}:{})};
 }
-export function scopeModelReasoning(content:import('./model-protocol').ModelContentBlock[],model:string){return content.map(block=>['thinking','redacted_thinking'].includes(block.type)?{type:'provider_state',provider:'anthropic_messages',model,item:block}:block);}
 export function routedRequest(model:RoutedModel,body:RecordValue,signal:AbortSignal){return {url:model.url,init:{method:'POST',headers:model.headers,body:JSON.stringify(model.provider==='openai'?responsesBody(body,model):anthropicBody(body,model)),signal} satisfies RequestInit};}
 
 export function responsesUsage(value:unknown):ModelUsage{

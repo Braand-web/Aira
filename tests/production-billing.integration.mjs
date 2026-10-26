@@ -118,7 +118,7 @@ await check('Customer credit note downloads are scoped to the paying organizatio
  const html=notes.creditNoteHTML('<script>',{invoiceNumber:'<img src=x>',total:2500,currency:'XAF',confirmedAt:Date.now(),environment:'sandbox',externalReference:'external-fixture',originalInvoice:{seller:{name:'<script>alert(1)</script>'}}});
  assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;/);assert.match(html,/DOCUMENT DE TEST/);
 });
-await check('Documented SasPay verify schema grants once; failed, abandoned, USD/card and wrong merchant never grant',async()=>{
+await check('Verified hosted checkout grants XAF and provider-converted USD once; unrelated or inconsistent payments never grant',async()=>{
  Object.assign(globalThis.__productionBilling.env,{SASPAY_SECRET_KEY:'sk_test_fixture_only',SASPAY_MERCHANT_ID:'merchant-fixture',SASPAY_ENV:'sandbox',BILLING_LEGAL_JSON:JSON.stringify({name:'Test fixture',address:'Adresse fictive Douala',taxId:'TEST-NIU-000',email:'seller@example.test'}),BILLING_TAX_VALIDATED:'true',BILLING_TAX_JSON:JSON.stringify({mode:'exclusive',rateBps:0,jurisdiction:'fixture:CM-test-rule',version:'fixture-tax-v1',validatedAt:'2026-10-22'})});
  const sessions=new Map(),transactions=new Map(),paths=[];
  globalThis.fetch=async(url,init)=>{
@@ -140,7 +140,31 @@ await check('Documented SasPay verify schema grants once; failed, abandoned, USD
  const failed=await pending('FAILED');await billing.reconcileOrder(failed.id);assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(failed.id).status,'failed');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(failed.id).n,0);
  failed.tx.status='SUCCESS';await billing.reconcileOrder(failed.id);assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(failed.id).status,'fulfilled');
  const abandoned=await pending();abandoned.session.status='CANCELLED';abandoned.session.transaction=null;await billing.reconcileOrder(abandoned.id);assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(abandoned.id).status,'cancelled');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(abandoned.id).n,0);
- const usd=await pending();usd.tx.currency='USD';usd.tx.requested_amount='4.50';usd.tx.debited_amount='4.50';await assert.rejects(()=>billing.reconcileOrder(usd.id));assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(usd.id).n,0);
+ const usd=await pending();Object.assign(usd.tx,{currency:'USD',requested_amount:'4.50',debited_amount:'4.50',net_amount:'4.30',client_fee:'0.20'});
+ await Promise.all([billing.reconcileOrder(usd.id),billing.reconcileOrder(usd.id)]);await billing.reconcileOrder(usd.id);
+ assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(usd.id).n,1);
+ assert.equal(sql.prepare('SELECT granted FROM credit_lots WHERE source_id=?').get(usd.id).granted,5000);
+ const verified=JSON.parse(sql.prepare('SELECT verified FROM billing_orders WHERE id=?').get(usd.id).verified);
+ assert.equal(verified.session,usd.session.id);assert.equal(verified.transaction.currency,'USD');assert.equal(verified.transaction.charged,'4.50');
+ const invoice=JSON.parse(sql.prepare('SELECT document FROM billing_invoices WHERE order_id=?').get(usd.id).document);assert.equal(invoice.currency,'XAF');assert.equal(invoice.total,2500);
+ for(const currency of ['XOF','CDF','GHS','GNF','KES','MWK','MZN','NGN','RWF','TZS','UGX','ZMW']){
+  const local=await pending();Object.assign(local.tx,{currency,requested_amount:'100.00',debited_amount:'100.00'});await billing.reconcileOrder(local.id);
+  assert.equal(sql.prepare('SELECT status FROM billing_orders WHERE id=?').get(local.id).status,'fulfilled');
+  assert.equal(JSON.parse(sql.prepare('SELECT verified FROM billing_orders WHERE id=?').get(local.id).verified).transaction.currency,currency);
+ }
+ for(const mutate of [
+  payment=>{payment.session.id='unrelated-session';},payment=>{payment.session.metadata.braand_order_id='unrelated-order';},
+  payment=>{payment.session.merchant='wrong-merchant';},payment=>{payment.session.amount='1.00';},payment=>{payment.session.currency='USD';},
+  payment=>{payment.tx.id='unrelated-transaction';},payment=>{payment.tx.merchant='wrong-merchant';},
+  payment=>{payment.tx.requested_amount='0.00';payment.tx.debited_amount='0.00';},payment=>{payment.tx.debited_amount='4.49';},
+  payment=>{payment.tx.requested_amount='4.501';},payment=>{delete payment.tx.requested_amount;},
+  payment=>{payment.tx.fee_charge_mode='ADD_ON';},payment=>{payment.tx.currency='EUR';},
+ ]){
+  const invalid=await pending();Object.assign(invalid.tx,{currency:'USD',requested_amount:'4.50',debited_amount:'4.50'});mutate(invalid);
+  await assert.rejects(()=>billing.reconcileOrder(invalid.id));
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(invalid.id).n,0);
+  assert.equal(sql.prepare('SELECT COUNT(*) n FROM billing_invoices WHERE order_id=?').get(invalid.id).n,0);
+ }
  const otherMerchant=await pending();otherMerchant.tx.merchant='wrong-merchant';await assert.rejects(()=>billing.reconcileOrder(otherMerchant.id));assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_lots WHERE source_id=?').get(otherMerchant.id).n,0);
  for(const mutate of [payment=>{payment.tx.merchant=17;},payment=>{payment.tx.requested_amount={value:2500};},payment=>{payment.session.transaction={id:17};}]){
   const malformed=await pending();mutate(malformed);await assert.rejects(()=>billing.reconcileOrder(malformed.id));

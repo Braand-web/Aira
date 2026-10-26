@@ -300,3 +300,24 @@ export async function decideConnectorAction(who:BillingIdentity,id:string,decisi
   await log(who,call.toolSlug,'uncertain');return syncAction(who,id,'uncertain');
  }
 }
+
+/** Internal social adapter: writes require an already claimed exact server mandate. */
+export async function socialConnectorCall(who:BillingIdentity,call:{toolkit:string;toolSlug:string;arguments:Record<string,unknown>;accountId?:string},permit?:{deliveryId:string;ordinal:number;payloadDigest:string}|{replyId:string;payloadDigest:string}){
+ await authorize(who.tenant,who.user.userId,'write');
+ const parsed=callSchema.parse({toolkit:call.toolkit,toolSlug:call.toolSlug,arguments:call.arguments,mode:'connected'}),{sdk,session,scopeUser}=await connectorSession(who,'social');
+ const tool=await metadata(sdk,parsed),accounts=await sdk.connectedAccounts.list({userIds:[scopeUser],statuses:['ACTIVE'],toolkitSlugs:[parsed.toolkit],limit:100});
+ if(!call.accountId||!accounts.items.some(a=>a.id===call.accountId&&a.status==='ACTIVE'&&a.toolkit.slug===parsed.toolkit))throw new AppError('Le compte social doit être reconnecté.',409,'social_account_disconnected');
+ const read=isReadOnlyTool(tool);
+ if(!read){
+  if(!permit)throw new AppError('Un mandat social exact est nécessaire.',403,'social_approval_required');
+  const {digest}=await import('./platform-contracts');if(await digest(parsed.arguments)!==permit.payloadDigest)throw new AppError('Les paramètres approuvés ont changé.',409,'social_stale_approval');
+  const valid='deliveryId' in permit?await query("SELECT d.id FROM social_deliveries d JOIN social_delivery_steps s ON s.delivery_id=d.id JOIN social_accounts a ON a.id=(SELECT account_id FROM social_posts WHERE id=d.post_id) WHERE d.id=? AND d.workspace_id=? AND d.actor_id=? AND d.status='publishing' AND s.ordinal=? AND s.status='submitting' AND s.tool_slug=? AND s.payload_digest=? AND a.connected_account_id=?",permit.deliveryId,who.tenant,who.user.userId,permit.ordinal,call.toolSlug,permit.payloadDigest,call.accountId).first():await query("SELECT r.id FROM social_replies r JOIN social_comments c ON c.id=r.comment_id JOIN social_accounts a ON a.id=c.account_id WHERE r.id=? AND r.workspace_id=? AND r.actor_id=? AND r.status='publishing' AND r.payload_digest=? AND a.connected_account_id=?",permit.replyId,who.tenant,who.user.userId,permit.payloadDigest,call.accountId).first();
+  if(!valid)throw new AppError('Le mandat n’autorise pas cet envoi.',403,'social_approval_required');
+ }
+ return executeConnected(who,session,parsed,call.accountId,!read);
+}
+
+export async function socialConnections(who:BillingIdentity,toolkit:string){
+ toolkit=toolkitSchema.parse(toolkit);const {sdk,scopeUser}=await connectorSession(who,'social');
+ const accounts=await sdk.connectedAccounts.list({userIds:[scopeUser],statuses:['ACTIVE'],toolkitSlugs:[toolkit],limit:100});return accounts.items.map(account=>({id:account.id,status:account.status,toolkit:account.toolkit.slug}));
+}

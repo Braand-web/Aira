@@ -31,9 +31,10 @@ await build({
  plugins:[{name:'skills-agent-isolation',setup(builder){
   builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'bindings'}));
   builder.onLoad({filter:/.*/,namespace:'bindings'},args=>({contents:args.path==='cloudflare:workers'?'export const env=globalThis.__skillsAgentTest.env;':args.path==='next/headers'?'export async function headers(){return globalThis.__skillsAgentTest.headers;}':'export function redirect(){throw Error("Unexpected redirect");}'}));
-  builder.onResolve({filter:/^\.\/(metering|composio|browser|browser-agent|providers)$/},args=>({path:args.path,namespace:'fixture'}));
+  builder.onResolve({filter:/^\.\/(metering|composio|browser|browser-agent|providers|platform-runtime)$/},args=>({path:args.path,namespace:'fixture'}));
   builder.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:{
-   './metering':`export async function meteredMessage(budget,role,body,signal,routing){const fixture=globalThis.__skillsAgentTest;const request={budget,role,body:structuredClone(body),routing:structuredClone(routing)};fixture.requests.push(request);if(signal.aborted)throw Error('Aborted');const response=fixture.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(typeof response==='function'?response(request):response,{headers:{'content-type':'text/event-stream'}});}`,
+   './platform-runtime':`export async function executePlatformTool(){throw Error('Platform calls are covered by agent-platform.integration.mjs');}export async function trackArtifact(){throw Error('Unexpected durable artifact in legacy agent test');}`,
+  './metering':`export async function meteredMessage(budget,role,body,signal,routing){const fixture=globalThis.__skillsAgentTest;const request={budget,role,body:structuredClone(body),routing:structuredClone(routing)};fixture.requests.push(request);if(signal.aborted)throw Error('Aborted');const response=fixture.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(typeof response==='function'?response(request):response,{headers:{'content-type':'text/event-stream'}});}`,
    './composio':`export async function connectorAgentTools(){return [];}export async function executeConnectorAgentTool(){globalThis.__skillsAgentTest.external.push('connector');throw Error('Connector execution forbidden');}`,
    './providers':`export function falCatalog(){return [];}export function mediaRoute(){globalThis.__skillsAgentTest.external.push('media');throw Error('Media execution forbidden');}export async function metaGet(){globalThis.__skillsAgentTest.external.push('meta');throw Error('External account access forbidden');}`,
    './browser':`export const browserService={async create(){globalThis.__skillsAgentTest.external.push('browser');throw Error('Browser execution forbidden');}};`,
@@ -206,7 +207,7 @@ await check('settings metadata requires identity and workspace access and never 
  try{
   const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
   assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
-  const dto=await response.json();assert.equal(dto.skills.length,36);
+  const dto=await response.json();assert.equal(dto.skills.length,40);
   assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
   assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
   const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);

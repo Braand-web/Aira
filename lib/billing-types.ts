@@ -5,7 +5,7 @@ export type BillingCycle='period'|'annual';
 export type QuoteInput={kind:'topup';quantity:number}|{kind:'subscription';plan:PlanName;cycle:BillingCycle}|{kind:'upgrade';plan?:PlanName};
 export type TaxRule={mode:'exclusive'|'inclusive';rateBps:number;jurisdiction:string;version:string;validatedAt:string};
 export type TaxQuote={baseAmount:number;subtotal:number;tax:number;total:number;taxMode:'exclusive'|'inclusive';taxRateBps:number;taxJurisdiction:string;taxConfigVersion:string;taxValidatedAt:string};
-type ProductBase={amount:number;currency:string;version:string;invoiceSeller?:InvoiceSeller}&Partial<TaxQuote>;
+type ProductBase={amount:number;currency:string;version:string;invoiceSeller?:InvoiceSeller;documentKind?:'invoice'|'receipt'}&Partial<TaxQuote>;
 export type BillingProduct=ProductBase & (
   {kind:'topup';quantity:number;credits:number;plan?:never;cycle?:never}|
   {kind:'subscription';plan:PlanName;cycle:BillingCycle;credits:number}|
@@ -19,7 +19,7 @@ export type CreditAllocationRow={id:string;hold_id:string;lot_id:string;units:nu
 export type CreditLotSummary={id:string;source:string;granted:number;balance:number;reserved:number;starts_at:number;expires_at:number|null;frozen:number};
 export type Economics=Partial<{taxBps:number;feeBps:number;feeFixed:number;unitCost:number;monthlyServiceCost:number;riskBps:number}>;
 export type InvoiceSeller={name?:string;address?:string;taxId?:string;email?:string};
-export type InvoiceDocument={seller:InvoiceSeller;buyer:{name?:string;email?:string};product:BillingProduct;total:number;subtotal?:number;tax?:number;taxJurisdiction?:string;currency:string;transaction:string;taxBps?:number;issuedAt:number};
+export type InvoiceDocument={seller:InvoiceSeller;buyer:{name?:string;email?:string};product:BillingProduct;documentKind?:'invoice'|'receipt';payment?:{currency:string;amount:string|number};total:number;subtotal?:number;tax?:number;taxJurisdiction?:string;currency:string;transaction:string;taxBps?:number;issuedAt:number};
 
 // Only fields consumed by billing are interpreted; extra provider fields survive parsing.
 const amount=z.union([z.string(),z.number()]);

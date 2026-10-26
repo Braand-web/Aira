@@ -54,3 +54,25 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
+      - name: Save the verified production build
+        if: github.ref == 'refs/heads/feat/global-workflow'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-production-build
+          path: dist/
+          include-hidden-files: true
+          retention-days: 1
+      - name: Deploy the reviewed chat and billing correction
+        if: github.event_name == 'push' && github.ref == 'refs/heads/fix/chat-routing-credit-settlement'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.BRAAND_DEPLOY_ONCE }}
+          CLOUDFLARE_ACCOUNT_ID: 2ead1748668417f67d184d93a3fd69ec
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "Build and tests completed. Deployment awaits the temporary Cloudflare credential."
+            exit 0
+          fi
+          node scripts/prepare-production-deploy.mjs
+          npx --no-install wrangler deploy --config .wrangler/deploy/production-live.json --keep-vars --message "Verified chat and billing fix ${GITHUB_SHA}"
+          curl --fail --silent --show-error https://braand.fun/api/health

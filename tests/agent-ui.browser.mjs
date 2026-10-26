@@ -41,9 +41,19 @@ const catalogRequests=[],authorizationRequests=[],revocationRequests=[];
 const connectedAccounts=new Set(['gmail','slack']);
 const connectorFixtures=[{slug:'metaads',name:'Meta Ads',description:'Catalogue de test local',connected:false,status:'disconnected'},{slug:'gmail',name:'Gmail',description:'Compte de test isolé',connected:true,status:'active',accountId:'fixture-gmail'},{slug:'slack',name:'Slack',description:'Deuxième page de connexions de test',connected:true,status:'active',accountId:'fixture-slack'}];
 const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
+const drafts=new Map();
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
-  if(url.pathname==='/api/skills'){skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'});res.end(JSON.stringify({error:'Catalogue indisponible'}));return;}json(res,{skills:SKILL_CATALOG.map(({id,title,description,category,version,capability})=>({id,title,description,category,version,capability}))});return;}
+  if(url.pathname==='/api/drafts'){
+   if(req.method==='GET'){json(res,drafts.get(url.searchParams.get('context'))||{content:'',version:0,attachments:[],updatedAt:now});return;}
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());
+   if(req.method==='DELETE'){drafts.delete(body.context);json(res,{ok:true});return;}
+   const current=drafts.get(body.context)||{version:0};if(body.version!==current.version){json(res,{error:'Conflit de version'},409);return;}
+   const next={content:body.content,attachments:body.attachments||[],version:current.version+1,updatedAt:Date.now()};drafts.set(body.context,next);json(res,next);return;
+  }
+  if(url.pathname==='/api/work'){json(res,{items:[],nextCursor:null});return;}
+  if(url.pathname==='/api/skills'){
+skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'});res.end(JSON.stringify({error:'Catalogue indisponible'}));return;}json(res,{skills:SKILL_CATALOG.map(({id,title,description,category,version,capability})=>({id,title,description,category,version,capability}))});return;}
   if(url.pathname==='/api/workspace'&&req.method==='POST'){
 
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
@@ -297,7 +307,7 @@ try{
   const importedSkill=settings.locator('.skill-card').filter({has:page.getByRole('heading',{name:'Méthode de test locale',exact:true})});await importedSkill.waitFor();
   assert.equal(workspaceMutations.length,1);assert.equal(workspaceMutations[0].kind,'skill');
   await importedSkill.getByRole('button',{name:'Utiliser',exact:true}).click();await settings.waitFor({state:'hidden'});await composer.waitFor();
-  assert.match(await composer.inputValue(),/Méthode de test locale/);assert.match(await composer.inputValue(),/Lire le contexte/);assert.equal(chatCalls,0,'Using a skill prepares a draft without executing the agent');await composer.fill('');
+  assert.match(await composer.inputValue(),/Méthode de test locale/);assert.match(await composer.inputValue(),/get_workspace_resource/);assert.equal(chatCalls,0,'Using a skill prepares a draft without executing the agent');await composer.fill('');
   checks.push('Skills stay available in settings: import stores a private method and Use prepares the chat without execution');
   await page.locator('.account-trigger').click();await page.getByRole('menuitem',{name:/Crédits et facturation/}).click();await settings.waitFor();
   await settings.getByRole('heading',{name:'Facturation',exact:true}).waitFor();await settings.locator('.billing-loading').waitFor({state:'hidden'});await settings.getByRole('button',{name:'Actualiser la facturation',exact:true}).waitFor();
@@ -318,7 +328,7 @@ try{
   await billingNavigation.getByRole('button',{name:'Forfait',exact:true}).click();await settings.getByRole('button',{name:'Choisir Pro',exact:true}).waitFor();
   for(const name of ['Essentiel','Pro','Business'])assert.equal(await embeddedBilling.getByRole('heading',{name,exact:true}).count(),1);
   assert.equal(await embeddedBilling.getByRole('button',{name:/^Choisir (Essentiel|Pro|Business)$/}).count(),3);
-  assert.equal(await embeddedBilling.getByRole('button',{name:/^(Annuel|12 mois)$/}).count(),0,'Annual sales must remain unavailable');
+  assert.equal(await embeddedBilling.getByRole('button',{name:'Annuel',exact:true}).isDisabled(),true,'The server closes annual sales in this isolated fixture');
   await embeddedBilling.getByText('Pour 30 jours · hors taxes',{exact:true}).waitFor();
   for(const amount of [4900,9900,24900])assert.equal(await embeddedBilling.getByText(money(amount),{exact:true}).count(),1);
   const planCarousel=embeddedBilling.getByRole('region',{name:'Forfaits disponibles',exact:true});

@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {db,config,uid,auditLog} from './server';
 import {AppError} from './core.mjs';
-import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
+import {PLANS,LEGACY_PLANS,PACKS,CATALOG_VERSION,product,topupPrice,periods,marginCheck,decimalXaf,upgradeQuote,upgradePlan,DAY,roleAllows,taxRule,quoteTax,validateQuoteTax} from './billing-core.mjs';
 import {checkoutResponseSchema,sessionResponseSchema,sessionListSchema,transactionResponseSchema,type BillingProduct,type CreditAllocationRow,type CreditHoldRow,type CreditLotSummary,type Economics,type InvoiceDocument,type InvoiceSeller,type OrderRow,type PaymentSession,type QuoteInput,type QuoteRow,type SubscriptionRow,type TaxRule} from './billing-types';
 import type {ModelRate} from './model-protocol';
 
@@ -9,6 +9,14 @@ export type BillingIdentity={tenant:string;organization:string;user:{userId:stri
 const s=(q:string,...values:(string|number|null)[])=>db().prepare(q).bind(...values);
 const LEGACY_ORDER_METADATA_KEY=['ai','ra','_order_id'].join('');
 const providerOrderId=(session:PaymentSession)=>session.metadata?.braand_order_id??(session.metadata as Record<string,unknown>|null|undefined)?.[LEGACY_ORDER_METADATA_KEY];
+// Provider country/network currencies plus its global card/crypto currency.
+const convertedCheckoutCurrencies=new Set(['USD','XOF','CDF','GHS','GNF','KES','MWK','MZN','NGN','RWF','TZS','UGX','ZMW']);
+function decimalMinorUnits(value:unknown):number|undefined{
+ if(value===undefined||value===null)return;
+ const raw=String(value);if(!/^\d+(?:\.\d{1,2})?$/.test(raw))return;
+ const [whole,fraction='']=raw.split('.');const result=Number(whole)*100+Number((fraction+'00').slice(0,2));
+ return Number.isSafeInteger(result)?result:undefined;
+}
 function commercialSubscription(row:SubscriptionRow|null){return row?{...row,plan:row.catalog_plan||row.plan}:null;}
 export async function currentSubscription(org:string,now=Date.now()) {return commercialSubscription(await s("SELECT * FROM billing_subscriptions WHERE organization_id=? AND status='active' AND start_at<=? AND end_at>? ORDER BY start_at DESC LIMIT 1",org,now,now).first<SubscriptionRow>());}
 export async function subscriptionTerms(sub:SubscriptionRow){
@@ -29,6 +37,13 @@ function taxStatus(){try{return {configured:true,...billingTaxRule()};}catch{ret
 const invoiceSellerSchema=z.object({name:z.string().trim().min(2).max(200),address:z.string().trim().min(5).max(500),taxId:z.string().trim().min(3).max(100),email:z.string().email().max(254)});
 export function billingLegalSeller(){try{return invoiceSellerSchema.parse(JSON.parse(config().BILLING_LEGAL_JSON||'null'));}catch{throw new AppError('Complétez et validez l’identité légale de facturation avant tout paiement.',503,'billing_legal_not_ready');}}
 function legalReady(){try{billingLegalSeller();return true;}catch{return false;}}
+const hostedCheckout=()=>config().BILLING_CHECKOUT_MODE==='hosted';
+function commercialDetails(amount:number){
+ // Hosted checkout issues a payment receipt. It makes no claim about a tax
+ // exemption or legal seller identity. The invoiced mode retains fiscal checks.
+ if(hostedCheckout())return {baseAmount:amount,amount,total:amount,documentKind:'receipt' as const,invoiceSeller:{name:'Braand'}};
+ return {...quoteTax(amount,billingTaxRule()),documentKind:'invoice' as const,invoiceSeller:billingLegalSeller()};
+}
 export function releaseReadiness(){
  const c=config();const checks=[
   ['payment',!!c.SASPAY_SECRET_KEY&&!!c.SASPAY_MERCHANT_ID&&!!c.SASPAY_WEBHOOK_SECRET],
@@ -44,9 +59,11 @@ export function releaseReadiness(){
   ['productAcceptance',c.BILLING_PRODUCT_ACCEPTANCE==='true'],
   ['enabled',c.BILLING_ENABLED==='true']
  ] as const;
- return {enabled:checks.every(([,ok])=>ok),checks:Object.fromEntries(checks),environment:c.SASPAY_ENV==='live'?'live':'sandbox'};
+ const diagnostics=Object.fromEntries(checks),mode=hostedCheckout()?'hosted':'invoiced';
+ const operational={payment:diagnostics.payment,environment:!!c.SASPAY_SECRET_KEY?.startsWith(c.SASPAY_ENV==='live'?'sk_live_':'sk_test_'),scheduler:!!c.SCHEDULER_SECRET&&c.SCHEDULER_SECRET.length>=32,enabled:diagnostics.enabled};
+ return {enabled:mode==='hosted'?Object.values(operational).every(Boolean):checks.every(([,ok])=>ok),checks:diagnostics,operational,mode,environment:c.SASPAY_ENV==='live'?'live':'sandbox'};
 }
-export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,tax:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
+export function catalog(){return {version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period','annual'],annualAvailable:true,checkoutMode:hostedCheckout()?'hosted':'invoiced',tax:hostedCheckout()?{configured:false}:taxStatus(),readiness:releaseReadiness(),free:{credits:10,days:7,enabled:Number(config().FREE_DAILY_CREDITS||0)>=10},renewal:'manual'};}
 export function requireBilling(who:BillingIdentity){if(!roleAllows(who.role,'billing'))throw new AppError('Seul le propriétaire peut gérer les paiements.',403);}
 export async function activeRights(org:string){const sub=await currentSubscription(org);return {subscription:sub,plan:sub?.plan||'free',limits:sub?PLANS[sub.plan as keyof typeof PLANS]:{members:1,spaces:1,projects:2,storage:256*1024**2,transfer:1024**3,concurrency:1}};}
 
@@ -114,14 +131,14 @@ export async function makeQuote(who:BillingIdentity,input:QuoteInput){
   await allocateDue(who.organization);
   const sub=await currentSubscription(who.organization);if(!sub)throw new AppError('Abonnement actif requis.',409);
   const target=input.plan||'business';
-  const adjustment=upgradeQuote(sub,now,await subscriptionTerms(sub),target),next=sub.cycle==='annual'?LEGACY_PLANS[target as keyof typeof LEGACY_PLANS]:PLANS[target];
+  const adjustment=upgradeQuote(sub,now,await subscriptionTerms(sub),target),next=upgradePlan(sub,target);
   p={kind:'upgrade',plan:target,cycle:sub.cycle,...adjustment,targetCredits:next.credits,targetContractPrice:(sub.cycle==='annual'?next.annualPrice:next.periodPrice)!,subscriptionId:sub.id,subscriptionRevision:sub.version,currency:'XAF',version:CATALOG_VERSION,credits:0};
  }else p=product(input) as BillingProduct;
- p={...p,...quoteTax(p.amount,billingTaxRule()),invoiceSeller:billingLegalSeller()} as BillingProduct;
+ p={...p,...commercialDetails(p.amount)} as BillingProduct;
  const economicsResult=marginCheck(p,economics(p.plan));
  const id=uid(),body={...p,economics:economicsResult};
  await s('INSERT INTO billing_quotes VALUES (?,?,?,?,?,?,?,?,?)',id,who.organization,who.user.userId,JSON.stringify(body),p.amount,CATALOG_VERSION,version,now,now+900000).run();
- return {id,...p,expiresAt:now+900000,eligible:economicsResult.eligible&&releaseReadiness().enabled};
+ return {id,...p,expiresAt:now+900000,eligible:(hostedCheckout()||economicsResult.eligible)&&releaseReadiness().enabled};
 }
 async function sas<T>(path:string,schema:z.ZodType<T,z.ZodTypeDef,unknown>,body?:unknown):Promise<T>{
  const c=config(),key=c.SASPAY_SECRET_KEY;if(!key)throw new AppError('Paiement non configuré.',503);
@@ -140,14 +157,20 @@ export async function checkout(who:BillingIdentity,quoteId:string,key:string,ori
  if(q.subscription_version!==await subscriptionVersion(who.organization))throw new AppError('Votre abonnement a changé. Actualisez le devis.',409);
  const p=JSON.parse(q.product) as BillingProduct;
  if(p.version!==CATALOG_VERSION||q.version!==CATALOG_VERSION)throw new AppError('Le catalogue a changé. Actualisez le devis.',409,'quote_catalog_changed');
- validateQuoteTax(p,billingTaxRule());if(q.amount!==p.total||q.amount!==p.amount)throw new AppError('Montant du devis incohérent.',409,'quote_invalid');
- if(JSON.stringify(p.invoiceSeller)!==JSON.stringify(billingLegalSeller()))throw new AppError('L’identité de facturation a changé. Actualisez le devis.',409,'quote_legal_changed');
- if(!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez le forfait pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
+ if(p.documentKind==='receipt'){
+  if(!hostedCheckout()||p.baseAmount!==q.amount||p.tax!==undefined||p.subtotal!==undefined||p.taxRateBps!==undefined||p.taxMode!==undefined||p.taxJurisdiction!==undefined||JSON.stringify(p.invoiceSeller)!==JSON.stringify({name:'Braand'}))throw new AppError('Le mode de paiement a changé. Actualisez le devis.',409,'quote_changed');
+ }else{
+  if(hostedCheckout())throw new AppError('Le mode de paiement a changé. Actualisez le devis.',409,'quote_changed');
+  validateQuoteTax(p,billingTaxRule());
+  if(JSON.stringify(p.invoiceSeller)!==JSON.stringify(billingLegalSeller()))throw new AppError('L’identité de facturation a changé. Actualisez le devis.',409,'quote_legal_changed');
+ }
+ if(q.amount!==p.total||q.amount!==p.amount)throw new AppError('Montant du devis incohérent.',409,'quote_invalid');
+ if(!hostedCheckout()&&!marginCheck(p,economics(p.plan)).eligible)throw new AppError(p.kind==='upgrade'?'Le passage immédiat est indisponible. Choisissez le forfait pour votre prochaine période.':'Cette offre attend sa validation économique.',409,'margin_gate');
  if(p.kind==='upgrade'&&(p.periodEnd<=Date.now()||p.subscriptionEnd<=Date.now()))throw new AppError('Ce devis de changement a expiré. Actualisez votre demande.',409);
  const id=uid(),now=Date.now();
  try{await s("INSERT INTO billing_orders(id,organization_id,quote_id,actor,idempotency_key,status,amount,product,created_at,updated_at,payment_environment) VALUES (?,?,?,?,?,'initializing',?,?,?,?,?)",id,who.organization,quoteId,who.user.userId,key,q.amount,q.product,now,now,config().SASPAY_ENV==='live'?'live':'sandbox').run();}catch(error){const same=await s('SELECT * FROM billing_orders WHERE quote_id=? AND organization_id=?',quoteId,who.organization).first<OrderRow>();if(same)return orderView(same);throw error;}
  try{
-  const remote=await sas('checkout-sessions/',checkoutResponseSchema,{amount:q.amount.toFixed(2),currency:'XAF',country:'CM',customer_email:who.user.email,customer_name:who.user.displayName||who.user.email,description:'Braand · '+id,metadata:{braand_order_id:id},fee_charge_mode:'DEDUCTED',return_url:origin+'/?billingOrder='+id,expires_at:new Date(now+1800000).toISOString()});
+  const remote=await sas('checkout-sessions/',checkoutResponseSchema,{amount:q.amount.toFixed(2),currency:'XAF',country:'CM',customer_email:who.user.email,customer_name:who.user.displayName||who.user.email,description:'Braand · '+id,metadata:{braand_order_id:id},fee_charge_mode:'DEDUCTED',return_url:origin+'/?settings=billing&billingOrder='+id,expires_at:new Date(now+1800000).toISOString()});
   const url=new URL(remote.checkout_url);if(url.protocol!=='https:'||!['checkout.saspay.me','pay.saspay.me'].includes(url.hostname)||!remote.id)throw new Error('Invalid checkout');
   if(remote.fee_charge_mode!=='DEDUCTED')throw new Error('Merchant fee mode not verified');
   await s("UPDATE billing_orders SET status='pending',session_id=?,checkout_url=?,updated_at=? WHERE id=?",remote.id,url.href,Date.now(),id).run();
@@ -171,7 +194,7 @@ export async function reconcileOrder(id:string){
   await s('UPDATE billing_orders SET session_id=?,updated_at=? WHERE id=? AND session_id IS NULL',matches[0].id,Date.now(),id).run();order.session_id=matches[0].id;
  }
  const session=await sas('checkout-sessions/'+encodeURIComponent(order.session_id)+'/',sessionResponseSchema);
- if(session.merchant!==config().SASPAY_MERCHANT_ID||providerOrderId(session)!==id||session.currency!=='XAF'||decimalXaf(session.amount)!==order.amount)throw new AppError('Paiement incohérent : rapprochement requis.',409);
+ if(session.id!==order.session_id||session.merchant!==config().SASPAY_MERCHANT_ID||providerOrderId(session)!==id||session.currency!=='XAF'||decimalXaf(session.amount)!==order.amount)throw new AppError('Paiement incohérent : rapprochement requis.',409);
  const txid=typeof session.transaction==='string'?session.transaction:session.transaction?.id;
  if(!txid){if(session.status==='EXPIRED'||session.status==='CANCELLED'){await s('UPDATE billing_orders SET status=?,updated_at=? WHERE id=? AND transaction_id IS NULL',session.status.toLowerCase(),Date.now(),id).run();}return order;}
  // /verify refreshes PENDING from the actual gateway. Its documented schema differs from webhook data.
@@ -181,7 +204,15 @@ export async function reconcileOrder(id:string){
   if(tx.status==='FAILED'||tx.status==='CANCELLED')await s("UPDATE billing_orders SET status=?,transaction_id=?,updated_at=? WHERE id=? AND status NOT IN ('fulfilled','refunded','refund_requested','partially_refunded')",tx.status.toLowerCase(),txid,Date.now(),id).run();
   return s('SELECT * FROM billing_orders WHERE id=?',id).first<OrderRow>();
  }
- if(tx.currency!=='XAF'||decimalXaf(tx.requested_amount)!==order.amount||decimalXaf(tx.debited_amount)!==order.amount||tx.fee_charge_mode!=='DEDUCTED')throw new AppError('Montant réellement payé incohérent.',409);
+ // SasPay can convert a hosted XAF checkout to the selected network's currency.
+ // A converted successful transaction is accepted only after the exact merchant,
+ // order metadata, checkout session, and linked transaction ID above are verified.
+ // Keep the original XAF order amount as the commercial price, and persist the
+ // provider's actual amounts and currency below for an auditable payment record.
+ const settledAsQuoted=tx.currency==='XAF'&&decimalXaf(tx.requested_amount)===order.amount&&decimalXaf(tx.debited_amount)===order.amount;
+ const requested=decimalMinorUnits(tx.requested_amount),debited=decimalMinorUnits(tx.debited_amount);
+ const convertedByProvider=convertedCheckoutCurrencies.has(tx.currency||'')&&requested!==undefined&&requested>0&&requested===debited;
+ if((!settledAsQuoted&&!convertedByProvider)||tx.fee_charge_mode!=='DEDUCTED')throw new AppError('Montant réellement payé incohérent.',409);
  const verifiedTx={id:tx.id,merchant:tx.merchant,status:tx.status,currency:tx.currency,requestedAmount:tx.requested_amount,charged:tx.debited_amount,net:tx.net_amount,fee:tx.client_fee,feeChargeMode:tx.fee_charge_mode};
  const p=JSON.parse(order.product) as BillingProduct,now=Date.now(),statements:D1PreparedStatement[]=[];
  if(p.kind==='upgrade'&&(p.periodEnd<=now||p.subscriptionEnd<=now)){
@@ -202,14 +233,15 @@ export async function reconcileOrder(id:string){
   statements.push(s("INSERT OR IGNORE INTO billing_subscriptions(id,organization_id,plan,catalog_plan,credit_allowance,catalog_version,contract_price,cycle,start_at,end_at,order_id) SELECT ?,organization_id,?,?,?,?,?,?,?,?,id FROM billing_orders WHERE id=? AND status='verified'",'sub:'+id,p.plan==='essential'?'pro':p.plan,p.plan,p.credits,p.version,p.baseAmount??p.amount,p.cycle,start,schedule.at(-1)!.end,id));
  }else if(p.kind==='upgrade'){
   await allocateDue(order.organization_id,now);
-  const next=p.cycle==='annual'||p.version==='2026-10-16.1'?LEGACY_PLANS[p.plan as keyof typeof LEGACY_PLANS]:PLANS[p.plan],allowance=p.targetCredits??next.credits,contractPrice=p.targetContractPrice??(p.cycle==='annual'?next.annualPrice:next.periodPrice);
+  const next=p.version==='2026-10-16.1'?LEGACY_PLANS[p.plan as keyof typeof LEGACY_PLANS]:PLANS[p.plan],allowance=p.targetCredits??next.credits,contractPrice=p.targetContractPrice??(p.cycle==='annual'?next.annualPrice:next.periodPrice);
   if(!Number.isSafeInteger(allowance)||allowance<0||!contractPrice||!Number.isSafeInteger(contractPrice))throw new AppError('Contrat de changement incomplet.',409,'subscription_terms_unknown');
   statements.push(s("UPDATE billing_subscriptions SET plan=?,catalog_plan=?,credit_allowance=?,catalog_version=?,contract_price=?,version=version+1 WHERE id=? AND version=? AND EXISTS(SELECT 1 FROM billing_orders WHERE id=? AND status='verified')",p.plan,p.plan,allowance,p.version,contractPrice,p.subscriptionId,p.subscriptionRevision,id));
   statements.push(s("INSERT OR IGNORE INTO credit_lots(id,organization_id,source,source_id,granted,balance,starts_at,expires_at,created_at) SELECT ?,organization_id,'upgrade',id,?,?,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'upgrade:'+id,p.units,p.units,now,p.periodEnd,now,id));
  }
- const legal:InvoiceSeller=p.invoiceSeller?invoiceSellerSchema.parse(p.invoiceSeller):billingLegalSeller();
- const invoice:InvoiceDocument={seller:legal,buyer:{email:session.customer_email,name:session.customer_name},product:p,total:order.amount,subtotal:p.subtotal,tax:p.tax,taxJurisdiction:p.taxJurisdiction,currency:'XAF',transaction:txid,taxBps:p.taxRateBps??economics(p.plan).taxBps,issuedAt:now};
- statements.push(s("INSERT OR IGNORE INTO billing_invoices SELECT ?,organization_id,id,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'invoice:'+id,'AIR-'+new Date(now).getUTCFullYear()+'-'+id,JSON.stringify(invoice),now,id));
+ const receipt=p.documentKind==='receipt';
+ const legal:InvoiceSeller=receipt?{name:'Braand'}:p.invoiceSeller?invoiceSellerSchema.parse(p.invoiceSeller):billingLegalSeller();
+ const invoice:InvoiceDocument={seller:legal,buyer:{email:session.customer_email,name:session.customer_name},product:p,documentKind:receipt?'receipt':'invoice',payment:{currency:tx.currency!,amount:tx.debited_amount!},total:order.amount,...(receipt?{}:{subtotal:p.subtotal,tax:p.tax,taxJurisdiction:p.taxJurisdiction,taxBps:p.taxRateBps??economics(p.plan).taxBps}),currency:'XAF',transaction:txid,issuedAt:now};
+ statements.push(s("INSERT OR IGNORE INTO billing_invoices SELECT ?,organization_id,id,?,?,? FROM billing_orders WHERE id=? AND status='verified'",'invoice:'+id,(receipt?'BR-REC-':'BR-INV-')+new Date(now).getUTCFullYear()+'-'+id,JSON.stringify(invoice),now,id));
  statements.push(s("INSERT OR IGNORE INTO billing_audit SELECT ?,actor,organization_id,'payment.fulfilled',id,?,? FROM billing_orders WHERE id=? AND status='verified'",'fulfilled:'+id,JSON.stringify({transactionId:txid,amount:order.amount}),now,id));
  statements.push(s("UPDATE billing_orders SET status='fulfilled',updated_at=? WHERE id=? AND status='verified'",now,id));
  await db().batch(statements);await allocateDue(order.organization_id);await auditLog(order.organization_id,'system:billing-reconciliation','billing.fulfilled',id);

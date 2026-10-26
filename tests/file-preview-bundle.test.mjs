@@ -23,9 +23,11 @@ test("PDF reader and worker stay outside the initial client chunks", async () =>
   }
   assert.deepEqual(matches, readerChunks, "PDF.js runtime signatures must only appear in the lazy reader chunk");
 
-  const providerName = chunkNames.find(name => /^file-preview-provider-.+\.js$/u.test(name));
-  assert.ok(providerName, "the shared preview provider should be present");
-  const providerSource = await readFile(path.join(chunksDirectory, providerName), "utf8");
+  const providers=await Promise.all(chunkNames.filter(name=>/^file-preview-provider-.+\.js$/u.test(name)).map(async name=>({name,source:await readFile(path.join(chunksDirectory,name),'utf8')})));
+  // Shared consumers may produce a small export facade alongside the real lazy loader.
+  const loaders=providers.filter(provider=>provider.source.includes(readerChunks[0]));
+  assert.equal(loaders.length,1,"exactly one shared provider must own the lazy PDF reader");
+  const providerSource=loaders[0].source;
   assert.ok(providerSource.includes(readerChunks[0]), "the provider should reference the reader as a dynamic chunk");
 });
 
@@ -36,8 +38,10 @@ test("Office readers and archive parser stay out of the initial client bundle", 
     assert.equal(match.length, 1, `${kind.toUpperCase()} reader should be emitted as a lazy chunk`);
     return match[0];
   });
-  const providerName = chunkNames.find(name => /^file-preview-provider-.+\.js$/u.test(name));
-  const providerSource = await readFile(path.join(chunksDirectory, providerName), "utf8");
+  const providerSources=await Promise.all(chunkNames.filter(name=>/^file-preview-provider-.+\.js$/u.test(name)).map(name=>readFile(path.join(chunksDirectory,name),'utf8')));
+  const loaders=providerSources.filter(source=>readerNames.every(name=>source.includes(name)));
+  assert.equal(loaders.length,1,"Office readers must share one lazy loader");
+  const providerSource=loaders[0];
   for (const name of readerNames) assert.ok(providerSource.includes(name), `provider should load ${name} dynamically`);
 
   const workerNames = (await readdir(staticDirectory)).filter(name => /^office-preview\.worker-.+\.js$/u.test(name));
