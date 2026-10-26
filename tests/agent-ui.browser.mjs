@@ -83,7 +83,7 @@ const server=createServer(async(req,res)=>{
     const accountId=decodeURIComponent(url.pathname.split('/').at(-1));revocationRequests.push(accountId);const item=connectorFixtures.find(item=>item.accountId===accountId);if(item)connectedAccounts.delete(item.slug);
     json(res,{disconnected:true});return;
   }
-  if(url.pathname==='/api/billing/catalog'){json(res,{version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,tax:{configured:true,...taxRule},readiness:{enabled:billingEnabled},free:{credits:10,days:7,enabled:false}});return;}
+  if(url.pathname==='/api/billing/catalog'){json(res,{version:CATALOG_VERSION,currency:'XAF',plans:PLANS,packs:PACKS.map(quantity=>({quantity,amount:topupPrice(quantity)})),custom:null,cycles:['period'],annualAvailable:false,tax:{configured:true,...taxRule},readiness:{enabled:billingEnabled},free:{credits:15,days:7,enabled:false}});return;}
   if(url.pathname==='/api/billing/summary'){summaryReads++;json(res,{wallet:{available:walletAvailable,reserved:12},creditAllowance:PLANS.pro.credits,subscription:null,meters:{storage:10*1024*1024,transfer:20*1024*1024},lots:[],orders:[],invoices:[]});return;}
   if(url.pathname==='/api/billing/organization'){
     if(req.method==='POST'){const chunks=[];for await(const chunk of req)chunks.push(chunk);organizationMutations.push(JSON.parse(Buffer.concat(chunks).toString()));json(res,{error:'Le test interdit les mutations d’équipe'},403);return;}
