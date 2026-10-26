@@ -11,6 +11,7 @@ import {build} from 'esbuild';
 const root=path.resolve(import.meta.dirname,'..'),output=path.join(root,'.tmp/auth-ui');
 await mkdir(output,{recursive:true});
 await build({entryPoints:['lib/auth-runtime.ts'],outfile:path.join(output,'auth.mjs'),bundle:true,platform:'node',format:'esm'});
+await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import {EmailSignIn} from "./components/email-sign-in";const params=new URLSearchParams(location.search);if(params.get("auth")==="sign-in")createRoot(document.getElementById("login")).render(React.createElement(EmailSignIn,{returnTo:params.get("return_to")||"/"}));',resolveDir:root,loader:'tsx'},outfile:path.join(output,'dialog.js'),bundle:true,platform:'browser',format:'esm',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'}});
 const auth=await import(pathToFileURL(path.join(output,'auth.mjs')));
 const require=createRequire(import.meta.url),playwright=process.env.BRAAND_PLAYWRIGHT_MODULE;
 const {chromium}=await import(playwright?pathToFileURL(path.resolve(playwright)).href:require.resolve('playwright'));
@@ -31,6 +32,7 @@ const server=createServer({key:await readFile(keyFile),cert:await readFile(certF
  try {
   const u=new URL(req.url,env.APP_ORIGIN);
   if(u.pathname==='/auth.css'){res.writeHead(200,{'Content-Type':'text/css'});res.end(await readFile('public/auth.css','utf8'));return;}
+  if(u.pathname==='/dialog.js'||u.pathname==='/dialog.css'){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':'text/css'});res.end(await readFile(path.join(output,u.pathname.slice(1))));return;}
   if(u.pathname==='/favicon.svg'){res.writeHead(204);res.end();return;}
   const chunks=[];for await(const chunk of req)chunks.push(chunk);
   const request=new Request(u,{method:req.method,headers:req.headers,...(!['GET','HEAD'].includes(req.method)?{body:Buffer.concat(chunks)}:{})});
@@ -38,7 +40,7 @@ const server=createServer({key:await readFile(keyFile),cert:await readFile(certF
    assert.equal(request.headers.get('origin'),env.APP_ORIGIN,'Browser form preserves the same-origin CSRF proof');
    assert.equal(request.headers.get('referer'),env.APP_ORIGIN+'/','Form requests never leak magic-link paths or tokens');
   }
-  const response=await auth.handleAuth(request,env)||new Response('<h1>Espace Braand</h1>',{headers:{'Content-Type':'text/html; charset=utf-8'}});
+  const response=await auth.handleAuth(request,env)||new Response('<!doctype html><html lang="fr"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/auth.css"><link rel="stylesheet" href="/dialog.css"></head><body><main><h1>Espace Braand</h1><div id="login"></div></main><script type="module" src="/dialog.js"></script></body></html>',{headers:{'Content-Type':'text/html; charset=utf-8','Referrer-Policy':'strict-origin'}});
   const headers=Object.fromEntries(response.headers),cookies=response.headers.getSetCookie();if(cookies.length)headers['set-cookie']=cookies;
   res.writeHead(response.status,headers);res.end(await response.text());
  } catch {requestFailures.push('HTTPS fixture request failed');res.writeHead(500);res.end();}
@@ -54,14 +56,16 @@ try {
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(env.APP_ORIGIN+'/auth/sign-in');await page.getByLabel('Votre adresse e-mail').waitFor();
  await page.screenshot({path:path.join(output,'desktop.png')});
- assert.equal(await page.locator('main').evaluate(el=>el.scrollWidth<=el.clientWidth),true);check('Desktop login fits, uses a real labeled form and requires no script');
+ assert.equal(await page.locator('main').evaluate(el=>el.scrollWidth<=el.clientWidth),true);check('The email dialog opens inside Braand with a labeled form and no overflow');
  await page.setViewportSize({width:390,height:844});assert.equal(await page.locator('body').evaluate(el=>el.scrollWidth<=window.innerWidth),true);
  await page.getByLabel('Votre adresse e-mail').focus();assert.equal(await page.getByLabel('Votre adresse e-mail').evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
  await page.screenshot({path:path.join(output,'mobile.png')});check('Mobile layout has no overflow and keyboard focus is visible');
  await page.getByLabel('Votre adresse e-mail').fill('owner@braand.test');
+ await page.getByRole('button',{name:'Recevoir mon lien'}).waitFor({state:'visible'});
+ await page.waitForFunction(()=>!document.querySelector('button[type=submit]').disabled);
  const [mailResponse]=await Promise.all([page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/request'),page.getByRole('button',{name:'Recevoir mon lien'}).click()]);
  assert.equal(mailResponse.status(),200,`Email request returned ${mailResponse.status()}: ${await page.locator('h1').textContent()}`);
- await page.getByRole('heading',{name:'Consultez votre messagerie'}).waitFor();assert.equal(mailCount,1);check('A real form requests one email without showing the private token');
+ await page.getByRole('heading',{name:'Consultez votre messagerie'}).waitFor();assert.equal(mailCount,1);check('The dialog requests one email without showing the private token or leaving Braand');
  await page.goto(link);await page.getByRole('button',{name:'Entrer dans mon espace'}).waitFor();assert.equal(sql.prepare('SELECT count(*) n FROM auth_sessions').get().n,0);check('Opening the email link requests confirmation before authentication');
  await page.getByRole('button',{name:'Entrer dans mon espace'}).click();
  await page.getByRole('heading',{name:'Espace Braand'}).waitFor();

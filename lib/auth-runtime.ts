@@ -13,7 +13,12 @@ const random = () => encode(crypto.getRandomValues(new Uint8Array(32)));
 const text = new TextEncoder();
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export function safeAuthReturn(value: string | null) {
-  try {const u = new URL(value || '/', 'https://braand.invalid'); return value?.startsWith('/') && u.origin === 'https://braand.invalid' && !u.pathname.startsWith('/auth/') && !u.pathname.includes('with-chatgpt') ? u.pathname + u.search + u.hash : '/';} catch {return '/';}
+  try {
+    const u = new URL(value || '/', 'https://braand.invalid');
+    if (!value?.startsWith('/') || u.origin !== 'https://braand.invalid' || u.pathname.startsWith('/auth/') || u.pathname.includes('with-chatgpt')) return '/';
+    if (u.searchParams.get('auth') === 'sign-in') {u.searchParams.delete('auth'); u.searchParams.delete('return_to');}
+    return u.pathname + u.search + u.hash;
+  } catch {return '/';}
 }
 function cookie(headers: Headers, name: string) {
   const cookieHeader = headers.get('cookie') || '';
@@ -49,6 +54,11 @@ function page(title: string, body: string, status = 200, cookies?: string) {
   const headers = new Headers({'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'private, no-store', 'Referrer-Policy':'strict-origin', 'X-Content-Type-Options':'nosniff', 'Content-Security-Policy':"default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"});
   if (cookies) headers.set('Set-Cookie', cookies);
   return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · Braand</title><link rel="stylesheet" href="/auth.css"><link rel="icon" href="/favicon.svg"></head><body><main><a class="brand" href="/">Braand</a><h1>${escape(title)}</h1>${body}<a class="back" href="/">Revenir à Braand</a></main></body></html>`, {status, headers});
+}
+function notice(request: Request, title: string, message: string, status = 200) {
+  return request.headers.get('accept')?.includes('application/json')
+    ? Response.json({title, message}, {status, headers:{'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff'}})
+    : page(title, `<p>${escape(message)}</p>`, status);
 }
 const denied = () => page('Connexion impossible', '<p>Ce lien est expiré, a déjà été utilisé ou appartient à un autre navigateur. Demandez un nouveau lien depuis cet appareil.</p><a class="button" href="/auth/sign-in">Demander un nouveau lien</a>', 400);
 function redirect(location: string, cookies?: string) {return new Response(null, {status:303, headers:{Location:location, 'Cache-Control':'private, no-store', 'Referrer-Policy':'no-referrer', ...(cookies ? {'Set-Cookie':cookies} : {})}});}
@@ -86,9 +96,16 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
   // This bound applies to chunked requests too, including logout requests.
   let form: URLSearchParams | null = null;
   if (request.method === 'POST') {form=await readForm(request); if (!form) return denied();}
-  if (path === '/auth/sign-in' && request.method === 'GET') {
-    const browser = random(), returnTo = safeAuthReturn(url.searchParams.get('return_to'));
-    return page('Retrouvez votre espace', `<p>Recevez un lien personnel pour vous connecter, sans mot de passe.</p><form method="post" action="/auth/request"><input type="hidden" name="browser" value="${browser}"><input type="hidden" name="return_to" value="${escape(returnTo)}"><label for="email">Votre adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"><button type="submit">Recevoir mon lien</button></form>`, 200, setCookie(LOGIN_COOKIE, browser, 600));
+  if ((path === '/auth/sign-in' || path === '/auth/form') && request.method === 'GET') {
+    const returnTo = safeAuthReturn(url.searchParams.get('return_to'));
+    const authenticated = Boolean(await sessionIdentity(request.headers, env, now));
+    if (path === '/auth/sign-in') return redirect(authenticated ? returnTo : '/?auth=sign-in&return_to=' + encodeURIComponent(returnTo));
+    const headers = new Headers({'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff'});
+    if (authenticated) return Response.json({authenticated:true, returnTo}, {headers});
+    // Refreshes and other tabs must not invalidate a link that was already sent.
+    const browser = cookie(request.headers, LOGIN_COOKIE) || random();
+    headers.set('Set-Cookie', setCookie(LOGIN_COOKIE, browser, 600));
+    return Response.json({authenticated:false, browser, returnTo}, {headers});
   }
   if (path === '/auth/sign-out') {
     if (request.method === 'GET') return page('Se déconnecter', '<p>Votre travail enregistré restera disponible lors de votre prochaine connexion.</p><form method="post" action="/auth/sign-out"><button type="submit">Confirmer la déconnexion</button></form>');
@@ -102,13 +119,13 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
   // Bound bodies before parsing; never log addresses, links or provider payloads.
   if (Number(request.headers.get('content-length') || 0) > 4096) return denied();
   if (path === '/auth/request' && form) {
-    if (!emailReady(env)) return page('Connexion indisponible', '<p>L’envoi du lien n’est pas encore configuré. Réessayez plus tard.</p>', 503);
+    if (!emailReady(env)) return notice(request, 'Connexion indisponible', 'L’envoi du lien n’est pas encore configuré. Réessayez plus tard.', 503);
     const email = (form.get('email') || '').trim().toLowerCase(), browser = cookie(request.headers, LOGIN_COOKIE);
     if (!browser || form.get('browser') !== browser || email.length > 254 || !emailPattern.test(email)) return denied();
     const ip = request.headers.get('cf-connecting-ip');
-    if (!ip && env.APP_ENV !== 'test') return page('Connexion indisponible', '<p>Réessayez depuis l’adresse officielle de Braand.</p>', 503);
-    if (!await rate(env, 'ip', ip || 'offline-fixture', 10, 600_000, now) || !await rate(env, 'global', 'mail', 100, 600_000, now)) return page('Patientez un instant', '<p>Trop de demandes. Réessayez dans quelques minutes.</p>', 429);
-    const generic = () => page('Consultez votre messagerie', '<p>Si cette adresse est autorisée, un lien valable dix minutes vous sera envoyé. Ouvrez le lien dans ce navigateur.</p>');
+    if (!ip && env.APP_ENV !== 'test') return notice(request, 'Connexion indisponible', 'Réessayez depuis l’adresse officielle de Braand.', 503);
+    if (!await rate(env, 'ip', ip || 'offline-fixture', 10, 600_000, now) || !await rate(env, 'global', 'mail', 100, 600_000, now)) return notice(request, 'Patientez un instant', 'Trop de demandes. Réessayez dans quelques minutes.', 429);
+    const generic = () => notice(request, 'Consultez votre messagerie', 'Si cette adresse est autorisée, un lien valable dix minutes vous sera envoyé. Ouvrez le lien dans ce navigateur.');
     if (env.RESEND_MODE === 'sandbox' && email !== env.RESEND_TEST_RECIPIENT?.toLowerCase()) return generic();
     if (!await rate(env, 'email', email, 1, 60_000, now)) return generic();
     const token = random(), id = crypto.randomUUID();
@@ -120,7 +137,7 @@ export async function handleAuth(request: Request, env: AuthEnv, now = Date.now(
     } catch {
       // Invalidate even an uncertain send. Never resend authentication links blindly.
       await env.DB!.prepare('DELETE FROM auth_challenges WHERE id=?').bind(id).run();
-      return page('Envoi impossible', '<p>Le lien n’a pas pu être envoyé. Réessayez dans une minute.</p>', 503);
+      return notice(request, 'Envoi impossible', 'Le lien n’a pas pu être envoyé. Réessayez dans une minute.', 503);
     }
     return generic();
   }
