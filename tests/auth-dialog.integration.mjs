@@ -13,7 +13,7 @@ await build({stdin:{contents:`
  import {EmailSignIn} from './components/email-sign-in';
  export const settings=props=>renderToStaticMarkup(createElement(SettingsPanel,props));
  export const login=()=>renderToStaticMarkup(createElement(EmailSignIn));
-`,resolveDir:root,loader:'tsx'},outfile,bundle:true,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom/server'],loader:{'.css':'empty'},plugins:[{name:'isolate-settings-children',setup(builder){
+`,resolveDir:root,loader:'tsx'},outfile,bundle:true,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom/server','lucide-react'],loader:{'.css':'empty'},plugins:[{name:'isolate-settings-children',setup(builder){
  builder.onResolve({filter:/(?:connectors-panel|memory-panel|appearance-settings)$/},args=>({path:args.path,namespace:'child'}));
  builder.onLoad({filter:/.*/,namespace:'child'},()=>({contents:'export default function Child(){return null;} export const MemoryPanel=Child,AppearanceSettings=Child;',loader:'js'}));
 }}]});
