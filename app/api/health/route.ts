@@ -6,9 +6,9 @@ export async function GET(request?:Request) {
   try {
     await db().prepare('SELECT 1 AS ok').first();
     if (request && new URL(request.url).searchParams.get('check') === 'assistant') {
-      await ensureModelRates(env);
+      const pricing=await ensureModelRates(env);
       const ready=modelReadiness().ready;
-      return Response.json({status:ready?'ok':'unavailable',assistantReady:ready},{status:ready?200:503,headers:{'Cache-Control':'no-store'}});
+      return Response.json({status:ready?'ok':'unavailable',assistantReady:ready,pricing:pricing.status,reason:'reason' in pricing?pricing.reason:undefined},{status:ready?200:503,headers:{'Cache-Control':'no-store'}});
     }
     return Response.json({status:'ok'},{headers:{'Cache-Control':'no-store'}});
   } catch {
