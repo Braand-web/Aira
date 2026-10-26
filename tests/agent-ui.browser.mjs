@@ -45,7 +45,7 @@ const drafts=new Map();
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
   if(url.pathname==='/api/drafts'){
-   if(req.method==='GET'){json(res,drafts.get(url.searchParams.get('context'))||{content:'',version:0,attachments:[],updatedAt:now});return;}
+   if(req.method==='GET'){json(res,drafts.get(url.searchParams.get('context'))||{content:'',version:0,attachments:[],updatedAt:0});return;}
    const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());
    if(req.method==='DELETE'){drafts.delete(body.context);json(res,{ok:true});return;}
    const current=drafts.get(body.context)||{version:0};if(body.version!==current.version){json(res,{error:'Conflit de version'},409);return;}
@@ -462,7 +462,7 @@ try{
   await page.locator('.welcome-symbol .braand-avatar[data-state="working"]').waitFor();
   assert.equal(await page.locator('.chat-connect-status,.composer-wrap [data-slot=ai-status]').count(),0);
   assert.doesNotMatch(await page.locator('body').innerText(),/Préparation de la réponse|Connexion au modèle/);
-  assert.equal(await page.locator('.composer-wrap [role=status]').textContent(),'Réponse en cours');
+  assert.equal(await page.locator('.content-area > .sr-only[role=status]').textContent(),'Réponse en cours');
   assert.equal(Math.round((await page.locator('.composer').boundingBox()).height),Math.round(composerBeforeSend.height),'Waiting must preserve the compact composer dimensions');
   await capture({path:path.join(output,'quiet-wait-desktop.png'),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
