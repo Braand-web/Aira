@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useRef, useState, type ReactNode} from "react";
-import {ArrowUpRight, BookOpen, ChevronRight, CircleHelp, CreditCard, FolderClosed, HardDrive, LogOut, Plug, RefreshCw, Settings2, ShieldCheck, UsersRound, Wallet, X} from "lucide-react";
+import {ArrowUpRight, BookOpen, ChevronRight, CircleHelp, CreditCard, FolderClosed, HardDrive, LoaderCircle, LogOut, Plug, RefreshCw, Settings2, ShieldCheck, UsersRound, Wallet, X} from "lucide-react";
 import ConnectorsPanel from "@/app/connectors-panel";
 import {api} from "@/lib/client-api";
 import "./settings-panel.css";
@@ -47,7 +47,9 @@ function Value({value, loading}: {value?: string; loading: boolean}) {
  return value !== undefined ? <>{value}</> : loading ? <><span className="settings-value-skeleton" aria-hidden="true"/><span className="settings-sr-only">Chargement…</span></> : <>Indisponible</>;
 }
 
-export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, skillsContent, billingContent, teamContent, onClose, onFiles, onRefresh, onSignIn}: {
+export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, skillsContent, billingContent, teamContent, sessionState, onSignIn, onClose, onFiles, onRefresh}: {
+ sessionState?: "loading" | "authenticated" | "anonymous" | "error";
+ onSignIn?: () => void;
  tab: SettingsTab;
  onTabChange: (tab: SettingsTab) => void;
  user?: {id?: string; name: string; email: string};
@@ -61,10 +63,12 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
  onBilling?: () => void;
  onFiles: () => void;
  onRefresh?: () => void;
- onSignIn: () => void;
 }) {
  const identity = user?.id?.trim() || user?.email?.trim() || "";
- const signedIn = Boolean(identity);
+ const signedIn = Boolean(identity) && (!sessionState || sessionState === "authenticated");
+ const pendingSession = sessionState === "loading";
+ const sessionError = sessionState === "error";
+ const accountSection = tab !== "help" && tab !== "legal";
  const navigation = useRef<HTMLElement>(null);
  const cacheKey = JSON.stringify([identity, workspace?.id ?? null, workspace?.credits ?? null, workspace?.reserved ?? null]);
  const [result, setResult] = useState<{cacheKey: string; revision: number; summary: BillingSummary | null; organization: OrganizationSummary | null; summaryError: boolean; organizationError: boolean} | null>(null);
@@ -113,7 +117,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
  const visibleSummaryError = summaryError && (tab === "general" || tab === "credits" || tab === "storage");
  const visibleOrganizationError = organizationError && (tab === "general" || tab === "storage" || tab === "permissions");
  const modelState = capabilities?.modelReady ? "Disponible" : "Indisponible";
- const signIn = <button type="button" className="settings-button settings-primary" onClick={onSignIn}>Se connecter<ArrowUpRight size={15} aria-hidden="true"/></button>;
+ const signIn = <a onClick={event=>{if(onSignIn){event.preventDefault();onSignIn();}}} className="settings-button settings-primary" href="/auth/sign-in?return_to=/" target="_top">Se connecter<ArrowUpRight size={15} aria-hidden="true"/></a>;
  const privateTab = tab === "skills" || tab === "credits" || tab === "billing" || tab === "team" || tab === "storage" || tab === "permissions";
  const slots: Partial<Record<SettingsTab, ReactNode>> = {skills: skillsContent, billing: billingContent, team: teamContent};
 
@@ -128,11 +132,14 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
    <nav ref={navigation} className="settings-navigation" aria-label="Catégories des paramètres">
     {sections.map(({id, label, icon: Icon}) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => onTabChange(id)}><Icon size={18} aria-hidden="true"/><span>{label}</span></button>)}
    </nav>
-   {signedIn?<a className="settings-signout" href="/auth/sign-out?return_to=/" target="_top"><LogOut size={18} aria-hidden="true"/><span>Se déconnecter</span></a>:<button type="button" className="settings-signout" onClick={onSignIn}><LogOut size={18} aria-hidden="true"/><span>Se connecter</span></button>}
+   {!pendingSession && !sessionError && <a onClick={event=>{if(!signedIn&&onSignIn){event.preventDefault();onSignIn();}}} className="settings-signout" href={signedIn ? "/auth/sign-out?return_to=/" : "/auth/sign-in?return_to=/"} target="_top"><LogOut size={18} aria-hidden="true"/><span>{signedIn ? "Se déconnecter" : "Se connecter"}</span></a>}
   </aside>
   <section className="settings-main" aria-labelledby="settings-section-title">
    <header className="settings-header"><h3 id="settings-section-title">{heading}</h3><button className="settings-close" type="button" onClick={onClose} aria-label="Fermer les paramètres" title="Fermer les paramètres"><X size={18} aria-hidden="true"/></button></header>
-   <div className="settings-content" data-settings-section={tab} aria-busy={dataTab && loading}>
+   <div className="settings-content" data-settings-section={tab} aria-busy={pendingSession || (dataTab && loading)}>
+    {accountSection && pendingSession && <p className="settings-intro" role="status"><LoaderCircle size={16} className="spin" aria-hidden="true"/> Vérification de votre session…</p>}
+    {accountSection && sessionError && <div className="settings-error" role="alert"><p>Votre compte n’a pas pu être chargé. Réessayez pour vérifier votre session.</p><button type="button" className="settings-button" onClick={onRefresh}>Réessayer</button></div>}
+    {(!accountSection || (!pendingSession && !sessionError)) && <>
     {dataTab && (visibleSummaryError || visibleOrganizationError) && <div className="settings-error" role="alert"><p>{visibleSummaryError && visibleOrganizationError ? "Le portefeuille et les droits de l’organisation n’ont pas pu être chargés." : visibleSummaryError ? "Le portefeuille n’a pas pu être chargé." : "Les droits de l’organisation n’ont pas pu être chargés."}</p><button type="button" className="settings-button" disabled={loading} onClick={() => setRevision(value => value + 1)}><RefreshCw size={14} aria-hidden="true"/>Réessayer</button></div>}
     {tab === "general" && <>
      {signedIn&&<MemoryPanel/>}
@@ -183,6 +190,7 @@ export function SettingsPanel({tab, onTabChange, user, workspace, capabilities, 
      <div className="settings-card">{LEGAL_LINKS.map(link=><a key={link.href} className="settings-row settings-row-link settings-external-link" href={link.href} target="_blank" rel="noopener noreferrer"><span>{link.label}<span className="settings-sr-only"> — nouvel onglet</span></span><ArrowUpRight size={16} aria-hidden="true"/></a>)}</div>
      <p className="settings-service-note">Versions provisoires : l’identité complète de l’exploitant et les modalités juridiques restent à compléter.</p>
      <p className="settings-service-note">Contact : <a href="mailto:novacore629@gmail.com">novacore629@gmail.com</a></p>
+    </>}
     </>}
    </div>
   </section>
