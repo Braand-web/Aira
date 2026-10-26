@@ -249,7 +249,7 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
             continue;
         let budget: RunBudget | undefined, step: StepRow | undefined, allocationRef: string | undefined;
         try {
-            if (row.expires_at <= Date.now()) {
+            if (row.expires_at <= Date.now() && row.status !== 'needs_reconciliation') {
                 await setState(row.id, 'expired', 'mandate_expired');
                 continue;
             }
@@ -266,7 +266,7 @@ export async function runWorkTick(runner?: Runner, workId?: string) {
                 const waiting = await q("SELECT r.status FROM resources r JOIN agent_work_artifacts a ON a.resource_id=r.id WHERE a.work_id=? AND a.step_id=? AND r.status IN ('awaiting_approval','generating','pending','executing','waiting_input') LIMIT 1",row.id,settled.id).first<{status:string}>();
                 const nextStep = waiting ? waiting.status==='waiting_input'?'waiting_input':['generating','executing'].includes(waiting.status)?'waiting_external':'waiting_approval' : 'completed';
                 const remaining = await q("SELECT 1 FROM agent_work_steps WHERE work_id=? AND id!=? AND status!='completed' LIMIT 1",row.id,settled.id).first();
-                const nextWork = nextStep==='completed' ? remaining?'running':'completed' : nextStep;
+                const nextWork = nextStep==='completed'&&!remaining ? 'completed' : row.expires_at<=Date.now() ? 'expired' : nextStep==='completed' ? 'running' : nextStep;
                 const finished = Date.now();
                 const result = await db().batch([
                     q("UPDATE agent_work_steps SET status=?,result=?,finished_at=? WHERE id=? AND status='uncertain' AND EXISTS(SELECT 1 FROM agent_work WHERE id=? AND status='needs_reconciliation' AND lease_token=?)",nextStep,JSON.stringify({runId:settled.run_id,deliveryConfirmed:true,costReconciled:true,semanticReview:'see_deliverable_receipts'}),finished,settled.id,row.id,token),
