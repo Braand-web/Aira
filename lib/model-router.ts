@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {currentPricingRate} from './model-pricing';
 import {AppError} from './core.mjs';
 import {modelRateSchema,type ModelRate} from './model-protocol';
 
@@ -31,9 +32,11 @@ export function routedModel(env:Record<string,string|undefined>,request:RoutingR
  let catalog:unknown;try{catalog=JSON.parse(env.MODEL_ROUTING_CATALOG_JSON||'{}');}catch{throw new AppError('Catalogue IA invalide.',503,'model_not_configured');}
  const entries=z.record(z.unknown()).safeParse(catalog),parsed=entrySchema.safeParse(entries.success?entries.data[key]:undefined);
  if(!parsed.success)throw new AppError('Le modèle requis et son tarif doivent être configurés.',503,'rate_unverified');
- const definition=REASONING_MODELS[key],entry=parsed.data,provider=entry.transport||definition.provider,model=provider==='openrouter'?openRouterModels[key]:definition.model,age=now-Date.parse(entry.rate.verifiedAt);
+ const definition=REASONING_MODELS[key],entry=parsed.data,provider=entry.transport||definition.provider,model=provider==='openrouter'?openRouterModels[key]:definition.model;
+ if(model)entry.rate=currentPricingRate(model,provider,now)||entry.rate;
+ const age=now-Date.parse(entry.rate.verifiedAt);
  if(!model||provider!=='openrouter'&&provider!==definition.provider||entry.rate.model!==model||entry.rate.provider&&entry.rate.provider!==provider||!Number.isFinite(age)||age<0||age>86400000||provider==='openrouter'&&(typeof entry.rate.fundingFeeBps!=='number'||!Number.isFinite(entry.rate.fundingFeeBps)||entry.rate.fundingFeeBps<0||entry.rate.fundingFeeBps>10000))throw new AppError('Le tarif exact du modèle et le taux de change doivent être vérifiés.',503,'rate_unverified');
  const apiKey=env[provider==='openrouter'?'OPENROUTER_API_KEY':provider==='openai'?'OPENAI_API_KEY':'ANTHROPIC_API_KEY']?.trim();if(!apiKey)throw new AppError('Le fournisseur IA requis n’est pas configuré sur le serveur.',503,'model_not_configured');
  const headers:Record<string,string>=provider==='openai'?{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'}:provider==='openrouter'?{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json','X-OpenRouter-Metadata':'enabled'}:{'x-api-key':apiKey,'anthropic-version':'2023-06-01','Content-Type':'application/json'};
- return {key,provider,model,rate:{...entry.rate,provider},maxInputTokens:entry.maxInputTokens,maxOutputTokens:entry.maxOutputTokens,apiKey,url:provider==='openai'?'https://api.openai.com/v1/responses':provider==='openrouter'?'https://openrouter.ai/api/v1/messages':'https://api.anthropic.com/v1/messages',headers,routing:decision.data};
+ return {key,provider,model,rate:{...entry.rate,provider},maxInputTokens:Math.min(entry.maxInputTokens,typeof entry.rate.maxInputTokens==='number'?entry.rate.maxInputTokens:entry.maxInputTokens),maxOutputTokens:entry.maxOutputTokens,apiKey,url:provider==='openai'?'https://api.openai.com/v1/responses':provider==='openrouter'?'https://openrouter.ai/api/v1/messages':'https://api.anthropic.com/v1/messages',headers,routing:decision.data};
 }
