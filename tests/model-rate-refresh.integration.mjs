@@ -14,7 +14,7 @@ const env={MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive',MODEL_RO
 const originalFetch=globalThis.fetch,originalError=console.error;let failures=0;
 console.error=(message)=>{assert.equal(message,'Braand model pricing refresh unavailable; unverified costs remain blocked.');failures++;};
 globalThis.fetch=async(address,options)=>{
- fetches++;assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,undefined);assert.equal(options.headers.authorization,undefined);
+ fetches++;assert.equal(options.redirect,'manual');assert.equal(options.headers.Authorization,undefined);assert.equal(options.headers.authorization,undefined);
  if(fail)throw Error('private-provider-error-must-not-be-logged');
  if(address==='https://www.beac.int/')return new Response('USD/XAF</span></div></div><div id="middle">582.5503</div><div id="right">587.5463</div><p>Date de valeur : 23/10/2026</p>');
  assert.equal(address,'https://openrouter.ai/api/v1/models');

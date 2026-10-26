@@ -53,7 +53,7 @@ export function modelRateEnvironment<T extends object>(env:T, now=Date.now()):T 
 async function sourceText(url:string, limit:number) {
  let response:Response;
  const source=url === MODEL_PRICING_URL ? 'pricing' : 'fx';
- try {response = await fetch(url,{headers:{Accept:source === 'pricing' ? 'application/json' : 'text/html'},redirect:'error',signal:AbortSignal.timeout(8000)});}catch{throw new Error('model_'+source+'_fetch_failed');}
+ try {response = await fetch(url,{headers:{Accept:source === 'pricing' ? 'application/json' : 'text/html'},redirect:'manual',signal:AbortSignal.timeout(8000)});}catch{throw new Error('model_'+source+'_fetch_failed');}
  if (!response.ok || !response.body) throw new Error('model_'+source+'_http_'+response.status);
  const reader = response.body.getReader(), chunks:Uint8Array[]=[]; let size=0;
  try {while (true) {const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>limit)throw new Error('model_rate_source_too_large');chunks.push(part.value);}}

@@ -58,3 +58,4 @@ jobs:
           node scripts/prepare-production-deploy.mjs
           npx --no-install wrangler deploy --config .wrangler/deploy/production-live.json --keep-vars --message "Verified chat and billing fix ${GITHUB_SHA}"
           curl --fail --silent --show-error https://braand.fun/api/health
+          curl --fail --silent --show-error "https://braand.fun/api/health?check=assistant"
