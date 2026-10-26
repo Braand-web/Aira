@@ -5,7 +5,7 @@ type Environment = Record<string, unknown> & {BUCKET?: R2Bucket};
 type Target = {key:string; rate:ModelRate; maxInputTokens:number; maxOutputTokens:number};
 type Entry = {rate:ModelRate; maxInputTokens:number; maxOutputTokens:number};
 type Snapshot = {version:1; fingerprint:string; checkedAt:number; entries:Record<string,Entry>};
-type State = {snapshot?:Snapshot; values?:Record<string,string>; inFlight?:Promise<void>; retryAt:number; loaded:boolean};
+type State = {snapshot?:Snapshot; values?:Record<string,string>; inFlight?:Promise<void>; retryAt:number; loaded:boolean; reason?:string};
 const states = new Map<string,State>();
 const REFRESH_MS = 6 * 3600000, MAX_AGE_MS = 86400000, RETRY_MS = 300000;
 const fields = ['MODEL_ROUTING_ENABLED','MODEL_ROUTING_CATALOG_JSON','LLM_PROVIDER','OPENROUTER_MODEL','OPENROUTER_RATE_JSON'] as const;
@@ -51,8 +51,10 @@ export function modelRateEnvironment<T extends object>(env:T, now=Date.now()):T 
 }
 
 async function sourceText(url:string, limit:number) {
- const response = await fetch(url,{headers:{Accept:url === MODEL_PRICING_URL ? 'application/json' : 'text/html'},redirect:'error',signal:AbortSignal.timeout(8000)});
- if (!response.ok || !response.body) throw new Error('model_rate_source_unavailable');
+ let response:Response;
+ const source=url === MODEL_PRICING_URL ? 'pricing' : 'fx';
+ try {response = await fetch(url,{headers:{Accept:source === 'pricing' ? 'application/json' : 'text/html'},redirect:'error',signal:AbortSignal.timeout(8000)});}catch{throw new Error('model_'+source+'_fetch_failed');}
+ if (!response.ok || !response.body) throw new Error('model_'+source+'_http_'+response.status);
  const reader = response.body.getReader(), chunks:Uint8Array[]=[]; let size=0;
  try {while (true) {const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>limit)throw new Error('model_rate_source_too_large');chunks.push(part.value);}}
  finally {await reader.cancel().catch(()=>undefined);}
@@ -66,7 +68,7 @@ export async function ensureModelRates(bindings:object & {BUCKET?:R2Bucket}, now
  if (!selected.length) return {status:'disabled'};
  const key=signature(env);let state=states.get(key);
  if (!state) {state={retryAt:0,loaded:false};if(states.size>=8){const inactive=[...states].find(([,value])=>!value.inFlight);if(inactive)states.delete(inactive[0]);}states.set(key,state);}
- if (state.inFlight) {await state.inFlight;return {status:state.snapshot&&now>=state.snapshot.checkedAt&&now-state.snapshot.checkedAt<=MAX_AGE_MS?'available':'unavailable'};}
+ if (state.inFlight) {await state.inFlight;return {status:state.snapshot&&now>=state.snapshot.checkedAt&&now-state.snapshot.checkedAt<=MAX_AGE_MS?'available':'unavailable',reason:state.reason};}
  if (state.snapshot && now>=state.snapshot.checkedAt && now-state.snapshot.checkedAt<REFRESH_MS || now<state.retryAt) return {status:state.snapshot?'available':'unavailable'};
  const current=state;
  current.inFlight=(async()=>{
@@ -85,13 +87,14 @@ export async function ensureModelRates(bindings:object & {BUCKET?:R2Bucket}, now
    for(const target of selected){const matches=data.filter(value=>object(value).id===target.rate.model);if(matches.length!==1)throw new Error('model_rate_missing');entries[target.key]=refreshOpenRouterRate(matches[0],target.rate,target,fx,now);}
    const snapshot:Snapshot={version:1,fingerprint,checkedAt:now,entries};
    const values=overlays(env,selected,snapshot,fingerprint,now);
-   current.snapshot=snapshot;current.values=values;current.retryAt=0;
+   current.snapshot=snapshot;current.values=values;current.retryAt=0;current.reason=undefined;
    try {await env.BUCKET?.put(storageKey,JSON.stringify(snapshot),{httpMetadata:{contentType:'application/json'},customMetadata:{purpose:'internal-model-pricing'}});}catch{/* A verified in-memory snapshot remains usable if persistence fails. */}
-  } catch {
+  } catch (error) {
+   current.reason=error instanceof Error&&/^(?:fx_reference_invalid|model_[a-z_0-9]+)$/.test(error.message)?error.message:'model_rate_validation_failed';
    current.retryAt=now+RETRY_MS;
    console.error('Braand model pricing refresh unavailable; unverified costs remain blocked.');
   }
  })().finally(()=>{current.inFlight=undefined;});
  await current.inFlight;
- return {status:current.snapshot&&now-current.snapshot.checkedAt<=MAX_AGE_MS?'available':'unavailable'};
+ return {status:current.snapshot&&now-current.snapshot.checkedAt<=MAX_AGE_MS?'available':'unavailable',reason:current.reason};
 }
