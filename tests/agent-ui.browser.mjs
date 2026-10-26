@@ -454,7 +454,10 @@ try{
   await page.keyboard.press('Escape');await metaDetail.waitFor({state:'hidden'});assert.equal(await settings.isVisible(),true);
   await page.keyboard.press('Escape');await settings.waitFor({state:'hidden'});
   await page.setViewportSize({width:1280,height:800});await page.emulateMedia({reducedMotion:'no-preference'});
-  await page.goto(origin);await composer.fill('Bonjour');
+  const initialDraftRestored=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/drafts'&&response.request().method()==='GET');
+  await page.goto(origin);await initialDraftRestored;
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await composer.fill('Bonjour');
   checks.push('Design system: shared tokens, desktop/mobile settings, catalog, billing and 72px rail');
   checks.push('Composer grows only vertically, caps at 192px and scrolls internally');
   const composerBeforeSend=await page.locator('.composer').boundingBox();
