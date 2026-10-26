@@ -73,7 +73,7 @@ try {
  await check('expired auth metadata is removed, verified accounts are retained',async()=>{await auth.cleanupAuth(env,now+9*86400000);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_rate_limits').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM auth_users').get().n,1);});
  const register=async(email,at)=>{
   env.RESEND_TEST_RECIPIENT=email;
-  const start=await auth.handleAuth(req('/auth/sign-in'),env,at),cookie=start.headers.get('set-cookie').split(';')[0],nonce=cookie.split('=')[1];
+  const start=await auth.handleAuth(req('/auth/form'),env,at),cookie=start.headers.get('set-cookie').split(';')[0],nonce=cookie.split('=')[1];
   await auth.handleAuth(req('/auth/request',{email,browser:nonce},cookie),env,at);
   const sent=new URL(mails.at(-1).text.match(/https:\/\/[^\s]+/)[0]);
   return auth.handleAuth(req('/auth/verify',Object.fromEntries(sent.searchParams),cookie),env,at);
