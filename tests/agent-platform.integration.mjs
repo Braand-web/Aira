@@ -101,6 +101,14 @@ await check('video editing prepares an exact priced draft without spending and r
  await assert.rejects(()=>render.approveAssembly(who,current.id,current.version),e=>e.code==='render_quote_changed');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n,before);
  await assert.rejects(()=>render.prepareVideoEdit(who,{...input,clips:[{...input.clips[0],sha256:'c'.repeat(64)}]}),e=>e.code==='render_input_changed');
  await assert.rejects(()=>render.videoEditResult({...who,tenant:'other'},{id:proposal.id}));
+ const approved=await render.prepareVideoEdit(who,input);await render.approveAssembly(who,approved.id,approved.version);
+ const pending=await server.getResource(who.tenant,approved.id);
+ await server.updateResource(who.tenant,pending.id,pending.version,{data:{...pending.data,payload:{...pending.data.payload,input:{...input,style:{...input.style,grade:'cool'}}}}});
+ let externalCalls=0;globalThis.fetch=async()=>{externalCalls++;throw Error('External network forbidden');};
+ await render.runRenderTick();
+ const job=sql.prepare('SELECT status,error_code,hold_id FROM media_render_jobs WHERE proposal_id=?').get(approved.id);
+ assert.equal(job.status,'uncertain');assert.equal(job.error_code,'render_quote_changed');assert.equal(externalCalls,0);
+ assert.equal(sql.prepare('SELECT status FROM credit_holds WHERE id=?').get(job.hold_id).status,'reserved');
 });
 Date.now=realNow;console.log(checks.length+' agent platform checks passed; actual external calls: 0.');
 

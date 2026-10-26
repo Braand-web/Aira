@@ -116,7 +116,8 @@ export async function runRenderTick() {
             if (job.status === 'queued') {
                 const quote = renderQuoteSchema.parse(proposal.data.payload);
                 if(quote.contract==='braand-render-v2'&&!videoEditingReadiness().ready)throw new AppError('Le montage avancé attend sa vérification.',503,'render_unavailable');
-                if (quote.fingerprint !== job.digest)
+                const {fingerprint,...signed}=quote;
+                if (fingerprint !== job.digest || await digest(signed)!==fingerprint)
                     throw new AppError('Le montage a changé.', 409, 'render_quote_changed');
                 const sources = await files(job.workspace_id, quote.input.clips);
                 await q("UPDATE media_render_jobs SET status='submitting' WHERE id=? AND lease_token=?", job.id, token).run();
