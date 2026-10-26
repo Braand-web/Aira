@@ -1,0 +1,213 @@
+{
+  "source": {
+    "repository": "User-provided video-motion-studio.skill",
+    "commit": "43e8544a2b894204e715dc75ff399e009bc627fa39c31fb0041324b7e9d18e7a"
+  },
+  "license": "User-provided; no redistribution license supplied",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "bytes": 16256,
+      "sha256": "11ed24306750d4971da47e5805e971e523c5722b8ae71e6a42132f05cbaa0b7f"
+    },
+    {
+      "path": "references/remotion.md",
+      "bytes": 6781,
+      "sha256": "ed1a702a64bd0ef035b1164d35abceed5a04407ba55c0eca824587c085b773fd"
+    },
+    {
+      "path": "references/color.md",
+      "bytes": 5562,
+      "sha256": "46e62bcba1890ac62b8d158c5bf68d299570e07fd1a3bfbf2a620b85b9bbbd4a"
+    },
+    {
+      "path": "references/editing-craft.md",
+      "bytes": 6222,
+      "sha256": "41172cb4657b4a879b883b4593279f25051d2714d9f79d9b3fc993197462a154"
+    },
+    {
+      "path": "references/delivery-specs.md",
+      "bytes": 4985,
+      "sha256": "e55daffdef2db11e602c38fe00f6b2592e25baa03ee6718a098dc3d18baab0ef"
+    },
+    {
+      "path": "references/motion-design.md",
+      "bytes": 7569,
+      "sha256": "69f645fe6c6805c7d8f4c24ddbe02805b1d86da4db48ce91bc0165629bcfb4d2"
+    },
+    {
+      "path": "references/anime-production.md",
+      "bytes": 10567,
+      "sha256": "7c7d270a39d03b880cb8c85784452d1a5fa4880aab2871bfeec2fede23c92e1d"
+    },
+    {
+      "path": "references/troubleshooting.md",
+      "bytes": 7063,
+      "sha256": "7889ed2bd194e27bad1a3464999db9b0257492253c8deb5a8428656f20342ba0"
+    },
+    {
+      "path": "references/ffmpeg-cookbook.md",
+      "bytes": 10124,
+      "sha256": "482280207cdd36282dd0b65d423f39ac945486bb2d3c14ef488f2b6bb3befdbd"
+    },
+    {
+      "path": "references/timeline-schema.md",
+      "bytes": 8172,
+      "sha256": "25271335ef378083e3b4a3935a05d2be00a7e4d16b333fa24fb085ccf025be22"
+    },
+    {
+      "path": "references/audio.md",
+      "bytes": 5374,
+      "sha256": "f63916be2582ab1c847e75a67f9624c0ffe72b2607f82f8c0b10734f7383abab"
+    },
+    {
+      "path": "assets/storyboard-template.md",
+      "bytes": 1104,
+      "sha256": "74a3ebeedea454d7fc33a548f24406fc2099d7e81165d1f8002249c7cd66448a"
+    },
+    {
+      "path": "assets/timeline.example.json",
+      "bytes": 1475,
+      "sha256": "2867e73ef088ab9b140874ea1153dc0a5c637523f078a16a6b0e7a42226e1aeb"
+    },
+    {
+      "path": "assets/titles.example.json",
+      "bytes": 564,
+      "sha256": "9a9cd97f545e974a4c93931b8453cd645af8e548490b888b5ff22b3224676eeb"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "INSTALL.md",
+      "bytes": 6735,
+      "sha256": "be8fd3855e5105fcdfb8d0729268632130d2f31468eceb79c6ab1c165a1f143a",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/build_timeline.py",
+      "bytes": 36112,
+      "sha256": "0bc2edbbb04477118911dfd1d2aca844c3fb9acd8dd04a9f9b740e707fae14fe",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/anime_fx.py",
+      "bytes": 14427,
+      "sha256": "ce95795a2fb2819da2409255fbd348126ca62d9eb9fd338e5fac6338ee9f2461",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/beat_detect.py",
+      "bytes": 8957,
+      "sha256": "baf20171bbabf0065604ffd4ca1fbc93fb58e7d76dd1c3358b0882131731e2b8",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/loudnorm.py",
+      "bytes": 2835,
+      "sha256": "f127c03306bad3a3f9bf01af652ad9b960ac9267b497c916b15af67a597937c0",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/probe_media.py",
+      "bytes": 6515,
+      "sha256": "602682bd9525af35753d123ce0768e85ea7f06f29f2d61c32b6d3ccee2c2e00c",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/click_track.py",
+      "bytes": 3840,
+      "sha256": "52952a4203cd8afc99f2f59f77150baf067b3ff8f77dc796ec29da9c57f10908",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/contact_sheet.py",
+      "bytes": 4486,
+      "sha256": "f70c3996b665b4777f2b66a4454cb808bfe6b4da2b0bbc68c587444906431472",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/parallax.py",
+      "bytes": 10037,
+      "sha256": "ef2149e389f4b1e9cbc653070fcb6f3f46b8007c6c2df6e55e53333b608c4c9a",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/check_env.sh",
+      "bytes": 2597,
+      "sha256": "6210cfa45cce1d67b855b8f26b055a67047ac223d11e178aa984f4f120f5d2a7",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/autocut.py",
+      "bytes": 6806,
+      "sha256": "dd9f3c8216198eb73dac97e8e159f4b679dbdb5b7d5527d10cabb0a2490c3630",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/qa_check.py",
+      "bytes": 7750,
+      "sha256": "be1a9e00d4c97f1dd01c76282358deca51b6d46f054bcbdafbd81e162afb9b4e",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/selftest.sh",
+      "bytes": 4576,
+      "sha256": "a282854cb9d087069e8228995e5f419a53ae10538f8c9fb9ac1d3edc33cf9425",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/make_proxy.sh",
+      "bytes": 900,
+      "sha256": "a184d832c859fba0a651fde6a772d0534d80ec11f334bc652787812ae5f5059f",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "scripts/ass_titles.py",
+      "bytes": 9838,
+      "sha256": "e5e3676e7f705a2bacd042f5c79a1eee3f2a639929a6193fa490e9346cd7aa06",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/remotion.config.ts",
+      "bytes": 268,
+      "sha256": "488ae50e2201fc65128250177bd516feca3e12953457369338986850f436be09",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/package.json",
+      "bytes": 830,
+      "sha256": "dffc2765c06497e39f4bc606c64b7bd79a3a042a70106c8e2c033e42e60c9475",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/tsconfig.json",
+      "bytes": 284,
+      "sha256": "430f17d0434e17d3efca80dd1b39e25968a40478ee4bdce66bf6f7ed6af67aaa",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/src/index.ts",
+      "bytes": 105,
+      "sha256": "5462d3268136731ce43bfd7c5072ea1ba48b51fec94fa30076f5044f4b39e4a2",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/src/Promo.tsx",
+      "bytes": 4659,
+      "sha256": "e18a34826579fe257e86886c7ada726427f6e785a15c2c5635a9e4c78e38c9e4",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/src/easing.ts",
+      "bytes": 876,
+      "sha256": "4e8b748ba5684458ab31a49b02abe138992ab64f6242e36b37db965cfa148b9b",
+      "reason": "not_bound_to_agent_runtime"
+    },
+    {
+      "path": "assets/remotion-starter/src/Root.tsx",
+      "bytes": 806,
+      "sha256": "16469c5a261e9eaa27989c7d59bd5791157acb2a22725be22e3b17c427e5147a",
+      "reason": "not_bound_to_agent_runtime"
+    }
+  ]
+}

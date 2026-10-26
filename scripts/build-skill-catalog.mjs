@@ -20,7 +20,7 @@ const definitions=JSON.parse(await readFile(path.join(skills,'catalog.json'),'ut
 const marketingManifest=JSON.parse(await readFile(path.join(skills,'vendor','marketing','manifest.json'),'utf8'));
 const socialManifest=JSON.parse(await readFile(path.join(skills,'vendor','social','manifest.json'),'utf8'));
 const designManifest=JSON.parse(await readFile(path.join(skills,'vendor','anthropic','frontend-design','manifest.json'),'utf8'));
-const userManifest=JSON.parse(await readFile(path.join(skills,'user','social-media-manager','manifest.json'),'utf8'));
+const userManifests=new Map(await Promise.all(['social-media-manager','video-motion-studio'].map(async id=>['user/'+id,JSON.parse(await readFile(path.join(skills,'user',id,'manifest.json'),'utf8'))])));
 const generated=new Map();const index=[];const ids=new Set();
 for(const definition of definitions){
  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(definition.id)||ids.has(definition.id))throw Error('Invalid or duplicate skill identifier');
@@ -34,10 +34,10 @@ for(const definition of definitions){
  const marketing=definition.directory.startsWith('vendor/marketing/');
  const social=definition.directory.startsWith('vendor/social/');
  const design=definition.directory==='vendor/anthropic/frontend-design';
- const user=definition.directory==='user/social-media-manager'&&definition.license==='User-provided';
+ const user=userManifests.has(definition.directory)&&definition.license==='User-provided';
  if(!original&&!marketing&&!social&&!design&&!user)throw Error('Unknown vendored skill source');
  if((marketing||social)&&definition.license!=='MIT'||design&&definition.license!=='Apache-2.0')throw Error('Skill license disagrees with pinned source');
- const manifest=marketing?marketingManifest:social?socialManifest:user?userManifest:designManifest;
+ const manifest=marketing?marketingManifest:social?socialManifest:user?userManifests.get(definition.directory):designManifest;
  const sourcePrefix=marketing||social?path.relative(path.join(skills,'vendor',marketing?'marketing':'social'),directory).split(path.sep).join('/')+'/':'';
  const expectedFiles=original?null:new Map(manifest.files.map(file=>[file.path,file]));
  const entries={};
@@ -59,6 +59,10 @@ for(const definition of definitions){
   entries[relative]=content.replace(legacyBrandTokens,currentBrand);
  }}
  await collect(directory);if(!entries['SKILL.md'])throw Error('Missing SKILL.md: '+definition.id);
+ if(definition.id==='video-motion-studio'){
+  const adaptation=await readFile(path.join(skills,'integrations','video-motion-studio.md'),'utf8');
+  entries['SKILL.md']=adaptation+'\n\n'+entries['SKILL.md'];
+ }
  if(original&&(!definition.directory.startsWith('braand/')||path.basename(directory)!==definition.id||!entries['SKILL.md'].startsWith('---\nname: '+definition.id+'\n')))throw Error('Original skill directory and name must match');
  const ordered=Object.fromEntries(Object.entries(entries).sort(([a],[b])=>a.localeCompare(b,'en')));
  const provenance=manifest.source??manifest;

@@ -1,0 +1,12 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "font": "Poppins",
+  "bold": true,
+  "items": [
+    { "text": "POWER UP", "start": 0.5, "end": 2.5, "effect": "pop", "size": 170, "color": "#FFFFFF", "outline": 6 },
+    { "text": "this changes everything", "start": 2.8, "end": 5.2, "effect": "words", "size": 120, "pos": "bottom" },
+    { "text": "GLITCH", "start": 5.5, "end": 7.0, "effect": "glitch", "size": 190 },
+    { "text": "sing along with the highlight", "start": 7.2, "end": 10.0, "effect": "karaoke", "size": 100, "highlight": "#FFD400", "pos": "bottom" }
+  ]
+}

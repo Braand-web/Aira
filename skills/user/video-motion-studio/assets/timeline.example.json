@@ -1,0 +1,36 @@
+{
+  "output": { "path": "out/promo.mp4", "preset": "1080p30", "crf": 18 },
+  "defaults": { "fit": "cover", "transition": { "type": "cut", "duration": 0 } },
+
+  "clips": [
+    { "src": "src/hook.mp4",   "in": 1.2, "duration": 2.0, "zoom": { "from": 1.0, "to": 1.10, "ease": "out" }, "audio": false },
+    { "src": "src/scene2.mp4", "in": 0.0, "duration": 3.0, "audio": false,
+      "transition": { "type": "wipeleft", "duration": 0.35 } },
+    { "src": "src/impact.mp4", "in": 0.5, "duration": 3.0, "audio": false,
+      "ramp": [[0, 1.0], [1.0, 1.0], [1.3, 0.25], [1.9, 1.0]] },
+    { "image": "src/key_art.png", "duration": 3.0, "zoom": { "from": 1.0, "to": 1.2, "x": [0.4, 0.6] },
+      "transition": { "type": "fade", "duration": 0.5 } },
+    { "color": "black", "duration": 1.0, "transition": { "type": "fadeblack", "duration": 0.5 } }
+  ],
+
+  "grade": "cinematic",
+
+  "titles": [
+    { "text": "THE TITLE", "start": 0.6, "end": 3.2, "style": "center", "size": 110, "slide": 40 },
+    { "text": "A subtitle line\nsecond line", "start": 4.5, "end": 7.0, "style": "lower_third", "size": 44 }
+  ],
+
+  "overlays": [
+    { "src": "src/logo.png", "x": "W-w-40", "y": "40", "width": 140, "opacity": 0.9, "fade_in": 0.5 }
+  ],
+
+  "subtitles": "work/titles.ass",
+
+  "audio": {
+    "music": { "src": "src/music.mp3", "volume": 1.0, "start": 0.0, "loop": false, "duck": false, "fade_out": 2.0 }
+  },
+
+  "fade_in": 0.3,
+  "fade_out": 0.8,
+  "loudnorm": { "lufs": -14, "tp": -1.5 }
+}

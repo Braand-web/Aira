@@ -202,5 +202,16 @@ await check('aggregate character limit truncates the final excerpt and refuses a
  assert.equal(skillAudits().length,4);assertNoExternalOrMutation(before);
 });
 
+await check('video skill is available to the real harness with progressive guides and no new execution authority',async()=>{
+ const execution=await setup(),before=mutationCount();
+ fixture.responses=[stream([tool('video-discovery','search_skills',{semanticIds:['video-motion-studio'],category:'creative'})]),stream([read('video-entry','video-motion-studio')]),stream([read('motion-guide','video-motion-studio',{reference:'references/motion-design.md'})]),text('Je prépare une direction visuelle adaptée à votre produit et aux moyens disponibles.')];
+ await run(execution);
+ assert.equal(parsedResult(fixture.requests[1],'video-discovery').skills[0].id,'video-motion-studio');
+ const entry=parsedResult(fixture.requests[2],'video-entry');assert.equal(entry.capability,'media_proposal');assert.equal(entry.provenance.license,'User-provided');
+ assert.ok(parsedResult(fixture.requests[3],'motion-guide').content.includes('easing'));
+ assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','run_python','build_timeline.py','prepare_video_edit'].includes(tool.name))));
+ assertNoExternalOrMutation(before);
+});
+
 console.log(count+' skills agent integration checks passed; no external model, provider or mutation calls.');
 sql.close();

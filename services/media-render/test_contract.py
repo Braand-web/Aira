@@ -42,6 +42,26 @@ class Contract(unittest.TestCase):
     def test_subtitle_time(self):
         self.assertEqual(renderer.timestamp(61.125), "00:01:01,125")
 
+    def test_typed_style_and_legacy_compatibility(self):
+        value = self.valid()
+        value["style"] = {"fit": "cover", "motion": "zoom_in", "grade": "warm", "audioVolume": 0.5, "fadeSeconds": 0.2}
+        renderer.validate(value)
+        self.assertIn("crop=1080:1920", renderer.video_filter(value, value["clips"][0], True))
+        self.assertIn("zoompan=", renderer.video_filter(value, value["clips"][0], True))
+        self.assertNotIn("zoompan=", renderer.video_filter(value, value["clips"][0], False))
+        for key, invalid in (("filter", "movie=/secret"), ("fadeSeconds", True), ("audioVolume", float("nan"))):
+            edited = copy.deepcopy(value); edited["style"][key] = invalid
+            with self.assertRaises(ValueError):
+                renderer.validate(edited)
+
+    def test_boolean_versions_and_credit_amounts_are_invalid(self):
+        for key in ("maxCredits", "version"):
+            value = self.valid()
+            if key == "version": value["clips"][0][key] = True
+            else: value[key] = True
+            with self.assertRaises(ValueError):
+                renderer.validate(value)
+
 
 if __name__ == "__main__":
     unittest.main()

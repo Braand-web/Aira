@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult} from '../lib/skills/registry.ts';
+import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult,skillCatalogMetadata} from '../lib/skills/registry.ts';
 import {SKILL_POLICY} from '../lib/skills/policy.mjs';
 
 test('reviewed sources and generated lazy catalog reproduce the pinned local bytes',()=>{
@@ -56,4 +56,21 @@ test('growth and community requests discover focused methods without granting ex
   assert.equal(loaded.provenance.origin,id==='braand-growth-strategy'?'Braand':id==='crisis-and-moderation'||id==='cross-platform-repurposing'?'https://github.com/social-media-skills/skills':'https://github.com/coreyhaines31/marketingskills');
   assert.equal(Object.hasOwn(publicSkillResult('read_skill',loaded),'content'),false);
  }
+});
+
+test('video methods expose reviewed references and templates, with no executable archive entries',async()=>{
+ const discovery=searchSkills({query:'montage anime AMV typographie',category:'creative'});
+ assert.equal(discovery.skills[0]?.id,'video-motion-studio');
+ assert.equal(skillCatalogMetadata().find(skill=>skill.id==='video-motion-studio')?.origin,'workspace');
+ const session=createSkillSession(),entry=await readSkill({id:'video-motion-studio'},session);
+ assert.equal(entry.capability,'media_proposal');
+ assert.equal(entry.provenance.revision,'43e8544a2b894204e715dc75ff399e009bc627fa39c31fb0041324b7e9d18e7a');
+ assert.equal(entry.references.length,13);
+ assert.ok(entry.references.includes('references/motion-design.md'));
+ assert.ok(entry.references.includes('assets/timeline.example.json'));
+ const timeline=await readSkill({id:'video-motion-studio',reference:'assets/timeline.example.json'},session);
+ assert.ok(Array.isArray(JSON.parse(timeline.content).clips));
+ for(const reference of ['scripts/build_timeline.py','INSTALL.md','assets/remotion-starter/package.json'])
+  await assert.rejects(()=>readSkill({id:'video-motion-studio',reference},session),error=>error.code==='skill_not_found');
+ const publicResult=publicSkillResult('read_skill',entry);assert.equal('provenance' in publicResult,false);assert.equal('content' in publicResult,false);
 });

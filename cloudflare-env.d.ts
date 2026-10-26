@@ -13,6 +13,7 @@ declare namespace Cloudflare {
     SOCIAL_STAGING_VERIFIED?: string;
     MEDIA_PERSIST_ENABLED?: string;
     MEDIA_RENDER_ENABLED?: string;
+    MEDIA_RENDER_VIDEO_EDIT_VERIFIED?: string;
     RESEARCH_ENABLED?: string;
     BROWSER?: Fetcher;
     BROWSER_SESSIONS?: DurableObjectNamespace;
