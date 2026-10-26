@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {AppError} from './core.mjs';
-import {MODEL_TIERS,type ModelTier} from './model-router';
+const MODEL_TIERS=['light','standard','advanced'] as const;
+type ModelTier=typeof MODEL_TIERS[number];
 
 export type CapacityState={tier:ModelTier;changes:number};
 const requestSchema=z.object({tier:z.enum(['standard','advanced']),reason:z.enum(['task_complexity','uncertainty','validation_failed','tool_failure','provider_refusal'])}).strict();
