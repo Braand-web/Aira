@@ -324,5 +324,15 @@ try {
       assert.equal(source.sql.prepare("SELECT balance FROM credit_lots WHERE id='restore-lot'").get().balance,500);
     }finally{target.sql.close();}
   });
+  await check('monitoring detects expired leases in previous slots without replaying them',async()=>{
+    const now=Date.now();
+    source.sql.prepare("INSERT INTO operations_jobs(id,name,status,lease_token,lease_until,created_at,updated_at) VALUES ('fixture:orphan-old-slot','fixture','running','old-owner',?,?,?)").run(now-10000,now-20000,now-20000);
+    source.sql.prepare("INSERT INTO operations_jobs(id,name,status,lease_token,lease_until,created_at,updated_at) VALUES ('fixture:live-slot','fixture','running','live-owner',?,?,?)").run(now+120000,now,now);
+    await ops.scanOperationalIncidents(now);
+    const orphan=source.sql.prepare("SELECT status,error_code,lease_token FROM operations_jobs WHERE id='fixture:orphan-old-slot'").get();
+    assert.equal(orphan.status,'uncertain');assert.equal(orphan.error_code,'job_interrupted');assert.equal(orphan.lease_token,null);
+    assert.equal(source.sql.prepare("SELECT status FROM operations_jobs WHERE id='fixture:live-slot'").get().status,'running');
+    let executions=0;await ops.runTrackedJob('fixture','fixture:orphan-old-slot',async()=>{executions++;},now);assert.equal(executions,0);
+  });
   console.log(`${checks} production operations checks passed. SQLite/crypto recovery is real; Resend and R2 were simulated. No external mail or production restore.`);
 } finally {globalThis.fetch=originalFetch;source.sql.close();}

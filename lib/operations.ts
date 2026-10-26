@@ -60,6 +60,9 @@ export async function runTrackedJob(name: string, id: string, work: () => Promis
 }
 
 export async function scanOperationalIncidents(now = Date.now()) {
+  // Periodic jobs use a fresh slot ID. Recover all expired leases, not just the
+  // current slot, and retain uncertainty instead of replaying external effects.
+  await db().prepare("UPDATE operations_jobs SET status='uncertain',error_code='job_interrupted',lease_token=NULL,lease_until=0,updated_at=? WHERE status='running' AND lease_until<=?").bind(now,now).run();
   const checks = [
     {category:'payment_event_failed',query:"SELECT id FROM billing_events WHERE status='dead' ORDER BY created_at LIMIT 50",args:[]},
     {category:'provider_cost_unknown',query:"SELECT id FROM provider_usage WHERE status IN ('unknown','pending') AND created_at<? ORDER BY created_at LIMIT 50",args:[now-3600000]},

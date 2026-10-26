@@ -274,4 +274,22 @@ await check('parallel independent reads preserve one ordered result per call eve
  await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emitter,signal(),execution.budget);const results=fixture.requests[1].body.messages.at(-1).content;assert.deepEqual(results.map(result=>result.tool_use_id),['parallel-first','parallel-second']);assert.equal(results[0].is_error,true);assert.equal(results[1].is_error,undefined);assert.equal(fixture.requests.length,2);assert.equal(fixture.external.length,0);
 });
 
+await check('adaptive selection is model-led, silent, bounded and resets for each new response',async()=>{
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'choose-capacity',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('A carefully reasoned answer.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','advanced']);
+ assert.ok(fixture.requests.every(request=>request.budget===execution.budget));
+ assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='request_model_capacity'));
+ assert.equal(fixture.events.some(event=>['tool_start','tool_result'].includes(event.type)&&event.data.name==='request_model_capacity'),false);
+ assert.equal(fixture.external.length,0);assert.equal(fixture.beforeTools,1);
+ assert.equal(fixture.requests[1].body.messages[0].content[0].text,'Contexte privé de cet espace');
+ const next=await setup();fixture.responses=[text('Bonjour.')];await run(next);assert.equal(fixture.requests.length,1);assert.equal(fixture.requests[0].routing.tier,'light');
+ delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
+});
+await check('ordinary tool use does not itself force an expensive model and invalid escalation does not change capacity',async()=>{
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'read-simple',name:'search_workspace',input:{kind:'knowledge'}}]),stream([{type:'tool_use',id:'late-jump',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('Les informations disponibles sont conservées.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','light']);assert.equal(fixture.requests[2].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
+ delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
+});
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');

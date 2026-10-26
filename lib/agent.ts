@@ -3,6 +3,7 @@ import {meteredMessage,type RunBudget} from "./metering";
 import {authorize} from "./server";
 import {config,db,uid,createResource,list,updateResource,getResource,getClientResource,auditLog} from "./server";
 import {agentWorkPolicy,agentHandoffInstruction,MAX_AGENT_TOOL_ROUNDS} from './agent-work-policy';
+import {modelCapacityTool,modelCapacityInstruction,requestModelCapacity,type CapacityState} from './model-capacity';
 import {knowledgeInput,reviseKnowledge,forgetKnowledge,workspaceMemoryContext} from './agent-memory';
 import {saveDeliverable,reviseDeliverable} from './agent-deliverables';
 import {conversationContext,searchConversation,searchMemory} from './agent-context';
@@ -156,6 +157,9 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
  let connectorTools:Awaited<ReturnType<typeof connectorAgentTools>>=[];
  if(workMode==="accompanied")try{connectorTools=await connectorAgentTools(budget.who,conversationId);}catch{await emit("connector_unavailable",{message:"Les connecteurs sont temporairement indisponibles. La discussion reste disponible."});}
  const tools=agentToolsForMode(workMode,toolDefinitions,connectorTools);
+ const capacityEnabled=config().MODEL_ROUTING_ENABLED==='true'&&config().MODEL_ROUTING_POLICY==='adaptive';
+ let capacity:CapacityState={tier:'light',changes:0},visibleText=false;
+ if(capacityEnabled)tools.push(modelCapacityTool);
  const availableToolNames=new Set<string>(tools.map((tool:{name:string})=>tool.name));
  const context=await conversationContext(tenant,conversationId);
  const scope:AgentScope={tenant,conversationId,runId,coveredRowid:context.coveredRowid};
@@ -169,16 +173,16 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
   const state=await db().prepare("SELECT status FROM runs WHERE id=? AND workspace_id=?").bind(runId,tenant).first<{status:string}>();
   if(state?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");
   const modelStarted=performance.now();let firstTextMs:number|null=null;
-  const response=await meteredMessage(budget,"master",{max_tokens:finalizing?1536:4096,stream:true,system:[{type:"text",text:systemPrompt+'\n'+skillDiscoveryContext(),cache_control:{type:"ephemeral"}},{type:"text",text:budgetContext},{type:'text',text:memoryContext},{type:'text',text:context.context},{type:"text",text:modeContext},...(budget.workContext?[{type:'text',text:budget.workContext}]:[]),...(finalizing?[{type:'text',text:agentHandoffInstruction}]:[])],messages,tools:finalizing?[]:tools},AbortSignal.any([signal,AbortSignal.timeout(120000)]),{task:round===0?'conversation':'orchestration'});
+  const response=await meteredMessage(budget,"master",{max_tokens:finalizing?1536:4096,stream:true,system:[{type:"text",text:systemPrompt+'\n'+skillDiscoveryContext(),cache_control:{type:"ephemeral"}},{type:"text",text:budgetContext},{type:'text',text:memoryContext},{type:'text',text:context.context},{type:"text",text:modeContext},...(capacityEnabled?[{type:'text',text:modelCapacityInstruction}]:[]),...(budget.workContext?[{type:'text',text:budget.workContext}]:[]),...(finalizing?[{type:'text',text:agentHandoffInstruction}]:[])],messages,tools:finalizing?[]:tools},AbortSignal.any([signal,AbortSignal.timeout(120000)]),{task:round===0?'conversation':'orchestration',...(capacityEnabled?{tier:capacity.tier}:{})});
   if(!response.ok||!response.body)throw new AppError(response.status===401?"La clé du modèle est invalide.":response.status===429?"Le modèle a atteint sa limite temporaire.":"Le modèle n’a pas pu répondre.",503,"model_unavailable");
   const blocks:ModelContentBlock[]=[],jsonParts:Record<number,string>={};let ended=false,lastCheck=Date.now();
   for await(const item of parseSSE(response.body)){
    const e=modelEventSchema.parse(item.data);
    if(Date.now()-lastCheck>1000){lastCheck=Date.now();const s=await db().prepare("SELECT status FROM runs WHERE id=?").bind(runId).first<{status:string}>();if(s?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");}
    if(e.type==="error"||e.error)throw new AppError("Le fournisseur a interrompu la réponse.",502,"provider_interrupted");
-   if(e.type==="content_block_start"){const event=modelBlockStartSchema.parse(e);blocks[event.index]=event.content_block;if(event.content_block.type==="tool_use"){jsonParts[event.index]="";await emit("tool_start",{name:event.content_block.name,id:event.content_block.id});}}
+   if(e.type==="content_block_start"){const event=modelBlockStartSchema.parse(e);blocks[event.index]=event.content_block;if(event.content_block.type==="tool_use"){jsonParts[event.index]="";if(event.content_block.name!==modelCapacityTool.name)await emit("tool_start",{name:event.content_block.name,id:event.content_block.id});}}
    if(e.type==="content_block_delta"){
-    const event=modelBlockDeltaSchema.parse(e),b=blocks[event.index];if(!b)throw new AppError('Bloc du modèle manquant.',502);if(event.delta.type==="text_delta"){firstTextMs??=performance.now()-modelStarted;b.text=(b.text||"")+(event.delta.text??'');await emit("text_delta",{text:event.delta.text});}
+    const event=modelBlockDeltaSchema.parse(e),b=blocks[event.index];if(!b)throw new AppError('Bloc du modèle manquant.',502);if(event.delta.type==="text_delta"){firstTextMs??=performance.now()-modelStarted;visibleText ||= Boolean(event.delta.text?.trim());b.text=(b.text||"")+(event.delta.text??'');await emit("text_delta",{text:event.delta.text});}
     else if(event.delta.type==="input_json_delta")jsonParts[event.index]=(jsonParts[event.index]||"")+(event.delta.partial_json??'');
     else if(event.delta.type==="thinking_delta")b.thinking=(b.thinking||"")+(event.delta.thinking??'');
     else if(event.delta.type==="signature_delta")b.signature=(b.signature||"")+(event.delta.signature??'');
@@ -207,6 +211,13 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
    if(signal.aborted||state?.status!=="streaming")throw new AppError("Réponse arrêtée.",499,"cancelled");
    let operationSucceeded=false;let receipt:string|undefined;
    try{
+    if(call.name===modelCapacityTool.name){
+     if(!capacityEnabled||!availableToolNames.has(call.name))throw new AppError('Capacité indisponible.',403,'tool_unavailable');
+     if(calls.length!==1)throw new AppError('Select capacity alone; no other action was authorized by this request.',409,'model_capacity_mixed');
+     capacity=requestModelCapacity(capacity,call.input,round===0&&!visibleText);
+     await auditLog(tenant,budget.who.user.userId,'model.capacity',runId,{tier:capacity.tier,changes:capacity.changes});
+     results.push({type:'tool_result',tool_use_id:call.id,content:JSON.stringify({selected:true,tier:capacity.tier,permissionsUnchanged:true})});return;
+    }
     if(!agentToolAllowedForMode(workMode,call.name))throw new AppError("En mode Autonome, seules les lectures autorisées et la création d’un brouillon de mission sont disponibles.",403,"autonomy_planning_only");
     if(!availableToolNames.has(call.name))throw new AppError('Cet outil ne fait pas partie des capacités disponibles.',403,'tool_unavailable');
     if(call.name==="delegate_specialist"&&++specialistCount>3)throw new AppError("Limite de trois spécialistes par réponse atteinte.",409);
@@ -242,7 +253,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
     const message=operationSucceeded?"L’outil a terminé, mais sa confirmation n’a pas pu être transmise. Relis la ressource avant toute nouvelle modification.":error instanceof AppError?error.message:"Paramètres d’outil invalides ou service indisponible.";
     await auditLog(tenant,budget.who.user.userId,(operationSucceeded?'tool_delivery_failed.':'tool_failed.')+call.name,runId,{callId:call.id,outcome:operationSucceeded?'delivery_failed':'failed',code:error instanceof AppError?error.code:'tool_failure'});
     const prior=results.findIndex(result=>result.tool_use_id===call.id);if(prior>=0)results.splice(prior,1);
-    results.push({type:"tool_result",tool_use_id:call.id,content:message,is_error:true});await emit("tool_result",{name:call.name,id:call.id,error:message});
+    results.push({type:"tool_result",tool_use_id:call.id,content:message,is_error:true});if(call.name!==modelCapacityTool.name)await emit("tool_result",{name:call.name,id:call.id,error:message});
    }
   };
 
