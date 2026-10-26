@@ -50,13 +50,19 @@ env.APP_ORIGIN='https://127.0.0.1:'+server.address().port;
 try {
  try{browser=await chromium.launch({headless:true});}catch{browser=await chromium.launch({headless:true,channel:'msedge'});}
  const context=await browser.newContext({viewport:{width:1280,height:850},ignoreHTTPSErrors:true}),errors=[];
+ let failBootstrap=true;
  await context.route('**/*',async route=>{
+  if(new URL(route.request().url()).pathname==='/auth/form'&&failBootstrap){failBootstrap=false;await route.fulfill({status:503,contentType:'application/json',body:'{}'});return;}
   if(new URL(route.request().url()).origin==='https://fonts.googleapis.com'){await route.fulfill({status:200,contentType:'text/css',body:''});return;}
   assert.equal(new URL(route.request().url()).origin,env.APP_ORIGIN,'No external browser requests');await route.continue();
  });
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(env.APP_ORIGIN+'/auth/sign-in');await page.getByLabel('Adresse e-mail',{exact:true}).waitFor();
  await page.getByRole('dialog',{name:'Bienvenue chez Braand'}).waitFor();
+ await page.getByRole('button',{name:'Réessayer',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Créer un compte',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Réessayer',exact:true}).isVisible(),true);
+ await page.getByRole('button',{name:'Réessayer',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.auth-content').getAttribute('aria-busy')==='false');
+ await page.getByRole('button',{name:'Se connecter',exact:true}).click();check('Session preparation errors remain recoverable after changing sign-in intent');
  assert.equal(await page.getByRole('button',{name:'Se connecter',exact:true}).getAttribute('aria-pressed'),'true');
  await page.screenshot({path:path.join(output,'desktop.png')});
  await page.getByRole('button',{name:'Créer un compte',exact:true}).click();assert.equal(mailCount,0);

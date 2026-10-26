@@ -63,7 +63,7 @@ export function EmailSignIn({returnTo}: {returnTo?: string}) {
   <h3>Gardons vos idées ensemble.</h3>
   <p>Connectez-vous ou inscrivez-vous avec votre e-mail. Aucun mot de passe à retenir.</p>
   <div className="auth-intents" role="group" aria-label="Choisir une option">
-   {([['signin','Se connecter'],['signup','Créer un compte']] as const).map(([value,label])=><button key={value} type="button" className={intent===value?"selected":""} aria-pressed={intent===value} disabled={sending} onClick={()=>{setIntent(value);setSent(false);setError("");}}>{label}</button>)}
+   {([['signin','Se connecter'],['signup','Créer un compte']] as const).map(([value,label])=><button key={value} type="button" className={intent===value?"selected":""} aria-pressed={intent===value} disabled={sending} onClick={()=>{setIntent(value);setSent(false);if(form)setError("");}}>{label}</button>)}
   </div>
   {sent ? <div className="auth-feedback" role="status"><CheckCircle2 size={20} aria-hidden="true"/><div><strong>Consultez votre messagerie</strong><p>Si cette adresse peut être utilisée, un lien vient d’être envoyé.</p><button type="button" className="auth-change-email" onClick={()=>{setSent(false);requestAnimationFrame(()=>emailInput.current?.focus());}}>Utiliser une autre adresse</button></div></div> : <form className="auth-form" onSubmit={submit}>
    <label htmlFor="braand-login-email">Adresse e-mail</label>
