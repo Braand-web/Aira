@@ -68,6 +68,12 @@ await check('the global work contract preserves discussion and requires delivery
  for(const wording of ['Prise en charge globale','Une conversation peut rester un échange','information indispensable',"jusqu'au livrable",'get_workspace_resource','Ne répète pas une mutation','restent en attente','résultat partiel'])assert.ok(instructions.includes(wording),wording);
  assert.match(instructions,/Aucun outil brut, batch, sandbox ou proxy/);assert.match(instructions,/aucun plan n'active l'autonomie/);assert.equal(fixture.requests.length,1);
 });
+await check('publication guidance distinguishes connected execution, private campaign drafts and unavailable connectors',async()=>{
+ const execution=await setup();fixture.responses=[text('Vérifions le compte avant toute publication.')];await run(execution);
+ const system=fixture.requests[0].body.system.map(block=>block.text).join('\n');
+ for(const wording of ['braand_connector_status','connexion expirée','ne prouve pas les permissions','ne déclare pas une incapacité générale','budget, devise et durée ou plafond total explicites','ne relance jamais un résultat incertain','Outils connectés indisponibles pendant cette réponse'])assert.ok(system.includes(wording),wording);
+ const draft=agent.toolDefinitions.find(tool=>tool.name==='save_campaign_plan');assert.match(draft.description,/no launch or spend/);assert.match(draft.description,/braand_connector_action/);assert.equal(fixture.external.length,0);
+});
 await check('a request reads context, creates, verifies, revises and delivers one saved artifact with a shared budget',async()=>{
  const execution=await setup(),title='Page de livraison vérifiée';
  const page={title,description:'Coffret Maison Naya',sections:[{type:'hero',heading:'Découvrez notre coffret',body:'Trois chocolats de notre collection.'}],cta:{label:'Découvrir',url:'https://boutique.example/coffret'},noindex:true};

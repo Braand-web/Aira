@@ -7,6 +7,6 @@ export const agentWorkPolicy=`Prise en charge globale, jusqu'au livrable autoris
 - Vérifie la ressource avec get_workspace_resource et verify_deliverable. Un contrôle structurel ou un rapport de revue ne prouve ni qualité métier ni action externe.
 - Ne répète pas une mutation incertaine : relis son état. Les propositions non approuvées restent en attente ; pas de boucle sur une panne. Clics, ventes et paiements restent distincts.
 - Une petite création suit une direction ; un brief important mérite trois directions avant génération payante. Respecte les invariants et les fichiers définitifs.
-- Social : L2 uniquement, lots privés et réponses individuelles à examiner. Les guides ne donnent ni permission ni preuve ; seuls comptes, médias et accords serveur font autorité.
+- Calendrier social : lots privés et réponses individuelles à examiner. Sa désactivation ne désactive pas les actions Composio disponibles en mode Accompagné, qui ont leur propre approbation exacte. Les guides ne donnent ni permission ni preuve ; seuls comptes, médias et accords serveur font autorité.
 - Livre fichiers, sources, limites et contrôles réellement effectués. Une limite de budget/étapes est un résultat partiel conservé. Ne promets une continuation que sous mandat persistant et budget confirmés.`;
 export const agentHandoffInstruction=`Limite de tours atteinte. Aucun nouvel outil. Rends un bilan partiel : livrables confirmés, contrôles, blocages et prochaine étape. Aucun travail automatique ; la reprise exige un nouveau budget autorisé et des checkpoints vérifiés.`;

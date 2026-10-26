@@ -18,6 +18,7 @@ const metadata=new Map([
  ['METAADS_GET_AD_ACCOUNTS',{slug:'METAADS_GET_AD_ACCOUNTS',toolkit:{slug:'metaads'},tags:['readOnlyHint']}],
  ['METAADS_GET_INSIGHTS',{slug:'METAADS_GET_INSIGHTS',toolkit:{slug:'metaads'},tags:['readOnlyHint']}],
  ['METAADS_CREATE_CAMPAIGN',{slug:'METAADS_CREATE_CAMPAIGN',toolkit:{slug:'metaads'},tags:['createHint']}],
+ ['FACEBOOK_CREATE_POST',{slug:'FACEBOOK_CREATE_POST',toolkit:{slug:'facebook'},tags:['createHint']}],
  ['EXA_SEARCH',{slug:'EXA_SEARCH',toolkit:{slug:'exa'},tags:['readOnlyHint']}],
 ]);
 const searchResult={resultType:'completed',logId:'log_search_fixture',data:{results:[{primary_tool_slugs:['METAADS_GET_AD_ACCOUNTS'],related_tool_slugs:['METAADS_GET_INSIGHTS'],difficulty:'medium',recommended_plan_steps:['Read accounts first','Read campaign insights'],known_pitfalls:['Do not use a page ID as an ad account ID.'],extra_guidance:'Verified skill context '.repeat(1500)}],tool_schemas:{METAADS_GET_AD_ACCOUNTS:{input_schema:{type:'object'}}}}};
@@ -80,7 +81,7 @@ await check('Sessions are tenant-scoped, persist across turns, and explicitly di
 });
 await check('Agent receives dynamic discovery and guarded adapters, never raw writes, batch, sandbox or proxy',async()=>{
  const tools=await c.connectorAgentTools(who,'chat-fixture');
- assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','braand_connect_toolkit','braand_connector_action','braand_connector_receipt'].sort());
+ assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','braand_connect_toolkit','braand_connector_action','braand_connector_receipt','braand_connector_status'].sort());
  for(const name of ['COMPOSIO_MULTI_EXECUTE_TOOL','COMPOSIO_REMOTE_WORKBENCH','COMPOSIO_REMOTE_BASH_TOOL','COMPOSIO_PROXY_EXECUTE','METAADS_CREATE_CAMPAIGN'])await assert.rejects(()=>c.executeConnectorAgentTool(who,'chat-fixture',name,{}));
 });
 await check('SEARCH result including long skill, plan, pitfalls and schemas reaches agent intact',async()=>{
@@ -136,6 +137,39 @@ await check('Catalogue HTTP query accepts only connected=true and validates filt
 });
 await check('Authorization returns only a hosted Connect Link without creating accounts or accepting consent',async()=>{
  const before=accounts.size,result=await c.authorizeConnector(who,'metaads');assert.equal(result.redirectUrl,'https://connect.composio.dev/link/fixture');assert.equal(accounts.size,before);assert.equal(authorized.at(-1).toolkit,'metaads');
+});
+await check('Connection diagnosis reports active, expired and missing accounts without execution or authorization',async()=>{
+ const before=countExecutions(),authorizations=authorized.length;
+ const active=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_status',{toolkits:['metaads','github']});
+ assert.equal(active.items[0].connected,true);assert.equal(active.items[0].status,'ACTIVE');assert.equal(active.items[1].status,'NOT_CONNECTED');assert.equal(active.items[1].nextStep,'connect');
+ assert.equal(active.permissionStatus,'not_checked');assert.equal(active.writesRequireExactApproval,true);
+ accounts.get('account_owner').status='EXPIRED';
+ try{const expired=await c.diagnoseConnectors(who,{toolkits:['metaads']});assert.equal(expired.items[0].connected,false);assert.equal(expired.items[0].status,'EXPIRED');assert.equal(expired.items[0].nextStep,'reconnect');}finally{accounts.get('account_owner').status='ACTIVE';}
+ const other=await secondUser();accounts.get('account_other').status='EXPIRED';
+ try{const foreign=await c.diagnoseConnectors(other,{toolkits:['metaads']});assert.equal(foreign.items[0].status,'EXPIRED');assert.equal(JSON.stringify(foreign).includes('account_owner'),false);}finally{accounts.get('account_other').status='ACTIVE';}
+ assert.equal(countExecutions(),before);assert.equal(authorized.length,authorizations);
+});
+await check('Connection diagnosis cannot mistake another user account for an active own connection or bypass schema limits',async()=>{
+ forceForeignAccount=true;
+ try{const result=await c.diagnoseConnectors(who,{toolkits:['metaads']});assert.equal(result.items[0].connected,false);assert.equal(JSON.stringify(result).includes('account_other'),false);}finally{forceForeignAccount=false;}
+ const before=calls.length;
+ for(const input of [{toolkits:[]},{toolkits:Array(9).fill('metaads')},{toolkits:['metaads'],accountId:'account_other'},{toolkits:['METAADS']}])await assert.rejects(()=>c.diagnoseConnectors(who,input));
+ assert.equal(calls.length,before);
+ const key=env.COMPOSIO_API_KEY;delete env.COMPOSIO_API_KEY;
+ try{assert.deepEqual(await c.diagnoseConnectors(who,{toolkits:['metaads']}),{configured:false,items:[],reason:'configuration_pending'});}finally{env.COMPOSIO_API_KEY=key;}
+ assert.equal(calls.length,before);
+});
+await check('Facebook publication remains pending until exact approval, executes once and exposes an authoritative receipt',async()=>{
+ const {scopeUser}=await c.connectorSession(who);accounts.set('account_facebook',{id:'account_facebook',userId:scopeUser,toolkit:{slug:'facebook'},status:'ACTIVE'});
+ try{
+  const args={page_id:'123456789',message:'Fictional publication for an isolated test',published:true},before=countExecutions();
+  const pending=await proposal({toolkit:'facebook',toolSlug:'FACEBOOK_CREATE_POST',arguments:args});
+  assert.equal(pending.status,'pending');assert.equal(countExecutions(),before);assert.deepEqual(pending.data.arguments,args);
+  await Promise.all([c.decideConnectorAction(who,pending.id,'approve'),c.decideConnectorAction(who,pending.id,'approve')]);
+  const receipt=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_receipt',{id:pending.id});
+  assert.equal(receipt.status,'completed');assert.equal(receipt.logId,'log_execution_fixture');assert.equal(countExecutions(),before+1);
+  const sent=calls.filter(item=>item.kind==='execute').at(-1);assert.deepEqual(sent.input,args);assert.equal(sent.options.account,'account_facebook');
+ }finally{accounts.delete('account_facebook');}
 });
 await check('Active own-account read-only tool executes with exact arguments and account',async()=>{
  const input={fields:['id','name']},before=countExecutions();await proposal(call('METAADS_GET_AD_ACCOUNTS',input));assert.equal(countExecutions(),before+1);

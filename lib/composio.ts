@@ -107,7 +107,29 @@ export async function revokeConnector(who:BillingIdentity,accountId:string){
  try{await sdk.connectedAccounts.revoke(accountId);await log(who,'revoke','revoked');return {revoked:true};}catch{throw providerError();}
 }
 
+/** Inspect real, user-scoped connections without creating an authorization or executing a tool. */
+export async function diagnoseConnectors(who:BillingIdentity,input:unknown){
+ const {toolkits}=z.object({toolkits:z.array(toolkitSchema).min(1).max(8)}).strict().parse(input);
+ if(!connectorConfigured())return {configured:false,items:[],reason:'configuration_pending'};
+ const {sdk,session,scopeUser}=await connectorSession(who);
+ try{
+  const [catalogue,accounts]=await Promise.all([
+   session.toolkits({toolkits:[...new Set(toolkits)],limit:8}),
+   sdk.connectedAccounts.list({userIds:[scopeUser],toolkitSlugs:[...new Set(toolkits)],limit:100})
+  ]);
+  return {configured:true,permissionStatus:'not_checked',writesRequireExactApproval:true,items:catalogue.items.map(toolkit=>{
+   const owned=accounts.items.filter(account=>account.toolkit.slug===toolkit.slug);
+   const selected=toolkit.connection?.connectedAccount;
+   const active=!!toolkit.connection?.isActive&&selected?.status==='ACTIVE'&&owned.some(account=>account.id===selected.id&&account.status==='ACTIVE');
+   return {toolkit:toolkit.slug,name:toolkit.name,connected:active,isNoAuth:!!toolkit.isNoAuth,
+    status:active?'ACTIVE':owned.some(account=>account.status==='EXPIRED')?'EXPIRED':owned.some(account=>account.status==='FAILED')?'FAILED':'NOT_CONNECTED',
+    nextStep:active||toolkit.isNoAuth?'discover_tools':owned.length?'reconnect':'connect'};
+  })};
+ }catch{throw providerError();}
+}
+
 export const connectorActionTools=[
+ {name:'braand_connector_status',description:'Inspect actual connection status for up to eight discovered toolkits in this user/workspace. Distinguishes active, expired and missing accounts without external tool execution. ACTIVE does not prove publish or ads permissions. Reconnect expired accounts with braand_connect_toolkit; discover read tools to verify actual Page/ad-account access.',input_schema:{type:'object',properties:{toolkits:{type:'array',items:{type:'string'},minItems:1,maxItems:8}},required:['toolkits'],additionalProperties:false}},
  {name:'braand_connector_receipt',description:'Read the authoritative status and actual result of this user’s previously proposed connector action after approval. A pending or uncertain receipt never proves success.',input_schema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false}},
  {name:'braand_connect_toolkit',description:'Generate the user authorization link for a discovered toolkit. User must click and consent. Never create auth configs or handle tokens.',input_schema:{type:'object',properties:{toolkit:{type:'string'}},required:['toolkit'],additionalProperties:false}},
  {name:'braand_connector_action',description:'Use a discovered app tool with this user’s connected account. Only verified read-only tools run immediately. Every write/unknown operation and every paid Instant call creates an exact-arguments approval card, and does NOT execute. Read its schema first. Instant is only available for administrator-verified priced tools. Never pass credentials or account overrides.',input_schema:{type:'object',properties:{toolkit:{type:'string'},toolSlug:{type:'string'},arguments:{type:'object'},mode:{type:'string',enum:['connected','instant']}},required:['toolkit','toolSlug','arguments'],additionalProperties:false}}
@@ -188,6 +210,7 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
 }
 export async function executeConnectorAgentTool(who:BillingIdentity,conversationId:string,name:string,input:unknown){
  await authorize(who.tenant,who.user.userId,'write');
+ if(name==='braand_connector_status')return diagnoseConnectors(who,input);
  if(name==='braand_connector_receipt'){
   const {id}=z.object({id:z.string().uuid()}).strict().parse(input);
   const row=await query('SELECT status,result,log_id FROM connector_actions WHERE id=? AND workspace_id=? AND user_id=?',id,who.tenant,who.user.userId).first<{status:string;result:string|null;log_id:string|null}>();
