@@ -8,6 +8,8 @@ declare namespace Cloudflare {
     WORK_QUEUE?: Queue<{workId:string}>;
     WORK_SCHEDULER_VERIFIED?: string;
     WORK_ENABLED?: string;
+    ROUTINES_ENABLED?: string;
+    ROUTINES_STAGING_VERIFIED?: string;
     WORK_STAGING_VERIFIED?: string;
     SOCIAL_ENABLED?: string;
     SOCIAL_STAGING_VERIFIED?: string;

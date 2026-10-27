@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
 import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+// Migration 0017 is authoritative for finite routine constraints and indexes.
+export const agentRoutines=sqliteTable('agent_routines',{
+    id:text('id').primaryKey(),workspaceId:text('workspace_id').notNull(),organizationId:text('organization_id').notNull(),actorId:text('actor_id').notNull(),sourceWorkId:text('source_work_id').notNull(),
+    title:text('title').notNull(),templateJson:text('template_json').notNull(),templateDigest:text('template_digest').notNull(),intervalHours:integer('interval_hours').notNull(),firstAt:integer('first_at').notNull(),nextAt:integer('next_at').notNull(),expiresAt:integer('expires_at').notNull(),
+    maxRuns:integer('max_runs').notNull(),budgetUnits:integer('budget_units').notNull(),perRunUnits:integer('per_run_units').notNull(),status:text('status').notNull().default('draft'),version:integer('version').notNull().default(1),approvedBy:text('approved_by'),approvedAt:integer('approved_at'),errorCode:text('error_code'),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull(),
+});
+export const agentRoutineRuns=sqliteTable('agent_routine_runs',{
+    routineId:text('routine_id').notNull(),ordinal:integer('ordinal').notNull(),scheduledAt:integer('scheduled_at').notNull(),workId:text('work_id').notNull().unique(),createdAt:integer('created_at').notNull(),
+},t=>[primaryKey({columns:[t.routineId,t.ordinal]})]);
 // Additive SQL migration 0016 is authoritative for foreign keys, checks and indexes.
 export const agentWork = sqliteTable('agent_work', {
     id: text("id").primaryKey(),

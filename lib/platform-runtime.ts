@@ -6,6 +6,8 @@ import type { RunBudget } from './metering';
 export async function executePlatformTool(name: string, input: unknown, scope: AgentScope, budget: RunBudget): Promise<unknown> {
     const parseId = () => z.object({ id: z.string().min(1).max(160) }).strict().parse(input).id;
     switch (name) {
+        case 'prepare_routine': return (await import('./routines')).prepareRoutine(budget.who,input);
+        case 'get_routine': return (await import('./routines')).getRoutine(scope.tenant,parseId());
         case 'export_deliverable': return (await import('./document-delivery')).exportDeliverable(budget.who,input);
         case 'capabilities': return (await import('./capabilities')).workspaceCapabilities(budget.who);
         case 'prepare_brief': return (await import('./brief')).prepareBrief(budget.who, input);

@@ -45,7 +45,12 @@ export function workReadiness() { const c = config(); return { enabled: c.WORK_E
 async function owned(tenant: string, id: string) { const row = await q('SELECT * FROM agent_work WHERE id=? AND workspace_id=?', id, tenant).first<WorkRow>(); if (!row)
     throw new AppError('Travail introuvable.', 404, 'work_not_found'); return row; }
 export async function workEvent(id: string, type: string, data: unknown = {}) { await q('INSERT INTO agent_work_events(work_id,type,data,created_at) VALUES (?,?,?,?)', id, type, JSON.stringify(data), Date.now()).run(); }
-async function setState(id: string, status: WorkState, error: string | null = null) { await db().batch([q('UPDATE agent_work SET status=?,error_code=?,lease_token=NULL,lease_until=0,updated_at=? WHERE id=?', status, error, Date.now(), id), q('UPDATE resources SET status=?,updated_at=? WHERE id=?', status, Date.now(), id)]); await workEvent(id, 'state', { status, code: error }); }
+async function setState(id: string, status: WorkState, error: string | null = null) {
+    // A provider/settlement finishing after a human pause or cancellation may
+    // persist its receipt, but cannot restart the mandate or overwrite the stop.
+    const result=await db().batch([q("UPDATE agent_work SET status=?,error_code=?,lease_token=NULL,lease_until=0,updated_at=? WHERE id=? AND status NOT IN ('paused','cancelled')",status,error,Date.now(),id),q('UPDATE resources SET status=(SELECT status FROM agent_work WHERE id=?),updated_at=? WHERE id=?',id,Date.now(),id)]);
+    if(result[0].meta.changes)await workEvent(id,'state',{status,code:error});
+}
 export async function workCosts(id: string) {
     const rows = await q('SELECT a.max_units,h.status,h.actual FROM agent_work_allocations a LEFT JOIN credit_holds h ON h.id=a.hold_id WHERE a.work_id=?', id).all<{
         max_units: number;
