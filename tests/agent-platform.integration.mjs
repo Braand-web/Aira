@@ -121,6 +121,8 @@ await check('document exports use a real versioned source, private storage, prov
  const before=blobs.size;sql.exec("CREATE TRIGGER fixture_reject_document BEFORE INSERT ON files BEGIN SELECT RAISE(ABORT,'fixture_document_failure'); END;");
  try{await assert.rejects(()=>documents.exportDeliverable(who,{...args,format:'xlsx'}));}finally{sql.exec('DROP TRIGGER fixture_reject_document');}
  assert.equal(blobs.size,before);assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE kind='file' AND id=?").get(first.id).n,1);
+ sql.prepare("UPDATE files SET status='deleted' WHERE id=?").run(first.id);await server.updateResource(who.tenant,first.id,first.version,{status:'deleted'});
+ const replacement=await documents.exportDeliverable(who,args);assert.notEqual(replacement.id,first.id);assert.equal(sql.prepare('SELECT status FROM files WHERE id=?').get(first.id).status,'deleted');assert.equal(sql.prepare('SELECT sha256 FROM files WHERE id=?').get(first.id).sha256,null);assert.equal(sql.prepare('SELECT status FROM files WHERE id=?').get(replacement.id).status,'ready');
 });
 await check('OpenRouter research requires a real sourced server tool response, bills total usage and never trusts its zero parent receipt',async()=>{
  const rate={model:'anthropic/claude-haiku-5.5',provider:'openrouter',input:1,output:1,cacheWrite:1,cacheRead:1,usdXaf:600,overheadXaf:0,fundingFeeBps:0,verifiedAt:new Date(clock).toISOString()};

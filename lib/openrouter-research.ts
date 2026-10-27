@@ -19,7 +19,7 @@ async function price(){
 export async function openRouterResearch(budget:RunBudget,query:string,domains:string[]){
  if(!openRouterResearchReadiness().ready)throw new AppError('La recherche attend sa validation.',503,'research_unavailable');
  await ensureModelPricing();const selected=routedModel(config(),{task:'extraction'}),rate=selected.rate,usd=await price(),maxInput=Math.min(selected.maxInputTokens,16000),maxOutput=Math.min(selected.maxOutputTokens,1024);
- const quote={kind:'openrouter_research',modelRate:rate,model:selected.model,maxInput,maxOutput,tool,toolUsd:usd,verifiedAt:new Date().toISOString()};
+ const quote={kind:'openrouter_research',modelRate:rate,model:selected.model,maxInput,maxOutput,tool,toolUsd:usd,verifiedAt:new Date(cached!.at).toISOString()};
  const ceiling=Math.ceil((((maxInput*Math.max(rate.input,rate.cacheWrite,rate.cacheWriteHour||0)+maxOutput*rate.output)/1e6+usd)*rate.usdXaf*(1+Number(rate.fundingFeeBps)/10000)+rate.overheadXaf)/4*100);
  const usageId=await claimToolUsage(budget,'openrouter','research_search',ceiling,quote);let generationId:string|undefined;
  try{

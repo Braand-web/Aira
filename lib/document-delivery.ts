@@ -26,6 +26,7 @@ export async function exportDeliverable(who:BillingIdentity,raw:unknown){
  const id=uid(),key=who.tenant+'/'+id+'/'+output.name,now=Date.now(),mime=['md','html','csv'].includes(output.p.format)?'text/plain':output.mime;
  await bucket.put(key,output.bytes,{httpMetadata:{contentType:mime}});
  try{await db().batch([
+  db().prepare("UPDATE files SET sha256=NULL WHERE workspace_id=? AND sha256=? AND status='deleted'").bind(who.tenant,hash),
   db().prepare("INSERT INTO resources(id,workspace_id,kind,title,data,status,created_at,updated_at) VALUES (?,?,'file',?,?,'ready',?,?)").bind(id,who.tenant,output.name,JSON.stringify({mime,size:output.bytes.length,sha256:hash,format:output.p.format,sourceId:output.source.id,sourceVersion:output.source.version}),now,now),
   db().prepare("INSERT INTO files(id,workspace_id,owner_id,display_name,storage_name,size_bytes,detected_mime,sha256,status,storage_key,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,'ready',?,?,?)").bind(id,who.tenant,who.user.userId,output.name,output.name,output.bytes.length,mime,hash,key,now,now),
   db().prepare('INSERT INTO billing_meter VALUES (?,?,?,?,?)').bind(uid(),who.organization,'storage',output.bytes.length,now),
