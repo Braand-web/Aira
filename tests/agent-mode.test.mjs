@@ -22,6 +22,14 @@ test("accompanied mode retains normal and connected tools", () => {
   assert.equal(agentToolAllowedForMode("accompanied", "braand_connector_action"), true);
 });
 
+test('an approved mission discovers guarded connected actions without acquiring sandbox, payment or approval rights',()=>{
+ const names=['braand_connector_action','braand_connector_receipt','COMPOSIO_SEARCH_TOOLS','COMPOSIO_REMOTE_BASH_TOOL','braand_connect_toolkit','COMPOSIO_MULTI_EXECUTE_TOOL'];
+ const selected=agentToolsForMode('approved_mission',[],names.map(name=>({name})));
+ assert.deepEqual(selected.map(t=>t.name),names.slice(0,3));
+ for(const name of names.slice(3))assert.equal(agentToolAllowedForMode('approved_mission',name),false);
+ assert.equal(agentToolAllowedForMode('approved_mission','export_deliverable'),true);
+});
+
 test("autonomous mode exposes only safe reads and draft mission planning", () => {
   assert.deepEqual(
     agentToolsForMode("autonomous", standardTools, connectorTools).map((tool) => tool.name),

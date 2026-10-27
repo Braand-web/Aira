@@ -74,6 +74,7 @@ export async function meteredMessage(b:RunBudget,role:string,body:Record<string,
  const request=modelRequest(body,signal);return meteredModel(b,role,request.url,request.init);
 }
 export async function reconcileOpenRouterUsage(organization?:string,limit=10){
+ await (await import('./openrouter-research')).reconcileResearchUsage(organization,Math.min(limit,5));
  const rows=await db().prepare("SELECT * FROM provider_usage WHERE provider='openrouter' AND status IN ('estimated','unknown') AND request_id IS NOT NULL"+(organization?' AND organization_id=?':'')+' ORDER BY created_at LIMIT ?').bind(...(organization?[organization,limit]:[limit])).all<ReconciliationUsage>();
  for(const row of rows.results){try{
   const rate=modelRateSchema.parse(JSON.parse(row.rate)),actual=await generationCost(row.request_id,rate),usage={...modelRecordSchema.parse(JSON.parse(row.usage||'{}')),openrouter_cost_usd:actual.usd,routed_provider:actual.provider,cost_source:'generation'};

@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { identity, failure } from '@/lib/server';
-import { listWork, prepareWork } from '@/lib/work';
+import { listWork, prepareWork, workSummary } from '@/lib/work';
 export async function GET(request: Request) { try {
     const who = await identity(request), url = new URL(request.url);
+    if(url.searchParams.get('summary')==='1')return Response.json(await workSummary(who.tenant),{headers:{'Cache-Control':'private, no-store'}});
     return Response.json(await listWork(who.tenant, url.searchParams.get('conversationId') || undefined), { headers: { 'Cache-Control': 'private, no-store' } });
 }
 catch (error) {

@@ -38,7 +38,9 @@ export function clearLocalDrafts() { try {
     }
 }
 catch { } }
-export function useComposerDraft({ userId, workspaceId, context, content, onRestore, attachments = [], onRestoreAttachments, enabled = true }: {
+export function useComposerDraft({ userId, workspaceId, context, content, onRestore, attachments = [], onRestoreAttachments, enabled = true, instanceKey=context, hasLocalState=false }: {
+    instanceKey?:string;
+    hasLocalState?:boolean;
     enabled?: boolean;
     userId?: string;
     workspaceId?: string;
@@ -50,8 +52,8 @@ export function useComposerDraft({ userId, workspaceId, context, content, onRest
 }) {
     const [guestKey, setGuestKey] = useState<string | null>(null), [state, setState] = useState<DraftState>('loading'), [remote, setRemote] = useState<Draft | null>(null), [revision, setRevision] = useState(0);
     const authenticated = enabled && !!userId && !!workspaceId, key = !enabled ? null : authenticated ? PREFIX + JSON.stringify([userId, workspaceId, context]) : guestKey;
-    const current = useRef({ key, context, content, attachments, onRestore, onRestoreAttachments }), version = useRef(0), ready = useRef<string | null>(null), saved = useRef(''), pending = useRef<Promise<void> | null>(null), cleared = useRef<string | null>(null), migratedGuest = useRef(false);
-    useEffect(() => { current.current = { key, context, content, attachments, onRestore, onRestoreAttachments }; }, [key, context, content, attachments, onRestore, onRestoreAttachments]);
+    const current = useRef({ key, context, instanceKey, hasLocalState, content, attachments, onRestore, onRestoreAttachments }), version = useRef(0), ready = useRef<string | null>(null), saved = useRef(''), pending = useRef<Promise<void> | null>(null), cleared = useRef<string | null>(null), migratedGuest = useRef(false);
+    useEffect(() => { current.current = { key, context, instanceKey, hasLocalState, content, attachments, onRestore, onRestoreAttachments }; }, [key, context, instanceKey, hasLocalState, content, attachments, onRestore, onRestoreAttachments]);
     useEffect(() => { const timer = setTimeout(() => { try {
         let id = sessionStorage.getItem('braand.guest.session');
         if (!id) {
@@ -76,7 +78,7 @@ export function useComposerDraft({ userId, workspaceId, context, content, onRest
                 setState('error');
                 return;
             }
-            const guest = authenticated && !migratedGuest.current && context === 'new' && guestKey ? local(guestKey) : null, cached = local(key) || guest;
+            const guest = authenticated && !migratedGuest.current && context === 'new' && guestKey ? local(guestKey) : null, memory=current.current.hasLocalState?{content:current.current.content,attachments:current.current.attachments,version:0,updatedAt:Date.now()}:null,cached = memory || local(key) || guest;
             setState('loading');
             current.current.onRestore(cached?.content || '');
             current.current.onRestoreAttachments?.(cached?.attachments || []);
@@ -94,7 +96,7 @@ export function useComposerDraft({ userId, workspaceId, context, content, onRest
                 return;
             }
             void api<Draft>('/api/drafts?context=' + encodeURIComponent(context), { signal: controller.signal }).then(value => {
-                if (controller.signal.aborted || current.current.key !== key)
+                if (controller.signal.aborted || current.current.key !== key || current.current.instanceKey!==instanceKey)
                     return;
                 version.current = value.version;
                 saved.current = JSON.stringify([value.content, value.attachments]);
@@ -120,7 +122,7 @@ export function useComposerDraft({ userId, workspaceId, context, content, onRest
         return () => { clearTimeout(timer); controller.abort(); };
         // Restoration is scoped to identity and context; callbacks are read through current.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key, context, authenticated, enabled]);
+    }, [key, context, instanceKey, authenticated, enabled]);
     const save = useCallback(async () => {
         const value = current.current, serialized = JSON.stringify([value.content, value.attachments]);
         if (!authenticated || !value.key || ready.current !== value.key || saved.current === serialized || state === 'conflict' || cleared.current === value.key)

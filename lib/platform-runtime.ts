@@ -6,6 +6,7 @@ import type { RunBudget } from './metering';
 export async function executePlatformTool(name: string, input: unknown, scope: AgentScope, budget: RunBudget): Promise<unknown> {
     const parseId = () => z.object({ id: z.string().min(1).max(160) }).strict().parse(input).id;
     switch (name) {
+        case 'export_deliverable': return (await import('./document-delivery')).exportDeliverable(budget.who,input);
         case 'capabilities': return (await import('./capabilities')).workspaceCapabilities(budget.who);
         case 'prepare_brief': return (await import('./brief')).prepareBrief(budget.who, input);
         case 'prepare_work': {const parsed=z.object({id:z.string().max(160).optional(),version:z.number().int().positive().optional()}).passthrough().parse(input),{id,version,...mandate}=parsed;if(id||version){if(!id||!version)throw new AppError('Identifiant et version du brouillon requis.');return (await import('./work')).reviseWork(budget.who,id,version,mandate);}return (await import('./work')).prepareWork(budget.who,scope.conversationId,mandate);}

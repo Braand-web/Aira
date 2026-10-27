@@ -317,6 +317,21 @@ await check('Audit records tool status without arguments, account data or provid
  const rows=sql.prepare("SELECT detail FROM audit WHERE action LIKE 'connector.%'").all();assert.ok(rows.length>0);
  for(const row of rows){const detail=JSON.parse(row.detail);assert.ok(Object.keys(detail).every(key=>['status','logId'].includes(key)));assert.equal(row.detail.includes(env.COMPOSIO_API_KEY),false);assert.equal(row.detail.includes('Fictional test account'),false);}
 });
+await check('approved durable work proposes a linked exact action once and preserves its receipt on resume',async()=>{
+ const conversation=await s.createResource(who.tenant,'conversation','Mission fixture',{},'saved'),resource=await s.createResource(who.tenant,'work','Mandat fixture',{},'draft'),now=Date.now();
+ sql.prepare("INSERT INTO agent_work(id,workspace_id,organization_id,actor_id,conversation_id,objective,status,approved_version,budget_units,expires_at,next_at,created_at,updated_at) VALUES (?,?,?,?,?,?,'running',1,1000,?,?,?,?)").run(resource.id,who.tenant,who.organization,who.user.userId,conversation.id,'Test',now+600000,now,now,now);
+ const step=resource.id+':step';sql.prepare("INSERT INTO agent_work_steps(id,work_id,ordinal,title,instruction,criteria,depends_on,status,max_units) VALUES (?,?,0,'Test','Test','[]','[]','running',500)").run(step,resource.id);
+ const invoke=(name,args)=>c.executeMissionConnectorTool(who,conversation.id,name,args,resource.id,step),before=countExecutions();
+ for(const name of ['COMPOSIO_REMOTE_BASH_TOOL','braand_connect_toolkit','COMPOSIO_MULTI_EXECUTE_TOOL'])await assert.rejects(()=>invoke(name,{}),e=>e.code==='work_connector_denied');
+ await assert.rejects(()=>invoke('braand_connector_action',{...call(),mode:'instant'}),e=>e.code==='work_connector_denied');
+ const pending=await invoke('braand_connector_action',call());assert.equal(pending.kind,'connector_action');assert.equal(countExecutions(),before);
+ assert.equal(sql.prepare('SELECT work_id FROM agent_work_artifacts WHERE resource_id=?').get(pending.id).work_id,resource.id);
+ assert.equal((await invoke('braand_connector_action',call())).id,pending.id);
+ sql.prepare("UPDATE agent_work SET status='paused' WHERE id=?").run(resource.id);await assert.rejects(()=>c.decideConnectorAction(who,pending.id,'approve'),e=>e.code==='work_inactive');assert.equal(countExecutions(),before);
+ sql.prepare("UPDATE agent_work SET status='running' WHERE id=?").run(resource.id);const completed=await c.decideConnectorAction(who,pending.id,'approve');assert.equal(completed.status,'completed');assert.equal(countExecutions(),before+1);
+ assert.equal((await invoke('braand_connector_action',call())).id,pending.id);assert.equal(countExecutions(),before+1);
+ sql.prepare("UPDATE agent_work SET status='cancelled' WHERE id=?").run(resource.id);await assert.rejects(()=>invoke('braand_connector_status',{}),e=>e.code==='work_connector_denied');
+});
 // Touch real billing projections too: all holds remain visible in the organization's ledger.
 assert.ok((await b.summary(who.organization)).wallet.reserved>0);
 globalThis.fetch=originalFetch;sql.close();

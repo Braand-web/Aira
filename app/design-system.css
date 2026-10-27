@@ -344,3 +344,5 @@ html[data-design-system="muse"] .toast.toast-error .icon-button { flex: 0 0 auto
  html[data-design-system="muse"] .auth-content > p { font-size: 13px; line-height: 20px; }
  html[data-design-system="muse"] .toast.toast-error { top: 74px; right: 12px; width: calc(100vw - 24px); }
 }
+
+@media (max-width:700px){.chat-background-link span{display:none}.chat-background-link{min-width:44px;min-height:44px;justify-content:center}}
