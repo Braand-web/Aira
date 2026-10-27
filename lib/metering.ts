@@ -75,10 +75,10 @@ export async function meteredMessage(b:RunBudget,role:string,body:Record<string,
 }
 export async function reconcileOpenRouterUsage(organization?:string,limit=10){
  await (await import('./openrouter-research')).reconcileResearchUsage(organization,Math.min(limit,5));
- const rows=await db().prepare("SELECT * FROM provider_usage WHERE provider='openrouter' AND status IN ('estimated','unknown') AND request_id IS NOT NULL"+(organization?' AND organization_id=?':'')+' ORDER BY created_at LIMIT ?').bind(...(organization?[organization,limit]:[limit])).all<ReconciliationUsage>();
+ const rows=await db().prepare("SELECT p.* FROM provider_usage p WHERE p.provider='openrouter' AND (p.status IN ('estimated','unknown') OR (p.status='pending' AND EXISTS(SELECT 1 FROM runs r WHERE r.id=p.run_id AND r.status IN ('failed','partial','cancelled','completed')))) AND p.request_id IS NOT NULL"+(organization?' AND p.organization_id=?':'')+' ORDER BY p.created_at LIMIT ?').bind(...(organization?[organization,limit]:[limit])).all<ReconciliationUsage>();
  for(const row of rows.results){try{
-  const rate=modelRateSchema.parse(JSON.parse(row.rate)),actual=await generationCost(row.request_id,rate),usage={...modelRecordSchema.parse(JSON.parse(row.usage||'{}')),openrouter_cost_usd:actual.usd,routed_provider:actual.provider,cost_source:'generation'};
-  await db().prepare("UPDATE provider_usage SET cost_xaf=?,usage=?,status='complete' WHERE id=? AND status IN ('estimated','unknown')").bind(actual.xaf,JSON.stringify(usage),row.id).run();
+  const rate=modelRateSchema.parse(JSON.parse(row.rate)),actual=await generationCost(row.request_id,rate,{requireFinal:row.status==='pending'}),usage={...modelRecordSchema.parse(JSON.parse(row.usage||'{}')),openrouter_cost_usd:actual.usd,routed_provider:actual.provider,cost_source:'generation'};
+  await db().prepare("UPDATE provider_usage SET cost_xaf=?,usage=?,status='complete' WHERE id=? AND (status IN ('estimated','unknown') OR (status='pending' AND EXISTS(SELECT 1 FROM runs r WHERE r.id=provider_usage.run_id AND r.status IN ('failed','partial','cancelled','completed'))))").bind(actual.xaf,JSON.stringify(usage),row.id).run();
   const run=await db().prepare('SELECT status FROM runs WHERE id=?').bind(row.run_id).first<{status:string}>();
   if(run&&run.status!=='streaming')await finishRunBudget({runId:row.run_id,holdId:row.hold_id,rate});
  }catch{/* The real cost stays unresolved; never resubmit a generation. */}}

@@ -20,6 +20,7 @@ Live provider probes on 2026-10-27 established:
 
 - Search returns `text.citations` and a Messages `usage.cost` including the search charge. The parent generation endpoint can report zero for this server-tool request. It must not replace the nonzero response cost.
 - The implementation requires one executed search, the explicit Exa engine, matching requested model, a complete response, and consistency between total cost, inference cost and the verified tool price. It retains this cost receipt for reconciliation, with no automatic paid replay.
+- A real staging stream interruption preserved its sources and saved report. The continuation verified and exported the same report without another search. Stale pending model costs are eligible for metadata-only reconciliation only after the run is terminal and the provider receipt has an explicit final reason. A zero interim receipt cannot settle them. Unavailable metadata response bodies are cancelled to release edge connections.
 - Web fetch returned a model summary without the raw page text. This transport therefore advertises `canReadPages=false`; it does not turn a summary into a confirmed page read. An existing configured page reader remains separate.
 
 ## Verification and limits

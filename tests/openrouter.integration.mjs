@@ -27,7 +27,7 @@ const actualAgentInput=llm.estimateInputTokens(masterBody);
 const body={max_tokens:64,stream:true,system:'Help the user.',messages:[{role:'user',content:'Create an advertisement.'}],tools:[{name:'save_draft',description:'Save a draft',input_schema:{type:'object',properties:{title:{type:'string'}},required:['title']}}]};
 const signal=()=>new AbortController().signal;
 let checks=0;const check=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
-const calls=[];let mode='success',generationAvailable=true,generationCost=.02,generationId='gen-fixture',generationOverride=null;
+const calls=[];let mode='success',generationAvailable=true,generationCost=.02,generationId='gen-fixture',generationOverride=null,metadataCancelled=0;
 const events=[
  {type:'message_start',message:{id:'msg-fixture',type:'message',role:'assistant',model:rate.model,content:[],usage:{input_tokens:100,output_tokens:0,cache_creation_input_tokens:10,cache_read_input_tokens:20}}},
  {type:'content_block_start',index:0,content_block:{type:'text',text:''}},
@@ -48,7 +48,7 @@ globalThis.fetch=async(url,init={})=>{
  assert.equal(headers.get('authorization'),'Bearer '+secret);
  if(u.pathname==='/api/v1/generation'){
   assert.equal(u.searchParams.get('id'),generationId);
-  if(!generationAvailable)return Response.json({error:{message:'not ready'}},{status:404});
+  if(!generationAvailable)return new Response(new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{"error":"not ready"}'));},cancel(){metadataCancelled++;}}),{status:404,headers:{'Content-Type':'application/json'}});
   return Response.json({data:generationOverride||{id:generationId,total_cost:generationCost,provider_name:'provider-fixture'}});
  }
  assert.equal(u.pathname,'/api/v1/messages');
@@ -146,6 +146,15 @@ await check('Generation cost rejects foreign identifiers and nonfinite or negati
  for(const fixture of [{id:'gen-other',total_cost:.02},{id:generationId,total_cost:-1},{id:generationId,total_cost:'0.02'}]){generationOverride=fixture;await assert.rejects(()=>llm.generationCost(generationId,rate));}
  generationOverride=null;const actual=await llm.generationCost(generationId,rate);assert.equal(actual.usd,.02);assert.equal(actual.provider,'provider-fixture');
 });
+await check('terminal interrupted runs reconcile stale pending usage only from a final receipt, never while streaming or by replaying a generation',async()=>{
+ reset();generationAvailable=false;const b=await budget();await (await meter.meteredMessage(b,'master',body,signal())).text();const usage=row(b);
+ sql.prepare("UPDATE provider_usage SET status='pending',usage=NULL,cost_xaf=NULL WHERE id=?").run(usage.id);generationAvailable=true;generationOverride={id:generationId,total_cost:.013,finish_reason:'stop'};
+ const before=calls.filter(c=>c.url.endsWith('/messages')).length;await meter.reconcileOpenRouterUsage(who.organization,100);assert.equal(row(b).status,'pending');
+ sql.prepare('INSERT INTO events(run_id,type,data,created_at) VALUES (?,?,?,?)').run(b.runId,'text_delta',JSON.stringify({text:'Preserved result'}),Date.now());await finish(b,'failed');assert.equal(hold(b).status,'needs_reconciliation');
+ generationOverride={id:generationId,total_cost:0,finish_reason:null};await meter.reconcileOpenRouterUsage(who.organization,100);assert.equal(row(b).status,'pending');assert.equal(hold(b).status,'needs_reconciliation');
+ generationOverride={id:generationId,total_cost:.013,finish_reason:'stop'};await meter.reconcileOpenRouterUsage(who.organization,100);await meter.reconcileOpenRouterUsage(who.organization,100);assert.equal(row(b).status,'complete');assert.equal(hold(b).status,'settled');assert.equal(hold(b).actual,Math.ceil((.013*600*1.03+1)/4*100));assert.equal(sql.prepare("SELECT COUNT(*) n FROM credit_ledger WHERE reference=? AND kind='consume'").get(b.holdId).n,1);assert.equal(calls.filter(c=>c.url.endsWith('/messages')).length,before);
+});
+await check('unavailable cost responses release their response bodies before another request',async()=>{reset();generationAvailable=false;const before=metadataCancelled;await assert.rejects(()=>llm.generationCost(generationId,rate),e=>e.code==='usage_unknown');assert.equal(metadataCancelled,before+1);generationAvailable=true;});
 await check('Usage records, ledger and surfaced errors never persist the API secret',async()=>{
  for(const table of ['provider_usage','credit_holds','credit_ledger','events','messages'])assert.equal(JSON.stringify(sql.prepare('SELECT * FROM '+table).all()).includes(secret),false);
  env.LLM_PROVIDER='unsupported';assert.throws(()=>llm.modelRequest(body,signal()),e=>!e.message.includes(secret));delete env.LLM_PROVIDER;
