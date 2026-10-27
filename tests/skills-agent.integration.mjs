@@ -207,7 +207,7 @@ await check('settings metadata requires identity and workspace access and never 
  try{
   const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
   assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
-  const dto=await response.json();assert.equal(dto.skills.length,40);
+  const dto=await response.json();assert.equal(dto.skills.length,41);
   assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
   assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
   const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);
@@ -235,5 +235,17 @@ await check('an adapted meeting method produces a real private artifact with an 
  assert.equal(skillAudits().length,1);assert.deepEqual(fixture.external,[]);assert.equal(fixture.responses.length,0);
 });
 
-console.log(count+' skills agent integration checks passed; private artifacts verified with SQLite, no external model or provider calls.');
+
+await check('video skill is available to the real harness with progressive guides and no new execution authority',async()=>{
+ const execution=await setup(),before=mutationCount();
+ fixture.responses=[stream([tool('video-discovery','search_skills',{semanticIds:['video-motion-studio'],category:'creative'})]),stream([read('video-entry','video-motion-studio')]),stream([read('motion-guide','video-motion-studio',{reference:'references/motion-design.md'})]),text('Je prépare une direction visuelle adaptée à votre produit et aux moyens disponibles.')];
+ await run(execution);
+ assert.equal(parsedResult(fixture.requests[1],'video-discovery').skills[0].id,'video-motion-studio');
+ const entry=parsedResult(fixture.requests[2],'video-entry');assert.equal(entry.capability,'media_proposal');assert.equal(entry.provenance.license,'User-provided');
+ assert.ok(parsedResult(fixture.requests[3],'motion-guide').content.includes('easing'));
+ assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','run_python','build_timeline.py','prepare_video_edit'].includes(tool.name))));
+ assertNoExternalOrMutation(before);
+});
+
+console.log(count+' skills agent integration checks passed; no external model, provider or mutation calls.');
 sql.close();

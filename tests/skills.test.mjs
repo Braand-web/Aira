@@ -82,7 +82,7 @@ test('adapted methods support model-led multilingual selection and progressive r
 
 test('settings metadata matches the reviewed registry and rejects private prose or extra executable fields',()=>{
  const skills=reviewedSkillMetadata();const dto=reviewedSkillCatalogSchema.parse({skills});
- assert.equal(dto.skills.length,40);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,40);
+ assert.equal(dto.skills.length,41);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,41);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],content:'private instructions'}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],tools:['shell']}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],id:'../unreviewed'}]}).success,false);
@@ -107,4 +107,20 @@ test('growth pack adds focused sales and retention methods without a second rout
  }
  assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-growth-router'),false);
  assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-paid-ads-lab'),false);
+});
+test('video methods expose reviewed references and templates, with no executable archive entries',async()=>{
+ const discovery=searchSkills({query:'montage anime AMV typographie',category:'creative'});
+ assert.equal(discovery.skills[0]?.id,'video-motion-studio');
+ assert.equal(reviewedSkillMetadata().find(skill=>skill.id==='video-motion-studio')?.category,'creative');
+ const session=createSkillSession(),entry=await readSkill({id:'video-motion-studio'},session);
+ assert.equal(entry.capability,'media_proposal');
+ assert.equal(entry.provenance.revision,'43e8544a2b894204e715dc75ff399e009bc627fa39c31fb0041324b7e9d18e7a');
+ assert.equal(entry.references.length,13);
+ assert.ok(entry.references.includes('references/motion-design.md'));
+ assert.ok(entry.references.includes('assets/timeline.example.json'));
+ const timeline=await readSkill({id:'video-motion-studio',reference:'assets/timeline.example.json'},session);
+ assert.ok(Array.isArray(JSON.parse(timeline.content).clips));
+ for(const reference of ['scripts/build_timeline.py','INSTALL.md','assets/remotion-starter/package.json'])
+  await assert.rejects(()=>readSkill({id:'video-motion-studio',reference},session),error=>error.code==='skill_not_found');
+ const publicResult=publicSkillResult('read_skill',entry);assert.equal('provenance' in publicResult,false);assert.equal('content' in publicResult,false);
 });

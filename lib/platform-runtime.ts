@@ -30,6 +30,8 @@ export async function executePlatformTool(name: string, input: unknown, scope: A
         }
         case 'inspect_media': return (await import('./media-assets')).inspectMedia(budget, input);
         case 'assemble_media': return (await import('./media-render')).prepareAssembly(budget.who, input);
+        case 'prepare_video_edit': return (await import('./media-render')).prepareVideoEdit(budget.who, input);
+        case 'get_video_edit_result': return (await import('./media-render')).videoEditResult(budget.who, input);
         default: throw new AppError('Outil indisponible.', 403);
     }
 }

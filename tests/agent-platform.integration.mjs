@@ -11,7 +11,7 @@ const DB={prepare:query=>statement(query),async batch(items){sql.exec('BEGIN');t
 const realNow=Date.now;let clock=realNow();Date.now=()=>clock;
 globalThis.__platformTest={env:{DB,APP_ORIGIN:'https://braand.test'},headers:new Headers({'x-braand-identity-id':'owner','x-braand-identity-email':'owner@test.invalid'}),calls:[],socialFailure:false};
 const f=globalThis.__platformTest,output=path.join(root,'.tmp','agent-platform-test.mjs');mkdirSync(path.dirname(output),{recursive:true});
-await build({stdin:{contents:['server','work','drafts','social','social-adapters','research','agent-receipts','brief','native-research','document-delivery','openrouter-research'].map((name,index)=>`export * as m${index} from './lib/${name}.ts';`).join('\n'),resolveDir:root,loader:'ts'},outfile:output,bundle:true,platform:'node',format:'esm',nodePaths:[process.env.BRAAND_TOOLCHAIN||path.join(root,'node_modules')],plugins:[{name:'platform-fixtures',setup(b){
+await build({stdin:{contents:['server','work','drafts','social','social-adapters','research','agent-receipts','brief','native-research','document-delivery','openrouter-research','media-render'].map((name,index)=>`export * as m${index} from './lib/${name}.ts';`).join('\n'),resolveDir:root,loader:'ts'},outfile:output,bundle:true,platform:'node',format:'esm',nodePaths:[process.env.BRAAND_TOOLCHAIN||path.join(root,'node_modules')],plugins:[{name:'platform-fixtures',setup(b){
  b.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},a=>({path:a.path,namespace:'fixture'}));
  b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:a.path==='cloudflare:workers'?'export const env=globalThis.__platformTest.env;':a.path==='next/headers'?'export async function headers(){return globalThis.__platformTest.headers;}':'export function redirect(){throw Error("Unexpected redirect");}'}));
  b.onResolve({filter:/^\.\/metering$/},a=>a.importer.endsWith('work.ts')?{path:'meter',namespace:'meter'}:null);
@@ -20,7 +20,7 @@ await build({stdin:{contents:['server','work','drafts','social','social-adapters
  b.onResolve({filter:/^\.\/composio$/},a=>a.importer.endsWith('social.ts')?{path:'social',namespace:'social'}:null);
  b.onLoad({filter:/.*/,namespace:'social'},()=>({contents:`const f=globalThis.__platformTest;export async function socialConnections(){return [{id:'connection',status:'ACTIVE',toolkit:'linkedin'}];}export async function socialConnectorCall(_who,call,permit){f.calls.push({call,permit});if(f.socialFailure)throw Error('Simulated lost acknowledgement');return {resultType:'completed',logId:'fixture-log',data:call.toolSlug==='TEST_DISCOVER'?{accounts:[{id:'page',name:'Compte de recette',publish:true,comments:false,insights:false}]}:{id:'published-'+f.calls.length,state:'published',url:'https://social.example/post'}};}`}));
 }}]});
-const {m0:server,m1:work,m2:drafts,m3:social,m4:adapters,m5:research,m7:brief,m8:native,m9:documents,m10:openrouter}=await import(pathToFileURL(output).href);
+const {m0:server,m1:work,m2:drafts,m3:social,m4:adapters,m5:research,m7:brief,m8:native,m9:documents,m10:openrouter,m11:render}=await import(pathToFileURL(output).href);
 globalThis.fetch=async()=>{throw Error('External network forbidden');};
 const who=await server.identity(new Request('https://braand.test/api/work')),conversation=await server.createResource(who.tenant,'conversation','Recette plateforme',{},'saved');
 const checks=[];async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
@@ -133,6 +133,28 @@ await check('OpenRouter research requires a real sourced server tool response, b
  fail=true;await assert.rejects(()=>research.researchWeb(scope,budget,{query:'Lost response'}),e=>e.code==='tool_usage_unknown');await assert.rejects(()=>research.researchWeb(scope,budget,{query:'No blind retry'}),e=>e.code==='tool_usage_unknown');assert.equal(requests,2);
  await openrouter.reconcileResearchUsage(who.organization);assert.equal(sql.prepare("SELECT COUNT(*) n FROM agent_tool_usage WHERE run_id=? AND status='unknown'").get(budget.runId).n,1);assert.equal(requests,2);
  globalThis.fetch=async()=>{throw Error('External network forbidden');};
+});
+await check('video editing prepares an exact priced draft without spending and rejects changed inputs or stale approval',async()=>{
+ Object.assign(f.env,{MEDIA_RENDER_ENABLED:'true',MEDIA_RENDER_STAGING_VERIFIED:'true',MEDIA_RENDER_VIDEO_EDIT_VERIFIED:'true',MEDIA_RENDER_URL:'https://renderer.example',MEDIA_RENDER_TOKEN:'test-only-token-not-real'});
+ f.env.MEDIA_RENDER_PRICING_JSON=JSON.stringify({version:'v2-test',credits:5,costCeilingXaf:10,verifiedAt:new Date(clock).toISOString(),source:'https://renderer.example/pricing'});
+ const file=await server.createResource(who.tenant,'file','Product test.png',{},'ready');
+ sql.prepare("INSERT INTO files(id,workspace_id,display_name,storage_name,size_bytes,detected_mime,sha256,status,storage_key,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'ready',?,?,?)").run(file.id,who.tenant,file.title,'image.png',200,'image/png','d'.repeat(64),'private/test-image',clock,clock);
+ const input={title:'Montage de recette',clips:[{fileId:file.id,version:file.version,sha256:'d'.repeat(64),trimStart:0,duration:3}],width:1080,height:1920,captions:[],maxCredits:8,style:{fit:'cover',motion:'zoom_in',grade:'warm',audioVolume:0.4,fadeSeconds:0.1}},before=sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n;
+ const proposal=await render.prepareVideoEdit(who,input);assert.equal(proposal.status,'awaiting_approval');assert.equal(proposal.data.payload.contract,'braand-render-v2');
+ assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n,before);assert.equal((await render.videoEditResult(who,{id:proposal.id})).executionConfirmed,false);
+ f.env.MEDIA_RENDER_VIDEO_EDIT_VERIFIED='false';assert.equal(render.videoEditingReadiness().ready,false);await assert.rejects(()=>render.approveAssembly(who,proposal.id,proposal.version),e=>e.code==='render_unavailable');
+ f.env.MEDIA_RENDER_VIDEO_EDIT_VERIFIED='true';const changed={...proposal.data.payload,input:{...input,style:{...input.style,grade:'cool'}}};await server.updateResource(who.tenant,proposal.id,proposal.version,{data:{...proposal.data,payload:changed}});const current=await server.getResource(who.tenant,proposal.id);
+ await assert.rejects(()=>render.approveAssembly(who,current.id,current.version),e=>e.code==='render_quote_changed');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n,before);
+ await assert.rejects(()=>render.prepareVideoEdit(who,{...input,clips:[{...input.clips[0],sha256:'c'.repeat(64)}]}),e=>e.code==='render_input_changed');
+ await assert.rejects(()=>render.videoEditResult({...who,tenant:'other'},{id:proposal.id}));
+ const approved=await render.prepareVideoEdit(who,input);await render.approveAssembly(who,approved.id,approved.version);
+ const pending=await server.getResource(who.tenant,approved.id);
+ await server.updateResource(who.tenant,pending.id,pending.version,{data:{...pending.data,payload:{...pending.data.payload,input:{...input,style:{...input.style,grade:'cool'}}}}});
+ let externalCalls=0;globalThis.fetch=async()=>{externalCalls++;throw Error('External network forbidden');};
+ await render.runRenderTick();
+ const job=sql.prepare('SELECT status,error_code,hold_id FROM media_render_jobs WHERE proposal_id=?').get(approved.id);
+ assert.equal(job.status,'uncertain');assert.equal(job.error_code,'render_quote_changed');assert.equal(externalCalls,0);
+ assert.equal(sql.prepare('SELECT status FROM credit_holds WHERE id=?').get(job.hold_id).status,'reserved');
 });
 Date.now=realNow;console.log(checks.length+' agent platform checks passed; actual external calls: 0.');
 

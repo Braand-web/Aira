@@ -39,6 +39,7 @@ function surfaces(file,source){
 const probes=[
  {label:'adapted retention reference',source:'skills/user-adapted/braand-retention-economics/references/cohorts.md',marker:'Un dénominateur nul ne produit pas un taux nul.'},
  {label:'adapted advertising action reference',source:'skills/user-adapted/braand-campaign-operations/references/live-actions.md',marker:'ne jamais transférer silencieusement les données ou audiences d\'un client à un autre.'},
+ {label:'video method',source:'skills/user/video-motion-studio/references/color.md',marker:'One grade per video'},
  {label:'marketing method',source:'skills/vendor/marketing/copywriting/SKILL.md',marker:'second-generation tells such as wisdom-shaped sentences and tidy closers'},
  {label:'marketing reference',source:'skills/vendor/marketing/ad-creative/references/awareness-headlines.md',marker:'A complaint supports the pain angle; it does not substantiate a numerical performance promise.'},
  {label:'design method',source:'skills/vendor/anthropic/frontend-design/SKILL.md',marker:'Spend your boldness in one place.'},
@@ -55,6 +56,7 @@ const socialManifest=JSON.parse(readFileSync(path.join(project,'skills/vendor/so
 const provenanceMarkers=[marketingManifest.source.repository,marketingManifest.source.commit,designManifest.repository,designManifest.commit,socialManifest.source.repository,socialManifest.source.commit];
 for(const marker of provenanceMarkers)assert.ok(typeof marker==='string'&&marker.length>=32,'Missing full upstream provenance marker');
 const internalPaths=[
+ /skills[\\/]+user[\\/]+video-motion-studio[\\/]+/u,
  /lib[\\/]+skills[\\/]+content[\\/]+/u,
  /lib[\\/]+skills[\\/]+catalog\.generated\.mjs/u,
  /skills[\\/]+vendor[\\/]+marketing[\\/]+/u,

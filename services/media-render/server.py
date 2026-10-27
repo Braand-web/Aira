@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import threading
 import time
+from fractions import Fraction
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = Path(os.environ.get("RENDER_DATA", "/data/jobs")).resolve()
@@ -53,13 +55,16 @@ def save_job(value, job):
 
 
 def probe(path):
-    result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+    result = subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file,pipe", "-show_streams", "-show_format", "-of", "json", str(path)],
                             capture_output=True, check=True, timeout=20, shell=False)
     return json.loads(result.stdout)
 
 
 def validate(spec):
-    if not isinstance(spec, dict) or set(spec) != {"id", "title", "clips", "width", "height", "captions", "maxCredits"}:
+    base = {"id", "title", "clips", "width", "height", "captions", "maxCredits"}
+    if not isinstance(spec, dict) or set(spec) not in (base, base | {"style"}):
+        raise ValueError("invalid_contract")
+    if not isinstance(spec["title"], str) or not 1 <= len(spec["title"]) <= 160 or type(spec["maxCredits"]) is not int or not 1 <= spec["maxCredits"] <= 1000:
         raise ValueError("invalid_contract")
     job_dir(spec["id"])
     if not isinstance(spec["clips"], list) or not 1 <= len(spec["clips"]) <= 10:
@@ -73,7 +78,7 @@ def validate(spec):
     for clip in spec["clips"]:
         if set(clip) != {"fileId", "version", "sha256", "trimStart", "duration"} or not IDENTIFIER.fullmatch(clip["fileId"]):
             raise ValueError("invalid_clip")
-        if not re.fullmatch(r"[a-f0-9]{64}", clip["sha256"]):
+        if not isinstance(clip["sha256"], str) or not re.fullmatch(r"[a-f0-9]{64}", clip["sha256"]) or type(clip["version"]) is not int or clip["version"] < 1:
             raise ValueError("invalid_digest")
         if type(clip["duration"]) not in (int, float) or not 0.1 <= clip["duration"] <= 120:
             raise ValueError("invalid_duration")
@@ -85,9 +90,71 @@ def validate(spec):
     for caption in spec["captions"]:
         if set(caption) != {"text", "start", "end"} or not isinstance(caption["text"], str) or not 1 <= len(caption["text"]) <= 300:
             raise ValueError("invalid_caption")
-        if not 0 <= caption["start"] < caption["end"] <= duration:
+        if type(caption["start"]) not in (int, float) or type(caption["end"]) not in (int, float) or not 0 <= caption["start"] < caption["end"] <= duration:
             raise ValueError("invalid_caption_time")
+    if "style" in spec:
+        style = spec["style"]
+        if not isinstance(style, dict) or set(style) != {"fit", "motion", "grade", "audioVolume", "fadeSeconds"}:
+            raise ValueError("invalid_style")
+        if style["fit"] not in ("contain", "cover") or style["motion"] not in ("none", "zoom_in", "zoom_out") or style["grade"] not in ("natural", "warm", "cool", "monochrome"):
+            raise ValueError("invalid_style")
+        for key in ("audioVolume", "fadeSeconds"):
+            if type(style[key]) not in (int, float) or not math.isfinite(style[key]) or not 0 <= style[key] <= 1:
+                raise ValueError("invalid_style")
+        if any(style["fadeSeconds"] * 2 > clip["duration"] for clip in spec["clips"]):
+            raise ValueError("invalid_fade")
     return spec
+
+
+def video_filter(spec, clip, image):
+    width, height = spec["width"], spec["height"]
+    style = spec.get("style", {"fit": "contain", "motion": "none", "grade": "natural", "audioVolume": 1, "fadeSeconds": 0})
+    if style["fit"] == "cover":
+        filters = [f"scale={width}:{height}:force_original_aspect_ratio=increase", f"crop={width}:{height}"]
+    else:
+        filters = [f"scale={width}:{height}:force_original_aspect_ratio=decrease", f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"]
+    filters += ["setsar=1", "fps=30"]
+    if image and style["motion"] != "none":
+        frames = max(1, round(clip["duration"] * 30))
+        zoom = f"1+0.08*on/{frames}" if style["motion"] == "zoom_in" else f"1.08-0.08*on/{frames}"
+        filters += [f"zoompan=z='{zoom}':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s={width}x{height}:fps=30"]
+    grade = {"natural": None, "warm": "colorbalance=rs=0.04:bs=-0.03", "cool": "colorbalance=rs=-0.03:bs=0.04", "monochrome": "hue=s=0"}[style["grade"]]
+    if grade:
+        filters.append(grade)
+    fade = style["fadeSeconds"]
+    if fade:
+        filters += [f"fade=t=in:st=0:d={fade}", f"fade=t=out:st={clip['duration']-fade}:d={fade}"]
+    return ",".join(filters)
+
+
+def inspect_output(folder, spec, metadata):
+    """Real decode/structure checks and sampled images; never a semantic or audio-listening claim."""
+    output = folder / "output.mp4"
+    videos = [s for s in metadata.get("streams", []) if s.get("codec_type") == "video"]
+    expected = sum(clip["duration"] for clip in spec["clips"])
+    duration = float(metadata.get("format", {}).get("duration", 0))
+    if not videos or not math.isfinite(duration) or abs(duration-expected) > 0.2:
+        raise ValueError("output_duration_mismatch")
+    stream = videos[0]
+    fps = float(Fraction(stream.get("avg_frame_rate", "0/1")))
+    if stream.get("width") != spec["width"] or stream.get("height") != spec["height"] or abs(fps-30)>0.01:
+        raise ValueError("output_resolution_mismatch")
+    subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-xerror", "-i", str(output), "-f", "null", "-"],
+                   capture_output=True, check=True, timeout=180, shell=False)
+    times = [round((duration-0.04)*i/5, 3) for i in range(6)]
+    for i, at in enumerate(times):
+        target = folder / f"review-{i}.png"
+        subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", "-ss", str(max(0,at)), "-i", str(output),
+                        "-vf", "scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2", "-frames:v", "1", str(target)],
+                       capture_output=True, check=True, timeout=30, shell=False)
+        if not target.is_file():
+            raise ValueError("contact_frame_missing")
+    subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", "-framerate", "1", "-i", str(folder / "review-%d.png"),
+                    "-vf", "tile=3x2", "-frames:v", "1", str(folder / "contact-sheet.png")],
+                   capture_output=True, check=True, timeout=30, shell=False)
+    return {"status": "passed", "duration": duration, "width": stream["width"], "height": stream["height"], "fps": fps,
+            "framesSampled": 6, "sampleTimes": times, "decode": "passed", "warnings": [],
+            "semanticReview": "not_performed", "audioListening": "not_performed"}
 
 
 def timestamp(seconds):
@@ -120,12 +187,12 @@ def render(value):
                 command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y"]
                 if image:
                     command += ["-loop", "1"]
-                command += ["-ss", str(clip["trimStart"]), "-i", str(source)]
+                command += ["-ss", str(clip["trimStart"]), "-protocol_whitelist", "file,pipe", "-i", str(source)]
                 if not audio:
                     command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
-                width, height = spec["width"], spec["height"]
                 command += ["-t", str(clip["duration"]), "-map", "0:v:0", "-map", "0:a:0" if audio else "1:a:0",
-                            "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30",
+                            "-vf", video_filter(spec, clip, image),
+                            "-af", f"volume={spec.get('style', {}).get('audioVolume', 1)}",
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
                             "-c:a", "aac", "-ar", "48000", "-ac", "2", "-shortest", "-movflags", "+faststart", str(target)]
                 subprocess.run(command, cwd=folder, check=True, capture_output=True, timeout=180, shell=False)
@@ -147,10 +214,13 @@ def render(value):
             if output.stat().st_size > MAX_FILE:
                 raise ValueError("output_too_large")
             metadata = probe(output)
+            quality = inspect_output(folder, spec, metadata) if "style" in spec else None
             with LOCK:
                 job = read_job(value)
                 job.update(status="completed", processingMs=round((time.monotonic()-started)*1000),
                            outputSha256=hashlib.sha256(output.read_bytes()).hexdigest(), metadata=metadata)
+                if quality:
+                    job.update(qualityReport=quality, contactSheetSha256=hashlib.sha256((folder / "contact-sheet.png").read_bytes()).hexdigest())
                 save_job(value, job)
         except Exception:
             with LOCK:
@@ -180,7 +250,7 @@ class Handler(BaseHTTPRequestHandler):
         cleanup()
         parts = self.path.split("?")[0].strip("/").split("/")
         if parts == ["health"] and self.command == "GET":
-            return self.reply(200, {"ready": bool(shutil.which("ffmpeg") and shutil.which("ffprobe")), "contract": "braand-render-v1"})
+            return self.reply(200, {"ready": bool(shutil.which("ffmpeg") and shutil.which("ffprobe")), "contract": "braand-render-v2", "compatibleContracts": ["braand-render-v1", "braand-render-v2"]})
         if parts[:2] != ["v1", "jobs"]:
             return self.reply(404, {"error": "not_found"})
         if len(parts) == 2 and self.command == "POST":
@@ -207,7 +277,15 @@ class Handler(BaseHTTPRequestHandler):
         if time.time() - job["createdAt"] > 86400:
             return self.reply(410, {"error": "expired"})
         if len(parts) == 3 and self.command == "GET":
-            return self.reply(200, {key: job[key] for key in ("id", "status", "processingMs", "outputSha256", "metadata") if key in job})
+            return self.reply(200, {key: job[key] for key in ("id", "status", "processingMs", "outputSha256", "metadata", "qualityReport", "contactSheetSha256") if key in job})
+        if len(parts) == 4 and parts[3] == "contact-sheet" and self.command == "GET" and job["status"] == "completed" and job.get("contactSheetSha256"):
+            target = folder / "contact-sheet.png"
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(target.stat().st_size))
+            self.end_headers()
+            self.wfile.write(target.read_bytes())
+            return
         if len(parts) == 5 and parts[3] == "inputs" and self.command == "PUT":
             name = parts[4]
             clip = next((item for item in job["spec"]["clips"] if item["fileId"] == name), None)
@@ -276,7 +354,7 @@ if __name__ == "__main__":
         with LOCK:
             job = json.loads(file.read_text("utf-8"))
             if job["status"] == "running":
-                job["status"] = "failed"
+                job["status"] = "uncertain"
                 job["error"] = "interrupted"
                 save_job(job["id"], job)
     ThreadingHTTPServer(("0.0.0.0", int(os.environ.get("PORT", "8080"))), Handler).serve_forever()

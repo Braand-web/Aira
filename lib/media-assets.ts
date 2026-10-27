@@ -155,6 +155,14 @@ export async function inspectMedia(budget: RunBudget, input: unknown) {
             throw new AppError('Un fichier est indisponible.', 404);
         files.push(file);
     }
+    const assembly=resource.data.assembly&&typeof resource.data.assembly==='object'?resource.data.assembly as Record<string,unknown>:null;
+    let sampledFrames=false;
+    if(p.review&&typeof assembly?.contactSheetId==='string'){
+        const sheet=await q("SELECT * FROM files WHERE id=? AND workspace_id=? AND status='ready'",assembly.contactSheetId,budget.who.tenant).first<FileRecord>();
+        if(sheet?.storage_key&&sheet.detected_mime==='image/png'){
+            files.push(sheet);sampledFrames=true;
+        }
+    }
     const checks = files.map(file => ({ id: file.id, mime: file.detected_mime, size: file.size_bytes, sha256: file.sha256, stored: true }));
     let semanticReview: Record<string, unknown> = { status: 'not_performed', scope: 'structural_only', audio: 'not_reviewed' };
     if (p.review) {
@@ -184,7 +192,7 @@ export async function inspectMedia(budget: RunBudget, input: unknown) {
             }
             if (!ended || !report.trim())
                 throw new AppError('La revue n’a pas renvoyé de résultat complet.', 502);
-            semanticReview = { status: 'performed', scope: 'images', imagesReviewed: content.length - 1, report, audio: 'not_reviewed' };
+            semanticReview = { status: 'performed', scope: sampledFrames?'video_sampled_frames':'images', imagesReviewed: content.length - 1, report, audio: 'not_reviewed',...(sampledFrames?{coverage:'sampled_frames_only',technicalReport:assembly?.qualityReport}: {}) };
         }
         else
             semanticReview = { status: 'not_performed', scope: 'video_or_unsupported_image', audio: 'not_reviewed', notice: 'La revue des séquences vidéo nécessite le service de rendu ; contrôlez le fichier dans son lecteur.' };

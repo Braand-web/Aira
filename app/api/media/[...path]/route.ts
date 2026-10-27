@@ -1,6 +1,7 @@
 import { identity, failure } from '@/lib/server';
 import { mediaAssets, persistMedia } from '@/lib/media-assets';
 import { AppError } from '@/lib/core.mjs';
+import { videoEditResult } from '@/lib/media-render';
 type Context = {
     params: Promise<{
         path: string[];
@@ -8,6 +9,7 @@ type Context = {
 };
 export async function GET(request: Request, context: Context) { try {
     const who = await identity(request), [id, section, ...rest] = (await context.params).path;
+    if(id&&section==='status'&&!rest.length)return Response.json(await videoEditResult(who,{id}),{headers:{'Cache-Control':'private, no-store'}});
     if (!id || section !== 'assets' || rest.length)
         throw new AppError('Média introuvable.', 404);
     return Response.json(await mediaAssets(who.tenant, id), { headers: { 'Cache-Control': 'private, no-store' } });
