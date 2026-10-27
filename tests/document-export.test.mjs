@@ -16,4 +16,5 @@ test('CSV preserves real rows while neutralizing spreadsheet formulas and boundi
 test('tabular exports keep the surrounding explanation and source provenance',()=>{
  for(const format of ['xlsx','csv']){const text=new TextDecoder().decode(renderDocument(format,'Mesures','Une estimation, pas des ventes.\n| Nom | Valeur |\n|---|---|\n| Test | 123 |',['https://example.com/source']).bytes);assert.ok(text.includes('Une estimation'));assert.ok(text.includes('https://example.com/source'));}
  const csv=new TextDecoder().decode(renderDocument('csv','Titre','  =1+1').bytes);assert.ok(csv.includes("'  =1+1"));
+ const hidden=new TextDecoder().decode(renderDocument('csv','Titre','\u0000=HYPERLINK("https://example.com")').bytes);assert.ok(hidden.includes("'\u0000=HYPERLINK"));
 });
