@@ -75,7 +75,7 @@ export async function commandRoutine(who:BillingIdentity,id:string,input:unknown
 async function stop(r:Row,status:RoutineStatus,code:string|null){const now=Date.now();await db().batch([q("UPDATE agent_routines SET status=?,error_code=?,version=version+1,updated_at=? WHERE id=? AND status='active' AND version=?",status,code,now,r.id,r.version),q('UPDATE resources SET status=?,updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM agent_routines WHERE id=? AND status=?)',status,now,r.id,r.id,status)]);}
 export async function runRoutineTick(){
     if(!routineReadiness().ready)return {disabled:true,created:0};
-    const now=Date.now(),rows=(await q("SELECT * FROM agent_routines WHERE status='active' AND next_at<=? ORDER BY next_at,id LIMIT 10",now).all<Row>()).results;let created=0;
+    const now=Date.now(),rows=(await q("SELECT r.* FROM agent_routines r WHERE r.status='active' AND (r.next_at<=? OR r.expires_at<=? OR ((SELECT COUNT(*) FROM agent_routine_runs x WHERE x.routine_id=r.id)>=r.max_runs AND NOT EXISTS(SELECT 1 FROM agent_routine_runs x JOIN agent_work w ON w.id=x.work_id WHERE x.routine_id=r.id AND w.status!='completed'))) ORDER BY r.next_at,r.id LIMIT 10",now,now).all<Row>()).results;let created=0;
     for(const r of rows){
         try{
             await authorize(r.workspace_id,r.actor_id,'write');if(!r.approved_by)throw new AppError('Approbation absente.',403);await authorize(r.workspace_id,r.approved_by,'approve');
