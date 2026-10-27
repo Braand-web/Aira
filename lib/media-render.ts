@@ -86,7 +86,7 @@ export async function approveAssembly(who: BillingIdentity, id: string, version:
     await auditLog(who.tenant, who.user.userId, 'assembly.approved', id, { version, maxCredits: quote.rate.credits });
     return { operationId: jobId, status: 'waiting_external' };
 }
-async function renderRequest(path: string, init: RequestInit = {}) { const url = new URL(safeWebURL(config().MEDIA_RENDER_URL || '')); url.pathname = url.pathname.replace(/\/$/, '') + path; const headers = new Headers(init.headers); headers.set('Authorization', 'Bearer ' + config().MEDIA_RENDER_TOKEN); const response = await fetch(url.href, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(30000) }); if (!response.ok)
+async function renderRequest(path: string, init: RequestInit = {}) { const url = new URL(safeWebURL(config().MEDIA_RENDER_URL || '')); url.pathname = url.pathname.replace(/\/$/, '') + path; const headers = new Headers(init.headers); headers.set('Authorization', 'Bearer ' + config().MEDIA_RENDER_TOKEN); const response = await fetch(url.href, { ...init, headers, redirect: 'manual', signal: AbortSignal.timeout(30000) }); if (!response.ok)
     throw new AppError('Le service de montage doit être vérifié.', 502, 'render_service_failed'); return response; }
 type Job = {
     id: string;
