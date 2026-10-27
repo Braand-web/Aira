@@ -184,10 +184,10 @@ function nativeApprovalResponses(error:{inputRequests:unknown;requestState?:unkn
  }
  return responses;
 }
-async function executeConnected(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string,approvalGranted=false){
+async function executeConnected(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string,approvalGranted=false,beforeExecute?:()=>Promise<void>){
  try{
   let result;
-  try{result=await session.execute(call.toolSlug,call.arguments,account?{account}:undefined);}
+  try{await beforeExecute?.();result=await session.execute(call.toolSlug,call.arguments,account?{account}:undefined);}
   catch(error){
    const {ComposioToolInputRequiredError}=await import('@composio/core');
    if(!(error instanceof ComposioToolInputRequiredError))throw error;
@@ -195,6 +195,7 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
    const inputResponses=nativeApprovalResponses(error);
    if(!inputResponses)throw new AppError('Le fournisseur demande une intervention supplémentaire. Aucun appel n’a été exécuté.',409,'connector_input_required');
    await authorize(who.tenant,who.user.userId,'write');
+   await beforeExecute?.();
    try{result=await session.execute(call.toolSlug,call.arguments,{...(account?{account}:{}),inputResponses,requestState:error.requestState});}
    catch(resumeError){
     if(resumeError instanceof ComposioToolInputRequiredError)throw new AppError('Le fournisseur demande une intervention supplémentaire. Aucun appel n’a été exécuté.',409,'connector_input_required');
@@ -204,7 +205,7 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
   await log(who,call.toolSlug,result.resultType,result.logId);
   return result;
  }catch(error){
-  if(error instanceof AppError&&['connector_approval_required','connector_input_required'].includes(error.code)){await log(who,call.toolSlug,error.code);throw error;}
+  if(error instanceof AppError&&['connector_approval_required','connector_input_required','work_inactive'].includes(error.code)){await log(who,call.toolSlug,error.code);throw error;}
   await log(who,call.toolSlug,'uncertain');throw providerError();
  }
 }
@@ -327,8 +328,8 @@ export async function decideConnectorAction(who:BillingIdentity,id:string,decisi
   await syncAction(who,id,'executing');
   // Reuse the proposal's own session, never a caller-supplied session/account or approval response.
   const original=checkSession(await sdk.sessions.use(row.session_id),await safeComposioUserId(who.tenant,who.user.userId),call.mode);
-  if(linked&&!await query("SELECT w.id FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=? AND w.actor_id=? AND w.status IN ('running','waiting_approval','waiting_external') AND w.expires_at>? AND w.approved_version IS NOT NULL",id,who.tenant,who.user.userId,Date.now()).first())throw new AppError('Le travail est arrêté ou expiré.',409,'work_inactive');
-  const result=await executeConnected(who,original,call,call.mode==='instant'?'instant_account':account,true);
+  const workGuard=async()=>{if(linked&&!await query("SELECT w.id FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=? AND w.actor_id=? AND w.status IN ('running','waiting_approval','waiting_external') AND w.expires_at>? AND w.approved_version IS NOT NULL",id,who.tenant,who.user.userId,Date.now()).first())throw new AppError('Le travail est arrêté ou expiré.',409,'work_inactive');};
+  const result=await executeConnected(who,original,call,call.mode==='instant'?'instant_account':account,true,workGuard);
   const actual=call.mode==='instant'?parseActualInstantCharge(result):0;
   const uncertain=call.mode==='instant'&&(actual===null||actual>row.max_micros);
   const status=uncertain?'uncertain':result.resultType==='completed'?'completed':'failed';

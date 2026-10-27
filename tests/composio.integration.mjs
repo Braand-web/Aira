@@ -330,6 +330,9 @@ await check('approved durable work proposes a linked exact action once and prese
  sql.prepare("UPDATE agent_work SET status='paused' WHERE id=?").run(resource.id);await assert.rejects(()=>c.decideConnectorAction(who,pending.id,'approve'),e=>e.code==='work_inactive');assert.equal(countExecutions(),before);
  sql.prepare("UPDATE agent_work SET status='running' WHERE id=?").run(resource.id);const completed=await c.decideConnectorAction(who,pending.id,'approve');assert.equal(completed.status,'completed');assert.equal(countExecutions(),before+1);
  assert.equal((await invoke('braand_connector_action',call())).id,pending.id);assert.equal(countExecutions(),before+1);
+ const gated=await invoke('braand_connector_action',call('METAADS_CREATE_CAMPAIGN',{name:'Native pause fixture',status:'PAUSED'})),beforeEffects=effects.length;
+ nativeChallenge={requests:{fixture:approvalQuestion},state:'fixture-request-state',onChallenge:()=>sql.prepare("UPDATE agent_work SET status='paused' WHERE id=?").run(resource.id)};
+ try{const stopped=await c.decideConnectorAction(who,gated.id,'approve');assert.equal(stopped.status,'needs_input');assert.equal(effects.length,beforeEffects);}finally{nativeChallenge=null;}
  sql.prepare("UPDATE agent_work SET status='cancelled' WHERE id=?").run(resource.id);await assert.rejects(()=>invoke('braand_connector_status',{}),e=>e.code==='work_connector_denied');
 });
 // Touch real billing projections too: all holds remain visible in the organization's ledger.
