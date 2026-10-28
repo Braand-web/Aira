@@ -4,7 +4,7 @@ import {AppError,safeFilename} from './core.mjs';
 import {renderDocument,exportFormats} from './document-export.mjs';
 import {FILE_POLICY} from './file-policy.mjs';
 import type {BillingIdentity} from './billing';
-const input=z.object({id:z.string().min(1).max(160),version:z.number().int().positive(),format:z.enum(['md','html','csv','docx','xlsx','pdf'])}).strict();
+const input=z.object({id:z.string().min(1).max(160),version:z.number().int().positive(),format:z.enum(['md','html','csv','docx','xlsx','pdf','pptx'])}).strict();
 export {exportFormats};
 export async function buildDocument(tenant:string,raw:unknown){
  const p=input.parse(raw),source=await getResource(tenant,p.id);
