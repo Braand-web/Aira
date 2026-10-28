@@ -48,6 +48,7 @@ function overlay(catalog:CatalogItem[],policy:Policy,snapshot:Snapshot,hash:stri
 // A configured dynamic policy fails closed until a current source-backed quote
 // has been loaded. Legacy administrator catalogues retain their existing path.
 export function falRateEnvironment<T extends object>(env:T,now=Date.now()):T{
+    if((env as Bindings).FAL_GENERATION_ENABLED==='false')return {...env,FAL_CATALOG_JSON:'[]'};
     try{const configured=settings(env as Bindings);if(!configured)return env;const state=states.get(configured.signature);if(!state?.snapshot)return {...env,FAL_CATALOG_JSON:'[]'};const values=overlay(configured.catalog,configured.policy,state.snapshot,state.snapshot.hash,now);return {...env,FAL_CATALOG_JSON:JSON.stringify(values)};}
     catch{return {...env,FAL_CATALOG_JSON:'[]'};}
 }
@@ -59,6 +60,9 @@ async function read(url:string,key?:string,maxBytes=2000000){
     const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}return new TextDecoder().decode(bytes);
 }
 export async function ensureFalRates(env:Bindings,now=Date.now()){
+    // A known unavailable media account must not delay ordinary chat requests
+    // with catalogue, exchange-rate or storage reads.
+    if(env.FAL_GENERATION_ENABLED==='false')return {status:'disabled'};
     let configured:ReturnType<typeof settings>;try{configured=settings(env);}catch{return {status:'configuration_invalid'};}if(!configured)return {status:'disabled'};
     const {signature,policy,catalog}=configured;let state=states.get(signature);if(!state){state={loaded:false,retryAt:0};if(states.size>=4){const stale=[...states].find(([,s])=>!s.inFlight);if(stale)states.delete(stale[0]);}states.set(signature,state);}
     if(state.inFlight){await state.inFlight;return {status:state.snapshot&&now-state.snapshot.checkedAt<=DAY?'available':'unavailable'};}

@@ -20,7 +20,7 @@ This is a reviewed subset, not an assertion that every Fal endpoint is executabl
 
 The cache is private infrastructure data in R2 under `internal/fal-pricing/`. The one-way key binds the catalogue, policy and credential: an account/key change cannot reuse another account's custom prices. Cached data must match the exact policy, quantities, source URLs and timestamp. A current verified quote can survive a source outage; an expired quote cannot unlock generation. No secret or customer data is stored in that cache.
 
-Authenticated API requests, scheduled ticks and queue consumers warm the same rate layer. Synchronous catalogue consumers see only a verified current overlay. An installation with no dynamic pricing policy keeps the legacy administrator catalogue path.
+Authenticated API requests, scheduled ticks and queue consumers warm the same rate layer. Synchronous catalogue consumers see only a verified current overlay. A disabled or unfunded account skips all Fal pricing/network/cache reads and exposes no executable catalogue, so unavailable media does not add latency to ordinary chat. An installation with no dynamic pricing policy keeps the legacy administrator catalogue path.
 
 The agreed credit cap remains a **fixed proposal quote**, using the existing credit unit and settlement path. Supplier actual-cost visibility is separate: the provided API key permits generation and price reads, but returned HTTP 403 for account-balance access. A metadata price or completed image is not presented as an authenticated account-balance/usage statement. Unknown supplier billing receipts remain explicit.
 
@@ -30,7 +30,7 @@ The authorized staging image request was definitively rejected by Fal; no image 
 
 - `tests/fal-pricing.integration.mjs` exercises the real refresh and cache layer with simulated read-only sources: first-load closure, concurrent reads, cold start, expiry, outages, widened inputs, unsupported units, changed currencies/prices and no secret persistence. No paid calls.
 - Existing media routing tests retain exact quote fingerprints and prohibit changes after approval. Existing proposal routes retain human approval, shared budgets, idempotent operation claims and uncertain-result handling.
-- The private staging test uses the actual proposal approval route, real Fal queue, real media polling and private R2 persistence. It creates its own fixture identity/credit only. One supplier submission is allowed; lost acknowledgement must be investigated, never resubmitted blindly. Its result, file metadata, hash and settled staging hold are recorded separately from unit tests.
+- The private staging harness uses the actual proposal approval route with an isolated fixture identity/credit. Its one authorized supplier submission was rejected; the hold was released. Polling and R2 persistence are wired but successful generation, file persistence and actual supplier settlement remain unverified. The fixture was cleaned up and the private Worker removed, retaining audit receipts. The single submission is locked against replay.
 - Enable the catalogue/policy only after the verified production build is deployed. Preserve all existing bindings and flags. No routine or customer generation is created by enabling capabilities.
 
 Image editing, higher-quality price profiles and video montage are separate capabilities. A generated video is not an edited multi-clip film. Browser control and a cloud terminal are also separate and are not enabled by a Fal API key.
