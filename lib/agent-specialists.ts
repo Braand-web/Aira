@@ -1,5 +1,8 @@
 import {z} from 'zod';
 export const specialistProfiles={
+ software_engineer:{roles:['analysis','review'],instruction:'Software design, code diagnosis and focused changes using accessible sources. Distinguish exported code, actual test receipts and deployed behavior. No execution environment or deployment permission is implied.'},
+ data_analyst:{roles:['analysis','extraction'],instruction:'Data quality, reproducible calculations, units and uncertainty. Use actual table outputs; a preview is not the full population. Do not invent measurements or treat missing data as zero.'},
+ operations_coordinator:{roles:['analysis','review'],instruction:'Coordinate general business, personal or administrative work from verified resources. Preserve dependencies and approvals; never fabricate an external assignment, purchase or completed action.'},
  growth_strategist:{roles:['campaigns','analysis'],instruction:'Growth strategy: acquisition, conversion, retention and positioning. Ground priorities in business evidence.'},
  ads_strategist:{roles:['campaigns'],instruction:'Advertising strategy: objective, audiences, markets, exact budget and attribution. No implied launch permission.'},
  community_manager:{roles:['creative'],instruction:'Editorial planning, platform adaptations and community replies. Publication and outbound messages require the normal approval.'},

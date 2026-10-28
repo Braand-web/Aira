@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {FILE_POLICY,contentSecurityHeaders,declaredTypeMatches,detectFileType,imageWithinPixelLimit,issueFileToken,purgeAttachmentSnapshot,safeFileDto,safeResourceDto,verifyFileToken} from "../lib/file-policy.mjs";
 
+test('native artifact lists retain useful metadata without loading source code or raw tables',()=>{
+ const project=safeResourceDto({kind:'deliverable',data:{format:'source-project',title:'Code',content:'Résumé',files:[{path:'index.js',content:'private source'}],history:[{files:'old source'}],executionConfirmed:false}});
+ assert.equal(project.data.fileCount,1);assert.equal(project.data.content,'Résumé');assert.equal(project.data.files,undefined);assert.equal(project.data.history,undefined);
+ const analysis=safeResourceDto({kind:'deliverable',data:{format:'data-analysis',title:'Mesures',analysis:{schema:1,inputHash:'hash',outputRows:500,rows:[['private values']],source:{input:'raw dataset'}},executionConfirmed:true}});
+ assert.equal(analysis.data.analysis.outputRows,500);assert.equal(analysis.data.analysis.inputHash,'hash');assert.equal(analysis.data.analysis.rows,undefined);assert.equal(analysis.data.analysis.source,undefined);
+});
+
 test("file policy centralizes target upload limits",()=>{
  assert.equal(FILE_POLICY.maxFileBytes,52_428_800);
  assert.equal(FILE_POLICY.maxFilesPerMessage,10);

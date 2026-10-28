@@ -15,6 +15,7 @@ import {SettingsPanel,isSettingsTab,type SettingsTab} from "@/components/setting
 import {api,post,workspaceHeaders} from "../lib/client-api";
 import {userFacingError} from "../lib/user-facing-errors";
 import type {Resource} from "../lib/contracts";
+import {toolResultResources} from "@/lib/tool-resources";
 import {reviewedSkillCatalogSchema,type ReviewedSkillMetadata} from "@/lib/skill-metadata";
 import {FileCard} from "@/components/file-preview/file-card";
 import {useFilePreview} from "@/components/file-preview/file-preview-provider";
@@ -52,7 +53,6 @@ function textValue(value:unknown){return typeof value==="string"?value:"";}
 function stringValues(value:unknown){return Array.isArray(value)?value.filter((item):item is string=>typeof item==="string"):[];}
 function mediaOutput(value:unknown):MediaOutput{const data=record(value),video=record(data.video),audio=record(data.audio);return {images:Array.isArray(data.images)?data.images.map(record).filter(image=>typeof image.url==="string").map(image=>({url:textValue(image.url),width:typeof image.width==="number"?image.width:undefined,height:typeof image.height==="number"?image.height:undefined})):undefined,video:typeof video.url==="string"?{url:video.url}:undefined,audio:typeof audio.url==="string"?{url:audio.url}:undefined};}
 function resourceData(resource:Pick<Resource,"data">){const data=record(resource.data),payload=record(data.payload);return {kind:textValue(data.kind),slug:textValue(data.slug),category:textValue(data.category),description:textValue(data.description),objective:textValue(data.objective),content:textValue(data.content),report:textValue(data.report),source:textValue(data.source),rationale:textValue(data.rationale),model:textValue(data.model),country:textValue(data.country),currency:textValue(data.currency),destination:textValue(data.destination),tracking:textValue(data.tracking),message:textValue(data.message),size:Number(data.size)||0,maxCredits:Number(data.maxCredits)||0,dailyBudget:Number(data.dailyBudget)||0,steps:Array.isArray(data.steps)?stringValues(data.steps):undefined,checks:stringValues(data.checks),tools:stringValues(data.tools),successCriteria:stringValues(data.successCriteria),history:Array.isArray(data.history)?data.history.map(record).filter(item=>typeof item.version==="number").map(item=>({version:item.version as number})):[],output:mediaOutput(data.output),payload:{model:textValue(payload.model),input:payload.input}};}
-function isResource(value:unknown):value is Resource{const data=record(value);return typeof data.id==="string"&&typeof data.kind==="string"&&typeof data.title==="string"&&typeof data.status==="string"&&typeof data.version==="number"&&typeof data.workspace_id==="string"&&typeof data.created_at==="number"&&typeof data.updated_at==="number"&&data.data!==null&&typeof data.data==="object"&&!Array.isArray(data.data);}
 function messageStatus(value:unknown):StreamingResponseStatus{return value==="streaming"||value==="complete"||value==="error"||value==="cancelled"?value:"unknown";}
 function messageFeedback(value:unknown):StreamingResponseFeedback{return value==="up"||value==="down"?value:null;}
 function messageSources(value:unknown):CitationItem[]{return Array.isArray(value)?value.map(record).filter(source=>typeof source.id==="string"&&typeof source.title==="string").map(source=>({id:textValue(source.id),title:textValue(source.title),domain:textValue(source.domain),url:typeof source.url==="string"?source.url:undefined})):[];}
@@ -253,7 +253,15 @@ export default function Studio(){
     if(event.event==="specialist_start")setActivity(data.role==="review"?"Vérification du livrable":"Analyse spécialisée en cours");
     if(event.event==="specialist_done"){setActivity("");void refresh();}
     if(event.event==="tool_start"){const toolLabels:Record<string,string>={create_page:"création de la page",revise_page:"modification de la page",search_workspace:"lecture du projet",media_catalog:"catalogue média",read_meta:"lecture Meta",plan_mission:"préparation de la mission"};setActivity("Outil en cours · "+(toolLabels[textValue(data.name)]||"action dans une application"));}
-    if(event.event==="tool_result"){setActivity("");if(chat.isCurrent()&&getRouteView()==="chat"&&record(data.result).kind==="browser_session"){setPanel(true);setPanelTab("browser");}if(isResource(data.result)){const r=data.result;setMessages(m=>m.map(msg=>msg.id===assistantId?{...msg,resources:[...new Map([...(msg.resources||[]),r].map(item=>[item.id,item])).values()]}:msg));if(chat.isCurrent()&&getRouteView()==="chat")void openResource(r,true);setSnapshot(previous=>previous&&previous.workspace.id===snapshot?.workspace.id?{...previous,resources:[r,...previous.resources.filter(item=>item.id!==r.id)]}:previous);}}
+    if(event.event==="tool_result"){
+     setActivity("");if(chat.isCurrent()&&getRouteView()==="chat"&&record(data.result).kind==="browser_session"){setPanel(true);setPanelTab("browser");}
+     const delivered=toolResultResources(data.result,snapshot?.workspace.id);
+     if(delivered.length){const r=delivered[0],ids=new Set(delivered.map(item=>item.id));
+      setMessages(m=>m.map(msg=>msg.id===assistantId?{...msg,resources:[...new Map([...(msg.resources||[]),...delivered].map(item=>[item.id,item])).values()]}:msg));
+      if(chat.isCurrent()&&getRouteView()==="chat")void openResource(r,true);
+      setSnapshot(previous=>previous&&previous.workspace.id===snapshot?.workspace.id?{...previous,resources:[...delivered,...previous.resources.filter(item=>!ids.has(item.id))]}:previous);
+     }
+    }
     if(event.event==="error")throw new Error(textValue(data.message)||"Le flux a été interrompu.");
     if(event.event==="done"){confirmedDone=true;flushStreamText();setMessages(current=>current.map(message=>message.id===assistantId?{...message,status:"complete"}:message));sessionStorage.removeItem("braand.lastRun:"+chat.key);}
    }

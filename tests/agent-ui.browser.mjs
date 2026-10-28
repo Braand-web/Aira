@@ -138,6 +138,15 @@ skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'
     const emit=(event,data)=>res.write('event: '+event+'\ndata: '+JSON.stringify(data)+'\n\n');
     emit('run',{runId:'run-'+chatCalls,conversationId:'conversation-fixture'});
     const timers=[];
+    if(body.text==='Sources de démonstration locale'){
+      const workspaceId=String(req.headers['x-braand-workspace']||'fixture');
+      const file={id:'native-zip-fixture',workspace_id:workspaceId,kind:'file',title:'sources-fixture.zip',status:'ready',version:1,created_at:now,updated_at:now,data:{mime:'application/zip',size:2048}};
+      const artifact={id:'native-project-fixture',workspace_id:workspaceId,kind:'deliverable',title:'Projet source de démonstration',status:'draft',version:1,created_at:now,updated_at:now,data:{title:'Projet source de démonstration',summary:'Sources proposées',content:'Code source exporté. Tests non exécutés.',category:'software',format:'source-project',sources:[],executionConfirmed:false},file};
+      workspaceResources.push(artifact,file);
+      timers.push(setTimeout(()=>emit('tool_result',{id:'native-source',name:'save_source_project',result:artifact}),100));
+      timers.push(setTimeout(()=>emit('tool_result',{id:'native-source',name:'save_source_project',result:artifact}),160));
+    }
+
     timers.push(setTimeout(()=>emit('specialist_start',{role:'creative'}),80));
     timers.push(setTimeout(()=>emit('tool_start',{name:'read_meta'}),350));
     timers.push(setTimeout(()=>emit('text_delta',{text:generatedText}),650));
@@ -151,6 +160,7 @@ skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'
   }
   if(url.pathname==='/api/resources/'+proposal.id){json(res,proposal);return;}
   if(url.pathname==='/api/resources/'+media.id){json(res,media);return;}
+  if(url.pathname.startsWith('/api/resources/native-')){const item=workspaceResources.find(item=>item.id===url.pathname.split('/').at(-1));json(res,item||{},item?200:404);return;}
   if(url.pathname.startsWith('/api/')){json(res,{},404);return;}
   if(url.pathname==='/fixture.png'){imageRequests++;if(imageRequests===1){res.writeHead(503,{'Cache-Control':'no-store'});res.end();return;}res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store'});res.end(png);return;}
   if(url.pathname==='/app.js'||url.pathname==='/app.css'||url.pathname.startsWith('/chunks/')){
@@ -665,6 +675,12 @@ try{
   await page.getByRole('button',{name:'Consulter la discussion en cours',exact:true}).click();assert.equal(await page.getByText('Texte réservé à la discussion A.',{exact:true}).isVisible(),true);assert.equal(await page.getByText('Texte réservé à la discussion B.',{exact:true}).count(),0);
   const secondStarted=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/chat'&&response.request().method()==='POST'&&response.request().postDataJSON().text==='Discussion B indépendante');backgroundCompletion.resolve();await secondStarted;await page.getByRole('button',{name:'Consulter la discussion en cours',exact:true}).click();await page.getByText('Texte réservé à la discussion B.',{exact:true}).waitFor();await page.locator('[data-slot=ai-status][data-state=done]').waitFor();assert.equal(await page.getByText('Texte réservé à la discussion A.',{exact:true}).count(),0);assert.equal(chatCalls,beforeBackground+1);
   checks.push('Live conversation switching preserves partial output and an unsent draft; a second explicit request queues and completes in its own conversation');
+  await page.setViewportSize({width:1280,height:800});await page.locator('.new-chat-icon').click();await composer.fill('Sources de démonstration locale');await composer.press('Enter');
+  const sourceLinks=page.locator('.message.assistant .artifact-links').last();
+  await sourceLinks.getByRole('button').filter({hasText:'sources-fixture.zip'}).waitFor();assert.equal(await sourceLinks.getByRole('button').count(),2);assert.equal(await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).isVisible(),true);
+  await page.locator('[data-slot=ai-status][data-state=done]').waitFor();assert.equal(await sourceLinks.getByRole('button').count(),2);assert.equal(await page.getByLabel('Format du document',{exact:true}).count(),0);await capture({path:path.join(output,'native-artifacts-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>getComputedStyle(document.querySelector('.sidebar')).visibility==='hidden');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture({path:path.join(output,'native-artifacts-mobile.png'),fullPage:true});
+  checks.push('Native result and ZIP appear during streaming, duplicate receipts produce no duplicate links, and mobile stays within its viewport');
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);

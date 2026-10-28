@@ -2,7 +2,7 @@
 name: braand-xlsx
 description: "Accompagne la lecture, le nettoyage, la création, la modification et l'analyse de classeurs Excel .xlsx, y compris les formules, en distinguant données observées, calculs proposés et opérations de fichier réellement exécutées."
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Classeurs Excel pour Braand
@@ -45,3 +45,5 @@ Une ambiguïté bloque seulement les opérations qui en dépendent : une date am
 Recontrôler les nombres, unités et plages utilisés contre la source accessible. Lorsqu'un outil de calcul est absent, le dire si cela affecte la fiabilité du résultat ; ne pas qualifier le classeur de recalculé ou validé par Excel. Avec un futur moteur, vérifier la réouverture, les cellules modifiées, les formules et résultats concernés ainsi que les effets de bord utiles ; le simple enregistrement du fichier ne suffit pas.
 
 Livrer le tableau, la règle, la formule, l'analyse ou les changements réellement préparés, avec leur couverture et leurs limites. Pour les cas de dates, formules et contrôles d'évaluation, consulter [les contrôles et scénarios Excel](references/controles.md).
+
+Pour des calculs réels sur un tableau CSV/JSON ou une analyse enregistrée, lire [le moteur d’analyse borné](references/analyse-native.md). Ce moteur est distinct de l’édition et du recalcul d’un classeur XLSX.

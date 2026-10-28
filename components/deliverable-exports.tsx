@@ -5,6 +5,9 @@ import {workspaceHeaders} from '@/lib/client-api';
 import type {Resource} from '@/lib/contracts';
 export function DeliverableExports({resource}:{resource:Resource}){
  const [format,setFormat]=useState('docx'),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ // Native analyses/projects already attach their complete CSV/ZIP as a private file.
+ // Exporting their compact summary as Word would obscure the actual deliverable.
+ if(resource.data.format==='source-project'||resource.data.format==='data-analysis')return null;
  const download=async()=>{if(busy)return;setBusy(true);setError('');try{
   const response=await fetch('/api/deliverables/'+encodeURIComponent(resource.id)+'/export?version='+resource.version+'&format='+format,{headers:workspaceHeaders()});
   if(!response.ok){const data=await response.json() as {error?:unknown};throw new Error(typeof data.error==='string'?data.error:'Export indisponible.');}

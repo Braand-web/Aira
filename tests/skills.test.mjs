@@ -34,7 +34,7 @@ test('browser events contain progress metadata, never imported prose or source i
  const result=await readSkill({id:'copywriting'},createSkillSession());const publicResult=publicSkillResult('read_skill',result);assert.equal(publicResult.id,result.id);assert.equal('content' in publicResult,false);assert.equal('provenance' in publicResult,false);assert.equal('references' in publicResult,false);assert.equal(JSON.stringify(publicResult).includes('coreyhaines31'),false);assert.deepEqual(publicSkillResult('search_skills',searchSkills({query:'conversion'})),{status:'methods_found',total:searchSkills({query:'conversion'}).total});
 });
 test('document originals are readable and declare content-only execution capabilities',async()=>{
- for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,'1.1.0');assert.ok(method.references.includes('references/controles.md'));}
+ for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,id==='braand-xlsx'?'1.2.0':'1.1.0');assert.ok(method.references.includes('references/controles.md'));}
 });
 
 test('software methods are selected by the model across languages with bounded progressive evidence guidance',async()=>{

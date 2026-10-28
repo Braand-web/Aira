@@ -2,7 +2,7 @@
 name: braand-software-delivery
 description: Préparer ou corriger un logiciel à partir d'un brief ou d'un dépôt accessible, avec changements ciblés, preuves de tests, revue du déploiement et maintenance traçable.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: Braand
   origin: original
 ---
@@ -28,11 +28,9 @@ Ne pas inventer de nom d'outil GitHub, de branche, de commande exécutée ou de 
 Une connexion au dépôt ne constitue pas un terminal, un environnement de tests ou
 un accès au fournisseur d'hébergement.
 
-Braand n'expose actuellement aucun shell général ni moteur de build isolé aux
-agents. Le code peut être préparé dans `save_deliverable`, puis exporté en Markdown.
-Cela reste une proposition récupérable, pas une application exécutée. Une écriture
-réelle via connecteur conserve son approbation exacte. Ne jamais remplacer un
-résultat de test absent par une estimation ou par l'auto-évaluation du modèle.
+Avec `capabilities` (`area: "software"`), `save_source_project` crée un projet de fichiers textuels et son vrai ZIP privé. `get_source_project` lit le manifeste, puis un fichier choisi à la version connue. Pour une retouche, fournir l’identifiant et la version actuels, les seuls fichiers à remplacer et les retraits exacts ; les autres fichiers sont conservés. Le ZIP contient les sources et leurs empreintes.
+
+Braand n’expose actuellement aucun shell général ni moteur de build isolé aux agents. Le ZIP reste du code livré, sans exécution, tests ou déploiement. Une écriture réelle via connecteur conserve son approbation exacte. Ne jamais remplacer un test absent par une estimation ou l’auto-évaluation du modèle.
 
 ## Faire progresser le résultat
 

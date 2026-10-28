@@ -41,3 +41,9 @@ test("autonomous mode exposes only safe reads and draft mission planning", () =>
   assert.equal(agentToolAllowedForMode("autonomous", "braand_connector_action"), false);
   assert.equal(agentToolAllowedForMode("autonomous", "braand_connector_status"), false);
 });
+
+test('native computations and source exports keep the distinction between planning and approved work',()=>{
+ for(const tool of ['analyze_data','save_source_project']){assert.equal(agentToolAllowedForMode('autonomous',tool),false);assert.equal(agentToolAllowedForMode('approved_mission',tool),true);assert.equal(agentToolAllowedForMode('accompanied',tool),true);}
+ for(const tool of ['get_analysis_result','get_source_project'])assert.equal(agentToolAllowedForMode('autonomous',tool),true);
+ for(const tool of ['run_shell','execute_code','deploy_app'])assert.equal(agentToolAllowedForMode('approved_mission',tool),false);
+});

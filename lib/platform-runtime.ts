@@ -6,6 +6,10 @@ import type { RunBudget } from './metering';
 export async function executePlatformTool(name: string, input: unknown, scope: AgentScope, budget: RunBudget): Promise<unknown> {
     const parseId = () => z.object({ id: z.string().min(1).max(160) }).strict().parse(input).id;
     switch (name) {
+        case 'analyze_data': return (await import('./data-analysis')).analyzeData(budget.who,input);
+        case 'get_analysis_result': return (await import('./data-analysis')).getAnalysisResult(budget.who,input);
+        case 'save_source_project': return (await import('./source-projects')).saveSourceProject(budget.who,input);
+        case 'get_source_project': return (await import('./source-projects')).getSourceProject(budget.who,input);
         case 'prepare_routine': return (await import('./routines')).prepareRoutine(budget.who,input);
         case 'get_routine': return (await import('./routines')).getRoutine(scope.tenant,parseId());
         case 'export_deliverable': return (await import('./document-delivery')).exportDeliverable(budget.who,input);
