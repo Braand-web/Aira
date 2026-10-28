@@ -1,5 +1,5 @@
 // Public tool contracts only. Implementations are loaded on demand on the server.
-import {internalTools} from './internal-tools';
+import {internalTools} from './internal-tools.mjs';
 const string = { type: 'string' }, strings = { type: 'array', items: string }, integer = { type: 'integer', minimum: 1 };
 const object = (properties: Record<string, unknown>, required: string[]) => ({ type: 'object', properties, required, additionalProperties: false });
 const asset = object({ id: string, version: integer, sha256: string }, ['id', 'version', 'sha256']);

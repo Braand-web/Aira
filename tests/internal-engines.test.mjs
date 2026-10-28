@@ -4,7 +4,16 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {tableData,parseTableCSV,analyzeTable,tableCSV,decimalValue} from '../lib/data-engine.mjs';
 import {sourceFiles,sourceArchive} from '../lib/source-archive.mjs';
+import {discoveredPlatformTools} from '../lib/platform-tools.ts';
 const {unzipSync}=createRequire(path.join(process.env.BRAAND_TOOLCHAIN||path.resolve('node_modules'),'package.json'))('fflate');
+
+test('native tool metadata imports without a bundler and discovery still requires readiness and write access',()=>{
+ for(const [area,read,write] of [['analysis','get_analysis_result','analyze_data'],['software','get_source_project','save_source_project']]){
+  assert.deepEqual(discoveredPlatformTools(area,{[area]:{ready:true},canWrite:false}).map(t=>t.name),[read]);
+  assert.ok(!discoveredPlatformTools(area,{[area]:{ready:false},canWrite:true}).some(t=>t.name===write));
+  assert.ok(discoveredPlatformTools(area,{[area]:{ready:true},canWrite:true}).some(t=>t.name===write));
+ }
+});
 
 test('real CSV parser retains quotes, newlines, Unicode and explicit delimiters',()=>{
  const table=parseTableCSV('\uFEFFNom;Montant;Note\r\n"مرحبا 世界";0,10;"a; b\n""c"""\r\n',';');

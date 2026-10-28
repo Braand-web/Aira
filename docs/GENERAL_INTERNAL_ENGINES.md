@@ -70,3 +70,21 @@ the exact CI/deployment receipts are recorded separately before release.
 The user deferred paid activation. No Workers Paid subscription or Fal recharge is
 created. Linux execution/builds, arbitrary code-to-MP4 rendering and generation
 without funded Fal remain unavailable; a method is never evidence of a live engine.
+
+### Isolated Cloudflare validation — 2026-10-28
+
+The services from commit `4763b3e` ran in a temporary gated Worker, against a
+separate staging D1/R2 with no model/provider credentials. Actual stored ZIPs
+were downloaded, unpacked independently and checked against every file hash.
+The checks covered exact `0.1 + 0.2 = 0.3`, null handling, source revisions,
+retained files, stale/foreign access denial, structured rewrite denial,
+context-safe DTOs and result pagination. Five generated files and all fixture
+records were removed; the temporary Worker was deleted.
+
+The upper-bound invocation created 32 source files / 128,000 text bytes and
+processed 500 rows × 40 columns through eight sorts, exporting a 136,530-byte ZIP
+and a 98,732-byte CSV. Combined server wall time was 7,931 ms (client 8,280 ms).
+The smaller combined scenario took 11,076 ms server / 11,690 ms client, including
+three writes, multiple access/version checks and storage reads. These are single
+staging observations including network/storage waits, not CPU timings, per-tool
+latency benchmarks, LLM performance or before/after improvement percentages.
