@@ -12,5 +12,13 @@ const proposal=await server.createResource(who.tenant,'proposal','Blocked fixtur
 const response=await route.POST(new Request('https://fixture.test/api/proposals/'+proposal.id,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://fixture.test'},body:JSON.stringify({version:1})}),{params:Promise.resolve({id:proposal.id})});
 assert.equal(response.status,503);assert.equal((await response.json()).code,'fal_not_ready');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM operations').get().n,0);assert.equal((await server.getResource(who.tenant,proposal.id)).status,'awaiting_approval');assert.equal(calls,0);
 assert.deepEqual(providers.falAvailability(),{ready:false,reason:'provider_funding_required'});await assert.rejects(()=>providers.submitFal('fal-ai/flux/schnell',{prompt:'Fixture'}),e=>e.code==='fal_not_ready');assert.equal(calls,0);
+const bindings=globalThis.__falProviderTest.env;bindings.FAL_GENERATION_ENABLED='true';bindings.FAL_ACCOUNT_STATUS='ready';
+for(const packed of [JSON.stringify({version:1,enabled:true,accountStatus:'needs_funding',catalog:[{id:'fal-ai/flux/schnell'}],pricingPolicy:{version:1,items:[{id:'fal-ai/flux/schnell',unit:'megapixels',maxUnits:2}]}}),'{broken']){
+ bindings.FAL_CONFIG_JSON=packed;
+ assert.equal(providers.falAvailability().ready,false);
+ const blocked=await route.POST(new Request('https://fixture.test/api/proposals/'+proposal.id,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://fixture.test'},body:JSON.stringify({version:1})}),{params:Promise.resolve({id:proposal.id})});
+ assert.equal(blocked.status,503);assert.equal((await blocked.json()).code,'fal_not_ready');assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM operations').get().n,0);assert.equal(calls,0);
+}
+delete bindings.FAL_CONFIG_JSON;
 delete globalThis.__falProviderTest.env.FAL_GENERATION_ENABLED;assert.equal(providers.falAvailability().ready,true);delete globalThis.__falProviderTest.env.FAL_KEY;assert.equal(providers.falAvailability().reason,'configuration_pending');
 console.log('Fal provider funding block: real approval route and direct submission make zero holds, operations or supplier calls. Legacy readiness preserved.');sql.close();delete globalThis.__falProviderTest;

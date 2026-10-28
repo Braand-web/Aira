@@ -28,6 +28,15 @@ The authorized staging image request was definitively rejected by Fal; no image 
 
 ## Validation and release
 
+Production stores the three reviewed profiles, pricing policy, activation switch
+and account state in one versioned `FAL_CONFIG_JSON` text binding; the credential
+remains a separate `FAL_KEY` secret. This fits the existing Workers Free variable
+limit without removing any live switch or buying a new plan. Runtime normalization
+retains the legacy separate variables when the packed binding is absent. A present
+but invalid packed configuration always closes execution; it never falls back to
+looser legacy settings. Only `enabled: true` plus `accountStatus: ready` permits
+pricing preparation. Exact proposal approval is still required for generation.
+
 - `tests/fal-pricing.integration.mjs` exercises the real refresh and cache layer with simulated read-only sources: first-load closure, concurrent reads, cold start, expiry, outages, widened inputs, unsupported units, changed currencies/prices and no secret persistence. No paid calls.
 - Existing media routing tests retain exact quote fingerprints and prohibit changes after approval. Existing proposal routes retain human approval, shared budgets, idempotent operation claims and uncertain-result handling.
 - The private staging harness uses the actual proposal approval route with an isolated fixture identity/credit. Its one authorized supplier submission was rejected; the hold was released. Polling and R2 persistence are wired but successful generation, file persistence and actual supplier settlement remain unverified. The fixture was cleaned up and the private Worker removed, retaining audit receipts. The single submission is locked against replay.

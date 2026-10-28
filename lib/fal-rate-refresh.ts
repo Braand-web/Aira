@@ -9,6 +9,18 @@ type Quote={id:string;unit:string;unitPrice:number;maxUnits:number;currency:'USD
 type Snapshot={version:1;hash:string;checkedAt:number;quotes:Quote[]};
 type State={snapshot?:Snapshot;inFlight?:Promise<void>;loaded:boolean;retryAt:number};
 const states=new Map<string,State>(),DAY=86400000,REFRESH=6*3600000;
+const packedSchema=z.object({version:z.literal(1),enabled:z.boolean(),accountStatus:z.enum(['needs_funding','verification_pending','ready']),catalog:z.array(z.object({id:z.string()}).passthrough()).max(12),pricingPolicy:policySchema}).strict();
+const packedCache=new Map<string,Record<string,string>>();
+export function falConfigurationEnvironment<T extends object>(env:T):T{
+    const raw=(env as Bindings).FAL_CONFIG_JSON;if(raw===undefined)return env;
+    const closed={FAL_GENERATION_ENABLED:'false',FAL_ACCOUNT_STATUS:'configuration_invalid',FAL_CATALOG_JSON:'[]',FAL_PRICING_POLICY_JSON:''};
+    if(typeof raw!=='string'||raw.length>32000)return {...env,...closed};
+    let overlay=packedCache.get(raw);
+    if(!overlay){try{const value=packedSchema.parse(JSON.parse(raw));overlay={FAL_GENERATION_ENABLED:value.enabled&&value.accountStatus==='ready'?'true':'false',FAL_ACCOUNT_STATUS:value.accountStatus,FAL_CATALOG_JSON:JSON.stringify(value.catalog),FAL_PRICING_POLICY_JSON:JSON.stringify(value.pricingPolicy)};}catch{overlay=closed;}
+        if(packedCache.size>=4)packedCache.delete(packedCache.keys().next().value!);packedCache.set(raw,overlay);
+    }
+    return {...env,...overlay};
+}
 export const FAL_PRICE_URL='https://api.fal.ai/v1/models/pricing';
 function settings(env:Bindings){
     if(!env.FAL_KEY||!env.FAL_PRICING_POLICY_JSON)return null;
@@ -48,6 +60,7 @@ function overlay(catalog:CatalogItem[],policy:Policy,snapshot:Snapshot,hash:stri
 // A configured dynamic policy fails closed until a current source-backed quote
 // has been loaded. Legacy administrator catalogues retain their existing path.
 export function falRateEnvironment<T extends object>(env:T,now=Date.now()):T{
+    env=falConfigurationEnvironment(env);
     if((env as Bindings).FAL_GENERATION_ENABLED==='false')return {...env,FAL_CATALOG_JSON:'[]'};
     try{const configured=settings(env as Bindings);if(!configured)return env;const state=states.get(configured.signature);if(!state?.snapshot)return {...env,FAL_CATALOG_JSON:'[]'};const values=overlay(configured.catalog,configured.policy,state.snapshot,state.snapshot.hash,now);return {...env,FAL_CATALOG_JSON:JSON.stringify(values)};}
     catch{return {...env,FAL_CATALOG_JSON:'[]'};}
@@ -60,6 +73,7 @@ async function read(url:string,key?:string,maxBytes=2000000){
     const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}return new TextDecoder().decode(bytes);
 }
 export async function ensureFalRates(env:Bindings,now=Date.now()){
+    env=falConfigurationEnvironment(env);
     // A known unavailable media account must not delay ordinary chat requests
     // with catalogue, exchange-rate or storage reads.
     if(env.FAL_GENERATION_ENABLED==='false')return {status:'disabled'};
