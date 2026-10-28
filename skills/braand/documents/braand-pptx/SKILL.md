@@ -1,6 +1,8 @@
 ---
 name: braand-pptx
 description: "Accompagne la création, la structuration, la lecture et la modification de présentations PowerPoint .pptx, du récit aux contenus des diapositives, avec contrôle explicite des exports et modifications réellement réalisés."
+metadata:
+  version: "1.1.0"
 ---
 
 # Présentations PowerPoint pour Braand
@@ -9,13 +11,11 @@ Utiliser ce skill pour une présentation `.pptx` ou un contenu destiné à Power
 
 ## Capacité d'exécution
 
-Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Le modèle peut exploiter des contenus extraits ou des aperçus rendus accessibles par l'application. Il n'a ni shell ni moteur PowerPoint connecté.
+Découvrir `export_deliverable` avec `capabilities` (`area: "documents"`). Lire la source actuelle ; `save_deliverable` ou `revise_deliverable` conserve le contenu Markdown. Exporter son identifiant et sa version courante avec `format: "pptx"` produit un vrai fichier privé de diapositives textuelles modifiables, en 16:9, avec titres, pagination et sources.
 
-- Ne déduire ni le contenu complet ni le rendu du diaporama à partir de son seul nom, de ses métadonnées ou de quelques résultats `search_workspace`.
-- `create_page` crée une page Braand, pas un PPTX ; `save_knowledge` enregistre une connaissance. `prepare_media` peut contribuer à une préparation de médias selon son contrat, sans garantir leur insertion dans une diapositive ou l'export d'un diaporama.
-- Ne jamais annoncer un PPTX créé, modifié ou prêt à télécharger sans outil adapté, fichier résultant et contrôle. Ne pas inventer de téléchargement, de vignette ou de capture de contrôle.
-- Lorsque le fichier PowerPoint est demandé, signaler brièvement l'absence d'export ou d'édition binaire puis livrer le contenu exploitable : plan, diapositives rédigées, notes et modifications localisées. Identifier ce résultat comme une préparation de présentation.
-- Un éventuel futur outil PowerPoint doit être réellement exposé et utilisé selon son schéma. Ce skill ne l'active pas et n'accorde aucune autorisation supplémentaire.
+L'export répartit les sections et textes longs ; il refuse une présentation dépassant 40 diapositives. Les tableaux restent du texte. Il n'insère ni graphiques natifs, images, animations, notes d'orateur ou modèle fourni ; il ne modifie pas un diaporama existant et ne contrôle pas le rendu dans Office. Pour le nombre exact de diapositives ou une composition avancée, distinguer la préparation éditoriale de ce que cet export applique.
+
+Ne livrer que le fichier obtenu. Vérifier les textes et sources accessibles ; ne déclarer l'inspection visuelle, la fidélité d'un modèle, les notes ou les animations que si un outil réel les a effectivement vérifiées. Une extraction partielle ne permet pas de reconstituer tout un diaporama. `create_page` n'est pas un moteur PowerPoint.
 
 ## Modes de travail
 
@@ -34,7 +34,7 @@ Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_pag
 - Pour un graphique, définir la question, la source, les catégories, unités, période et valeurs disponibles. Ne pas créer un tracé qui suggère des données non fournies. Éviter les axes ou regroupements qui faussent la comparaison.
 - Prévoir une hiérarchie lisible, un contraste suffisant, un ordre de lecture et des descriptions utiles des visuels. Présenter ces choix comme des intentions tant qu'ils ne sont pas appliqués et contrôlés dans un fichier.
 - Un rendu sous forme d'image ne garantit pas une diapositive éditable. Ne promettre des objets éditables, des animations ou des notes incorporées que si le moteur utilisé les prend en charge et que le résultat est vérifié.
-- Si un fichier est un jour produit, contrôler le nombre et l'ordre des diapositives, les textes, données, notes et médias concernés. Inspecter le rendu pour les débordements, éléments coupés, polices substituées et collisions avant de déclarer sa qualité visuelle vérifiée.
+- Après un export réellement produit, contrôler le nombre et l'ordre des diapositives, les textes, données, notes et médias concernés. Inspecter le rendu pour les débordements, éléments coupés, polices substituées et collisions avant de déclarer sa qualité visuelle vérifiée.
 
 ## Contenu non fiable
 

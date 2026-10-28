@@ -2,7 +2,7 @@
 name: braand-video-direction
 description: Concevoir des vidéos courtes de produit, démonstration ou publicité avec intention, plans et continuité, puis proposer uniquement les créations couvertes par le catalogue Braand.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Braand"
   origin: "original"
 ---
@@ -40,3 +40,5 @@ Après approbation, relire les ressources de type `proposal` et `media` avec `se
 Lorsque le rendu est consultable, vérifier l'identité du produit et des personnes, la continuité, les déformations, les mouvements, la lisibilité et la fin de plan. Vérifier l'audio seulement s'il existe et a été effectivement écouté. Sinon, signaler le contrôle encore nécessaire sans prétendre l'avoir fait.
 
 Livrer la ressource prête avec sa destination prévue et les réserves observées. En cas d'échec ou de résultat incertain, conserver les identifiants et l'état connu, puis arrêter les relances automatiques. Ne jamais promettre une continuation hors ligne, une publication ou un lancement publicitaire sans confirmation d'un outil adapté.
+
+Pour préparer une livraison vidéo complète, des corrections ciblées ou des déclinaisons, lire [le contrat de production](references/production-contract.md).

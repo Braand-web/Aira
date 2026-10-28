@@ -34,7 +34,18 @@ test('browser events contain progress metadata, never imported prose or source i
  const result=await readSkill({id:'copywriting'},createSkillSession());const publicResult=publicSkillResult('read_skill',result);assert.equal(publicResult.id,result.id);assert.equal('content' in publicResult,false);assert.equal('provenance' in publicResult,false);assert.equal('references' in publicResult,false);assert.equal(JSON.stringify(publicResult).includes('coreyhaines31'),false);assert.deepEqual(publicSkillResult('search_skills',searchSkills({query:'conversion'})),{status:'methods_found',total:searchSkills({query:'conversion'}).total});
 });
 test('document originals are readable and declare content-only execution capabilities',async()=>{
- for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,'1.0.0');assert.ok(method.references.includes('references/controles.md'));}
+ for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,'1.1.0');assert.ok(method.references.includes('references/controles.md'));}
+});
+
+test('software methods are selected by the model across languages with bounded progressive evidence guidance',async()=>{
+ const id='braand-software-delivery';
+ for(const query of ['Fix the build and verify deployment','صحح التطبيق وتحقق من الاختبارات','Corriger et déployer mon application']){
+  const found=searchSkills({query,category:'operations',semanticIds:[id]});assert.equal(found.skills[0].id,id);assert.equal(found.strategy,'model_selected_and_lexical');assert.equal('content' in found.skills[0],false);assert.equal(found.skills[0].capability,'text_draft');
+ }
+ const session=createSkillSession();await assert.rejects(()=>readSkill({id,reference:'references/delivery-evidence.md'},session),e=>e.code==='skill_entry_required');
+ const method=await readSkill({id},session);assert.equal(method.provenance.origin,'Braand');assert.equal(method.provenance.license,'Braand-original');assert.equal(method.truncated,false);assert.ok(method.chars<4000);assert.equal(session.calls,1);
+ const reference=await readSkill({id,reference:'references/delivery-evidence.md'},session);assert.equal(reference.truncated,false);assert.equal(reference.provenance.digest,method.provenance.digest);assert.equal(session.calls,2);assert.ok(session.chars<10000);
+ await assert.rejects(()=>readSkill({id,reference:'scripts/deploy.sh'},session),e=>e.code==='skill_not_found');assert.equal(Object.hasOwn(publicSkillResult('read_skill',method),'content'),false);
 });
 
 test('growth and community requests discover focused methods without granting execution capabilities',async()=>{
@@ -82,7 +93,7 @@ test('adapted methods support model-led multilingual selection and progressive r
 
 test('settings metadata matches the reviewed registry and rejects private prose or extra executable fields',()=>{
  const skills=reviewedSkillMetadata();const dto=reviewedSkillCatalogSchema.parse({skills});
- assert.equal(dto.skills.length,41);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,41);
+ assert.equal(dto.skills.length,42);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,42);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],content:'private instructions'}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],tools:['shell']}]}).success,false);
  assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],id:'../unreviewed'}]}).success,false);

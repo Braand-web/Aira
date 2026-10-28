@@ -1,6 +1,8 @@
 ---
 name: braand-pdf
 description: "Accompagne la lecture et l'extraction de PDF, leur création, fusion, sélection de pages et remplissage de formulaires, avec un périmètre sans OCR et des limites explicites sur les opérations réellement exécutables."
+metadata:
+  version: "1.1.0"
 ---
 
 # PDF pour Braand
@@ -9,13 +11,11 @@ Utiliser ce skill pour du contenu PDF ou une opération sur des fichiers `.pdf`.
 
 ## Capacité d'exécution
 
-Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Les extractions et aperçus présentés par l'application peuvent servir de source lorsqu'ils sont accessibles. Le modèle n'a ni shell ni moteur PDF connecté.
+Les outils exposés par `capabilities` (`area: "documents"`) peuvent exporter un rapport enregistré en PDF textuel. Lire la source actuelle, utiliser `save_deliverable` ou `revise_deliverable`, puis `export_deliverable` avec l'identifiant, la version et `format: "pdf"`.
 
-- Utiliser seulement les passages, pages et métadonnées réellement reçus. Un résultat `search_workspace` ne garantit pas la couverture de toutes les pages ; `read_meta` ne remplit ni ne transforme le PDF.
-- `create_page` peut enregistrer un contenu dans une page Braand ; il ne crée pas un PDF. `save_knowledge` et `prepare_media` ne sont pas des outils de fusion, d'export ou de formulaire.
-- Ne jamais annoncer un PDF exporté, fusionné, découpé, rempli, expurgé ou modifié sans outil adapté, résultat concret et contrôle du fichier. Ne pas fabriquer de lien de téléchargement.
-- Si une opération binaire est demandée, dire brièvement qu'elle n'est pas disponible, puis préparer ce qui peut l'être : contenu structuré, ordre de fusion, sélection de pages ou correspondance des champs et valeurs. Nommer clairement ce livrable préparatoire.
-- Si un outil PDF est réellement ajouté à Braand, s'appuyer sur son schéma et vérifier sa prise en charge de l'opération. Le présent skill ne l'installe pas et n'élargit aucune autorisation.
+L'export PDF actuel accepte les écritures latines et refuse explicitement les caractères non pris en charge. Proposer DOCX ou HTML pour préserver une autre écriture. Il n'ajoute ni OCR, fusion, sélection binaire de pages, formulaire rempli, signature, expurgation, police embarquée, image ou PDF techniquement accessible. Les tableaux sont du texte. `create_page` ne constitue pas un export PDF.
+
+Les extractions et aperçus de fichiers peuvent servir de sources dans leur couverture réelle. Ne pas annoncer un fichier transformé à partir de ces seuls extraits. Pour une opération non disponible, préparer un manifeste ou les valeurs utiles et signaler cette limite. Ne livrer que le fichier réellement retourné ; distinguer structure du fichier, contenu vérifié et rendu visuel inspecté.
 
 ## Modes de travail
 
