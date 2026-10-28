@@ -11,6 +11,8 @@ declare namespace Cloudflare {
     ROUTINES_ENABLED?: string;
     ROUTINES_STAGING_VERIFIED?: string;
     FAL_PRICING_POLICY_JSON?:string;
+    FAL_GENERATION_ENABLED?:string;
+    FAL_ACCOUNT_STATUS?:string;
     WORK_STAGING_VERIFIED?: string;
     SOCIAL_ENABLED?: string;
     SOCIAL_STAGING_VERIFIED?: string;

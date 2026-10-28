@@ -24,6 +24,8 @@ Authenticated API requests, scheduled ticks and queue consumers warm the same ra
 
 The agreed credit cap remains a **fixed proposal quote**, using the existing credit unit and settlement path. Supplier actual-cost visibility is separate: the provided API key permits generation and price reads, but returned HTTP 403 for account-balance access. A metadata price or completed image is not presented as an authenticated account-balance/usage statement. Unknown supplier billing receipts remain explicit.
 
+The authorized staging image request was definitively rejected by Fal; no image or accepted request ID was produced, and the staging hold was released. The account owner then confirmed that the Fal account has no credits. This is not a successful generation test. `FAL_GENERATION_ENABLED=false` with `FAL_ACCOUNT_STATUS=needs_funding` keeps generation unavailable and reports the actual prerequisite. The approval route checks this state before creating a credit hold or provider operation. Funding the supplier and a separately controlled functional validation are still required before announcing image/video/voice execution as operational. No supplier recharge is performed by this release.
+
 ## Validation and release
 
 - `tests/fal-pricing.integration.mjs` exercises the real refresh and cache layer with simulated read-only sources: first-load closure, concurrent reads, cold start, expiry, outages, widened inputs, unsupported units, changed currencies/prices and no secret persistence. No paid calls.
