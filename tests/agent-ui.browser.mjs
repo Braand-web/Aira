@@ -581,7 +581,9 @@ try{
   assert.ok((await page.locator('.messages').innerText()).includes('Résultat de test conservé.'));checks.push('Interrupted stream keeps received text and never claims success');
   await page.getByRole('textbox',{name:'Votre demande à Braand'}).fill('Arrêt utilisateur');await page.getByRole('textbox',{name:'Votre demande à Braand'}).press('Enter');
   await page.locator('[data-slot=ai-status][data-state=writing]').waitFor();
+  const stopReceipt=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/chat'&&response.request().method()==='DELETE');
   await page.getByRole('button',{name:'Arrêter la réponse',exact:true}).click();
+  assert.equal((await stopReceipt).status(),200);
   await page.locator('[data-slot=ai-status][data-state=cancelled]').waitFor();assert.equal(stops,1);checks.push('Stop remains distinct from failure and cancels the existing run');
   assert.equal(await page.locator('.braand-avatar[data-state="working"]').count(),0);
   await page.getByRole('button',{name:'Rechercher',exact:true}).click();
