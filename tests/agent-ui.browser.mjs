@@ -28,10 +28,11 @@ const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conve
 const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
 const history=[];const votes=new Map();
 const workspaceResources=[proposal,conversation],workspaceMutations=[];
-let skillReads=0,failSkills=false;
+let skillReads=0,failSkills=false,browserWrites=0;
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 const firstChatHeaders=Promise.withResolvers();
 const backgroundCompletion=Promise.withResolvers();
+const deferredDelivery=Promise.withResolvers();
 let workspaceReads=0,summaryReads=0,walletAvailable=200;
 let checkoutCalls=0,billingEnabled=false;
 let analyticsConnected=false,analyticsMode='full';const analyticsReads=[];
@@ -54,6 +55,9 @@ const server=createServer(async(req,res)=>{
    const current=drafts.get(body.context)||{version:0};if(body.version!==current.version){json(res,{error:'Conflit de version'},409);return;}
    const next={content:body.content,attachments:body.attachments||[],version:current.version+1,updatedAt:Date.now()};drafts.set(body.context,next);json(res,next);return;
   }
+  if(url.pathname==='/api/browser'){if(req.method!=='GET'){browserWrites++;json(res,{error:'Provider actions are not permitted in this UI fixture'},403);}else json(res,{readiness:{ready:false,reasons:['binding']},sessions:[],profiles:[]});return;}
+  if(url.pathname==='/api/routines'){json(res,{items:[],readiness:{ready:false}});return;}
+  if(url.pathname.startsWith('/api/pages/shell-page-')){if(url.searchParams.has('publication')){json(res,null);return;}const name=url.pathname.endsWith('-a')?'A':'B';setTimeout(()=>json(res,{html:'<!doctype html><html lang="fr"><body><h1>Page '+name+'</h1></body></html>'}),name==='A'?700:15);return;}
   if(url.pathname==='/api/work'){json(res,{items:[],readiness:{enabled:false},nextCursor:null});return;}
   if(url.pathname==='/api/skills'){
 skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'});res.end(JSON.stringify({error:'Catalogue indisponible'}));return;}json(res,{skills:SKILL_CATALOG.map(({id,title,description,category,version,capability})=>({id,title,description,category,version,capability}))});return;}
@@ -140,6 +144,7 @@ skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'
     const emit=(event,data)=>res.write('event: '+event+'\ndata: '+JSON.stringify(data)+'\n\n');
     emit('run',{runId:'run-'+chatCalls,conversationId:'conversation-fixture'});
     const timers=[];
+    if(body.text==='Préserver le navigateur'){emit('text_delta',{text:'Préparation du livrable de la fixture.'});await deferredDelivery.promise;const artifact={id:'shell-delivery',workspace_id:'fixture',kind:'deliverable',title:'Livrable pendant la navigation',status:'draft',version:1,created_at:now,updated_at:now,data:{content:'Contenu de contrôle',category:'research',format:'markdown',sources:[],executionConfirmed:false}};workspaceResources.push(artifact);emit('tool_result',{id:'shell-delivery-tool',name:'save_deliverable',result:artifact});emit('assistant_message',{messageId:'shell-delivery-message',runId:'run-'+chatCalls,sources:[]});emit('done',{runId:'run-'+chatCalls});res.end();return;}
     if(body.text==='Sources de démonstration locale'){
       const workspaceId=String(req.headers['x-braand-workspace']||'fixture');
       const file={id:'native-zip-fixture',workspace_id:workspaceId,kind:'file',title:'sources-fixture.zip',status:'ready',version:1,created_at:now,updated_at:now,data:{mime:'application/zip',size:2048}};
@@ -199,7 +204,7 @@ try{
   const composer=page.getByRole('textbox',{name:'Votre demande à Braand'});
   const initial=await page.locator('.composer').boundingBox();
   assert.equal(await page.locator('body').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(24, 24, 25)');
-  assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),240);
+  assert.equal(Math.round((await page.locator('.sidebar').boundingBox()).width),248);
   assert.equal(await page.locator('.sidebar').getByRole('button',{name:'Intégrations',exact:true}).count(),0);
   assert.equal(await page.locator('.sidebar').getByRole('button',{name:'Compétences',exact:true}).count(),0);
   await composer.fill('Une ligne\nUne deuxième ligne\nUne troisième ligne');
@@ -686,8 +691,52 @@ try{
   await page.locator('[data-slot=ai-status][data-state=done]').waitFor();assert.equal(await sourceLinks.getByRole('button').count(),2);assert.equal(await page.getByLabel('Format du document',{exact:true}).count(),0);await capture({path:path.join(output,'native-artifacts-desktop.png'),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>getComputedStyle(document.querySelector('.sidebar')).visibility==='hidden');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture({path:path.join(output,'native-artifacts-mobile.png'),fullPage:true});
   checks.push('Native result and ZIP appear during streaming, duplicate receipts produce no duplicate links, and mobile stays within its viewport');
+  // Essentielle and Atelier exercise real routes and protections with isolated fixtures.
+  workspaceRole='owner';
+  workspaceResources.push({id:'shell-project',workspace_id:'fixture',kind:'project',title:'Un projet réel de la fixture',status:'saved',version:1,created_at:now,updated_at:now,data:{}},...['a','b'].map(id=>({id:'shell-page-'+id,workspace_id:'fixture',kind:'page',title:'Page de contrôle '+id.toUpperCase(),status:'draft',version:1,created_at:now,updated_at:now,data:{}})));
+  await page.setViewportSize({width:1280,height:800});await page.goto(origin+'/?view=library');await page.getByRole('heading',{name:'Bibliothèque',exact:true}).waitFor();
+  const primary=page.getByRole('navigation',{name:'Navigation principale',exact:true});
+  for(const name of ['Chat','Bibliothèque','Missions','Automatisations'])assert.equal(await primary.getByRole('button',{name,exact:true}).count(),1);
+  assert.equal(await primary.getByRole('button',{name:'Connecteurs',exact:true}).count(),0);
+  assert.ok(await primary.getByRole('region',{name:'Projets',exact:true}).isVisible());
+  assert.ok(await primary.getByRole('region',{name:'Historique des discussions',exact:true}).isVisible());
+  await page.getByRole('group',{name:'Contenu de la bibliothèque',exact:true}).getByRole('button',{name:'Pages',exact:true}).click();
+  assert.equal(await page.locator('.library-content .resource-card').count(),workspaceResources.filter(r=>r.kind==='page').length);
+  await primary.getByRole('button',{name:'Plus d’outils',exact:true}).press('ArrowDown');
+  const more=page.getByRole('group',{name:'Plus d’outils',exact:true});await more.getByRole('button',{name:'Studio',exact:true}).click();await page.getByRole('heading',{name:'Créations',exact:true}).waitFor();
+  await primary.getByRole('button',{name:'Automatisations',exact:true}).click();await page.getByRole('heading',{name:'Automatisations',exact:true}).waitFor();assert.equal(new URL(page.url()).searchParams.get('section'),'routines');
+  await primary.getByRole('button',{name:'Missions',exact:true}).click();await page.getByRole('heading',{name:'Missions',exact:true}).waitFor();assert.equal(new URL(page.url()).searchParams.has('section'),false);
+  await primary.getByRole('button',{name:'Chat',exact:true}).click();
+  await page.getByRole('button',{name:'Replier la navigation',exact:true}).click();
+  await primary.getByRole('button',{name:'Plus d’outils',exact:true}).press('ArrowDown');await more.waitFor();const moreBounds=await more.boundingBox();assert.ok(moreBounds.x>=0&&moreBounds.x+moreBounds.width<=1280);
+  await page.keyboard.press('Escape');assert.equal(await more.count(),0);assert.ok(await primary.getByRole('button',{name:'Plus d’outils',exact:true}).evaluate(e=>e===document.activeElement));
+  await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===248);await capture({path:path.join(output,'essential-sidebar-desktop.png'),fullPage:true});
+  checks.push('Essentielle separates real projects and discussions, preserves Studio and routines, and keeps Connecteurs in settings');
+  await page.getByRole('button',{name:'Ouvrir l’espace de travail',exact:true}).click();
+  const panel=page.getByRole('complementary',{name:'Espace de travail',exact:true});
+  const picker=panel.getByRole('button',{name:'Choisir le contenu de l’espace de travail',exact:true});
+  assert.equal(await panel.getByRole('tablist').count(),0);
+  await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Navigateur',exact:true}).click();
+  await panel.getByRole('heading',{name:'Activation en attente',exact:true}).waitFor();assert.equal(browserWrites,0);
+  await capture({path:path.join(output,'atelier-browser-desktop.png'),fullPage:true});
+  await panel.getByRole('button',{name:'Agrandir',exact:true}).click();assert.equal(await page.locator('.main-area').isVisible(),false);
+  await picker.press('ArrowDown');await page.keyboard.press('Escape');assert.equal(await panel.isVisible(),true);
+  await page.keyboard.press('Escape');assert.equal(await panel.count(),0);assert.equal(await page.locator('.main-area').isVisible(),true);await page.waitForFunction(()=>document.activeElement?.hasAttribute('data-workspace-trigger'));
+  await primary.getByRole('button',{name:'Bibliothèque',exact:true}).click();await page.getByRole('group',{name:'Contenu de la bibliothèque',exact:true}).getByRole('button',{name:'Pages',exact:true}).click();
+  await page.locator('.resource-card').filter({hasText:'Page de contrôle A'}).click();
+  await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Page de contrôle B',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.page-frame iframe')?.getAttribute('srcdoc')?.includes('Page B'));
+  await new Promise(resolve=>setTimeout(resolve,750));assert.ok(await panel.locator('.page-frame iframe').getAttribute('srcdoc').then(value=>value.includes('Page B')&&!value.includes('Page A')));
+  await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Code de la page',exact:true}).click();assert.ok((await panel.locator('.atelier-source code').innerText()).includes('<h1>Page B</h1>'));
+  assert.ok(await panel.locator('.atelier-source pre').evaluate(e=>e.scrollWidth<=e.clientWidth));
+  await capture({path:path.join(output,'atelier-source-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>getComputedStyle(document.querySelector('.sidebar')).visibility==='hidden');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.ok(await panel.locator('.atelier-source pre').evaluate(e=>e.scrollWidth<=e.clientWidth));await capture({path:path.join(output,'atelier-mobile.png'),fullPage:true});
+  await panel.getByRole('button',{name:'Fermer l’espace de travail',exact:true}).click();assert.equal(await page.locator('.main-area').isVisible(),true);
+  assert.equal(browserWrites,0);assert.equal(checkoutCalls,0);checks.push('Atelier uses one content selector, handles unavailable navigation honestly, keeps the latest page/source, and restores chat and focus after expanded Escape');
+
+  await page.setViewportSize({width:1280,height:800});await page.locator('.new-chat-icon').click();const liveDraft=page.getByRole('textbox',{name:'Votre demande à Braand'});await liveDraft.fill('Préserver le navigateur');await liveDraft.press('Enter');await page.getByText('Préparation du livrable de la fixture.',{exact:true}).waitFor();await page.getByRole('button',{name:'Ouvrir l’espace de travail',exact:true}).click();await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Navigateur',exact:true}).click();await panel.getByRole('heading',{name:'Activation en attente',exact:true}).waitFor();deferredDelivery.resolve();await page.locator('.message.assistant .artifact-links button').filter({hasText:'Livrable pendant la navigation'}).waitFor();assert.ok(await panel.getByRole('heading',{name:'Sessions privées',exact:true}).isVisible());assert.equal(await panel.locator('.artifact-heading').count(),0);assert.equal(browserWrites,0);checks.push('A streamed deliverable appears in chat without taking over a manually selected browser context');
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);
 }catch(error){if(lastPage){await lastPage.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});console.error((await lastPage.locator('body').innerText()).slice(0,1200));}throw error;}
-finally{firstChatHeaders.resolve();await browser?.close();await new Promise(resolve=>server.close(resolve));}
+finally{firstChatHeaders.resolve();deferredDelivery.resolve();await browser?.close();await new Promise(resolve=>server.close(resolve));}

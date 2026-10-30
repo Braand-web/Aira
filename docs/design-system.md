@@ -8,6 +8,18 @@ La charte complète est dans `docs/brand/charte-graphique.md`, avec une édition
 
 Manrope est auto-hébergée dans `public/fonts/Manrope.ttf` sous SIL Open Font License 1.1. Le bleu de marque est `#4B93FF` ; les couleurs d’action suivent les tokens accessibles du thème. L’attribut technique `data-design-system="muse"` est conservé pour la compatibilité des sélecteurs existants ; il ne désigne pas la marque affichée.
 
+## Essentielle et Atelier — navigation retenue
+
+La sidebar de 248 px présente Chat, Bibliothèque, Missions et Automatisations. Les projets réels et l’historique des discussions sont séparés. La recherche, les discussions épinglées, les archives et leurs menus gardent leurs comportements existants. Plus d’outils donne accès à Studio, Campagnes, Tableau de bord et Publications ; Connecteurs reste dans Paramètres. Le rail réduit reste à 72 px.
+
+Bibliothèque rassemble les fichiers, médias, livrables et pages, avec des filtres locaux. Les anciennes URLs restent valides. Automatisations ouvre la section Routines du tableau de missions existant ; la section est reflétée dans l’URL et dans l’état de la navigation.
+
+Atelier utilise un sélecteur de contenu unique à la place des onglets permanents. Il conserve l’aperçu, les fichiers et le navigateur existants ; le code d’une page est le HTML réellement chargé, affiché comme texte. Un changement de page ignore les réponses périmées, et un livrable reçu en streaming ne remplace pas un contexte de navigateur choisi manuellement. Agrandissement, fermeture, retour du focus, clavier et vue mobile sont conservés.
+
+Le navigateur affiche son état serveur réel. Son intégration Atelier ne crée ni session, ni permission, ni approbation automatiquement. Ses plafonds, confirmations, contrôles humains, saisies privées et rapprochements de coûts restent appliqués par le runtime existant. Browserbase est une intégration future, indépendante de cette évolution visuelle. Les lecteurs de fichiers spécialisés restent disponibles.
+
+Les contrôles navigateur couvrent les routes, la recherche et le repli, la bibliothèque, les routines, le sélecteur du panneau, les réponses de pages concurrentes, l’affichage du code, la continuité pendant le streaming, le clavier et le mobile. Ils utilisent des fournisseurs simulés, sans dépense ni publication réelle.
+
 ## Origine des mesures d’interface
 
 L’intégration utilise les mesures authentifiées de la v3 du kit Muse fourni par le client : `muse.tokens.css`, `components.authenticated.css`, `INTERFACE-PRIVEE.md` et leurs observations. Les proportions v2 relevées dans des captures ne sont pas utilisées comme dimensions CSS.
@@ -23,7 +35,7 @@ L’intégration utilise les mesures authentifiées de la v3 du kit Muse fourni 
 
 Manrope reste la police de Braand : aucun logo ou fichier de police propriétaire d’un concurrent n’est importé. L’identité Relais et sa géométrie sont propres au projet. Aucune dépendance d’exécution nouvelle.
 
-Le kit décrit plusieurs colonnes propres à Muse. Braand conserve sa navigation et son panneau existants : sidebar 240 px déployée, rail 72 px replié, panneau redimensionnable. Le sélecteur de mode et les envois de fichiers restent présents dans le compositeur compact ; sur mobile, les actions passent sous le texte.
+Le kit décrit plusieurs colonnes propres à Muse. Braand conserve sa navigation et son panneau existants : sidebar 248 px déployée, rail 72 px replié, panneau redimensionnable. Le sélecteur de mode et les envois de fichiers restent présents dans le compositeur compact ; sur mobile, les actions passent sous le texte.
 
 Les petits textes secondaires sont plus clairs que les alpha tertiaires de la référence pour conserver un contraste lisible. Le fond des menus est plus opaque pour qu’un texte derrière ne gêne pas leur lecture. La teinte bleue des messages utilisateur, les surfaces translucides et le focus bleu reprennent la v3.
 
