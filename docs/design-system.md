@@ -1,5 +1,15 @@
 # Design system Braand
 
+## Identité Relais — 30 octobre 2026
+
+Relais est l’identité officielle de Braand : un signe composé de deux formes et un mot-symbole en tracés vectoriels. `brand/relais.geometry.json` en conserve la géométrie ; `scripts/build-brand-assets.mjs` génère les SVG et `lib/brand.mjs`. Les composants `BrandLogo` et `BrandMark` de `components/brand.tsx` sont utilisés dans l’application, la connexion et les pages publiques. La mascotte animée du chat reste un compagnon distinct.
+
+La charte complète est dans `docs/brand/charte-graphique.md`, avec une édition PDF/HTML de 24 pages sous `public/brand`. Le kit `braand-relais-kit-v1.zip` contient les variantes SVG/PNG, les icônes, Manrope et sa licence, les tokens, les sources des primitives React et les empreintes SHA-256. Les scripts `build-brand-kit.mjs` et `package-brand-kit.mjs` régénèrent ces livrables sans appel fournisseur.
+
+Manrope est auto-hébergée dans `public/fonts/Manrope.ttf` sous SIL Open Font License 1.1. Le bleu de marque est `#4B93FF` ; les couleurs d’action suivent les tokens accessibles du thème. L’attribut technique `data-design-system="muse"` est conservé pour la compatibilité des sélecteurs existants ; il ne désigne pas la marque affichée.
+
+## Origine des mesures d’interface
+
 L’intégration utilise les mesures authentifiées de la v3 du kit Muse fourni par le client : `muse.tokens.css`, `components.authenticated.css`, `INTERFACE-PRIVEE.md` et leurs observations. Les proportions v2 relevées dans des captures ne sont pas utilisées comme dimensions CSS.
 
 ## Organisation
@@ -11,7 +21,7 @@ L’intégration utilise les mesures authentifiées de la v3 du kit Muse fourni 
 
 ## Adaptations assumées
 
-Manrope reste la police d’Braand : les binaires OptimisticAI ne sont pas fournis. Aucun logo, fichier de police propriétaire, script du catalogue ou CSS utilitaire brut n’est importé. Aucune dépendance nouvelle.
+Manrope reste la police de Braand : aucun logo ou fichier de police propriétaire d’un concurrent n’est importé. L’identité Relais et sa géométrie sont propres au projet. Aucune dépendance d’exécution nouvelle.
 
 Le kit décrit plusieurs colonnes propres à Muse. Braand conserve sa navigation et son panneau existants : sidebar 240 px déployée, rail 72 px replié, panneau redimensionnable. Le sélecteur de mode et les envois de fichiers restent présents dans le compositeur compact ; sur mobile, les actions passent sous le texte.
 
@@ -23,7 +33,7 @@ Le responsive est une adaptation à Braand, pas une validation du comportement m
 
 ## Paramètres et connecteurs
 
-`components/settings-panel.tsx` compose la fenêtre native (880 × 680 px au maximum) : navigation de 224 px sur ordinateur, navigation horizontale sur mobile, corps indépendant défilant. Neuf rubriques utilisent les parcours existants : Général, Connecteurs, Compétences, Portefeuille, Facturation, Équipe et budgets, Stockage, Autorisations, Aide et raccourcis. La navigation défile indépendamment et garde la déconnexion accessible. À l’ouverture, le focus rejoint l’onglet actif, y compris un lien direct sur mobile. Les résumés financiers sont invalidés si l’utilisateur, l’espace, les crédits ou les réservations changent. Un changement d’espace dans un autre onglet recharge l’application pour garder les requêtes et l’écran sur le même périmètre.
+`components/settings-panel.tsx` compose la fenêtre native (880 × 680 px au maximum) : navigation de 224 px sur ordinateur, navigation horizontale sur mobile, corps indépendant défilant. Dix rubriques utilisent les parcours existants : Général, Connecteurs, Compétences, Portefeuille, Facturation, Équipe et budgets, Stockage, Autorisations, Aide et raccourcis, Informations légales. La navigation défile indépendamment et garde la déconnexion accessible. À l’ouverture, le focus rejoint l’onglet actif, y compris un lien direct sur mobile. Les résumés financiers sont invalidés si l’utilisateur, l’espace, les crédits ou les réservations changent. Un changement d’espace dans un autre onglet recharge l’application pour garder les requêtes et l’écran sur le même périmètre.
 
 La barre principale n’affiche plus les raccourcis Intégrations et Compétences. Les compétences conservent recherche, filtres, import et ajout d’une méthode au brouillon depuis leur onglet. La facturation utilise `BillingPanel embedded` : trois sous-rubriques compactes Forfait / Recharger / Paiements, sans grand titre commercial ni cadran décoratif. Tarifs, devis, confirmation de règlement, factures et demandes de remboursement réutilisent les contrôles existants. Équipe et budgets réutilise les membres, espaces et plafonds autorisés ; Stockage présente les mesures réelles ; Autorisations explique le rôle et les protections effectivement appliquées, en lecture seule.
 
@@ -33,7 +43,7 @@ Les liens `/?settings=billing`, `/?settings=team` et les autres identifiants d�
 
 La fiche d’application explique l’accès avant de préparer un lien OAuth. Ouvrir une fiche n’autorise rien ; « Connecter » prépare un lien Composio validé, puis l’utilisateur ouvre lui-même « Autoriser ». « Actualiser après la connexion » ferme la fiche et recherche l’application dans un catalogue rechargé, y compris si elle provenait d’une page suivante. La déconnexion exige une confirmation distincte. Les contrôles serveur des actions et dépenses ne changent pas. Les logos et descriptions apparaissent uniquement quand le catalogue les fournit ; aucun statut ou abonnement de la référence Muse n’est simulé en production.
 
-Les réglages non disponibles dans Braand (coffre-fort, appareils, canaux de messagerie, permissions personnalisées par outil) ne sont pas ajoutés sous forme de contrôles factices. Le thème reste sombre et la langue française ; les écrans de facturation existants conservent leurs véritables tarifs.
+Les réglages non disponibles dans Braand ne sont pas ajoutés sous forme de contrôles factices. L’apparence existante propose les thèmes sombre, clair et système ainsi que les accents configurables. Les écrans de facturation conservent leurs véritables tarifs.
 
 ## Vérification
 

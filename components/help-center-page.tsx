@@ -1,9 +1,10 @@
 import Link from "next/link";
+import {BrandLogo} from './brand';
 import { HELP_ARTICLES, HELP_CATEGORIES, type HelpArticle } from "@/lib/help-content";
 import styles from "./help-center.module.css";
 
 function Brand() {
-  return <Link prefetch={false} className={styles.brand} href="/" aria-label="Braand, accueil"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v32M4 20h32M8.7 8.7l22.6 22.6M8.7 31.3 31.3 8.7" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" /></svg><span>Braand</span></Link>;
+  return <Link prefetch={false} className={styles.brand} href="/" aria-label="Braand, accueil"><BrandLogo height={32}/></Link>;
 }
 
 export function HelpSiteShell({ children }: { children: React.ReactNode }) {

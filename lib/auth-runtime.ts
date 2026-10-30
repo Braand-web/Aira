@@ -53,7 +53,7 @@ function page(title: string, body: string, status = 200, cookies?: string) {
   // Preserve the POST Origin for CSRF checks without sending magic-link paths.
   const headers = new Headers({'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'private, no-store', 'Referrer-Policy':'strict-origin', 'X-Content-Type-Options':'nosniff', 'Content-Security-Policy':"default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"});
   if (cookies) headers.set('Set-Cookie', cookies);
-  return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · Braand</title><link rel="stylesheet" href="/auth.css"><link rel="icon" href="/favicon.svg"></head><body><main><a class="brand" href="/">Braand</a><h1>${escape(title)}</h1>${body}<a class="back" href="/">Revenir à Braand</a></main></body></html>`, {status, headers});
+  return new Response(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · Braand</title><link rel="stylesheet" href="/auth.css"><link rel="icon" href="/favicon.svg?v=relais-1"></head><body><main><a class="brand" href="/"><img src="/brand/relais-logo-dark.svg" alt="Braand" width="126" height="33"></a><h1>${escape(title)}</h1>${body}<a class="back" href="/">Revenir à Braand</a></main></body></html>`, {status, headers});
 }
 function notice(request: Request, title: string, message: string, status = 200) {
   return request.headers.get('accept')?.includes('application/json')

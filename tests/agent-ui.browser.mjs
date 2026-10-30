@@ -16,7 +16,7 @@ const {chromium}=await import(playwright?pathToFileURL(path.resolve(playwright))
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const output=path.join(root,'.tmp','agent-ui-browser');
 await mkdir(output,{recursive:true});
-await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Studio from "./app/studio";import {AppearanceProvider} from "./components/appearance-provider";import "./app/appearance.css";import {FilePreviewProvider} from "./components/file-preview/file-preview-provider";import "./app/globals.css";import "./app/file-upload.css";import "./components/file-preview/file-preview.css";createRoot(document.getElementById("root")).render(<AppearanceProvider><FilePreviewProvider><Studio/></FilePreviewProvider></AppearanceProvider>);',resolveDir:root,loader:'tsx'},outdir:output,entryNames:'app',chunkNames:'chunks/[name]-[hash]',alias:{'next/image':'vinext/shims/image'},bundle:true,splitting:true,format:'esm',jsx:'automatic',define:{'process.env.NODE_ENV':'"development"','process.env':'{}'},plugins:[{name:'fixture-worker-url',setup(builder){builder.onResolve({filter:/^pdfjs-dist\/build\/pdf\.worker\.min\.mjs\?url$/},()=>({path:'worker',namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export default "/unused-pdf-worker.mjs";',loader:'js'}));}}]});
+await build({external:['/fonts/*'],stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Studio from "./app/studio";import {AppearanceProvider} from "./components/appearance-provider";import "./app/appearance.css";import {FilePreviewProvider} from "./components/file-preview/file-preview-provider";import "./app/globals.css";import "./app/file-upload.css";import "./components/file-preview/file-preview.css";createRoot(document.getElementById("root")).render(<AppearanceProvider><FilePreviewProvider><Studio/></FilePreviewProvider></AppearanceProvider>);',resolveDir:root,loader:'tsx'},outdir:output,entryNames:'app',chunkNames:'chunks/[name]-[hash]',alias:{'next/image':'vinext/shims/image'},bundle:true,splitting:true,format:'esm',jsx:'automatic',define:{'process.env.NODE_ENV':'"development"','process.env':'{}'},plugins:[{name:'fixture-worker-url',setup(builder){builder.onResolve({filter:/^pdfjs-dist\/build\/pdf\.worker\.min\.mjs\?url$/},()=>({path:'worker',namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export default "/unused-pdf-worker.mjs";',loader:'js'}));}}]});
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z1ZsAAAAASUVORK5CYII=','base64');
 const now=Date.now();
 // Explicit test fixture only: this is not a production tax determination.
@@ -45,6 +45,8 @@ const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'applica
 const drafts=new Map();
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
+  if(url.pathname==='/fonts/Manrope.ttf'){res.writeHead(200,{'Content-Type':'font/ttf'});res.end(await readFile(path.join(root,'public/fonts/Manrope.ttf')));return;}
+  if(url.pathname==='/brand/relais-logo-dark.svg'){res.writeHead(200,{'Content-Type':'image/svg+xml'});res.end(await readFile(path.join(root,'public/brand/relais-logo-dark.svg')));return;}
   if(url.pathname==='/api/drafts'){
    if(req.method==='GET'){json(res,drafts.get(url.searchParams.get('context'))||{content:'',version:0,attachments:[],updatedAt:0});return;}
    const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());
@@ -187,6 +189,9 @@ try{
   await page.addInitScript(()=>{window.__copyFail=false;window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(window.__copyFail)throw new Error('Clipboard denied');window.__copied.push(text);}}});});
   await page.goto(origin);await page.getByRole('textbox',{name:'Votre demande à Braand'}).waitFor();
   assert.equal(await page.locator('.brand-lockup').innerText(),'Braand');
+  assert.equal(await page.locator('.brand-lockup [data-brand-logo="relais"]').count(),1);
+  assert.ok(await page.locator('.brand-lockup .sr-only').evaluate(element=>element.getBoundingClientRect().width<=1&&getComputedStyle(element).clipPath==='inset(50%)'),'Accessible product name stays available without a second visible wordmark');
+  assert.ok(await page.locator('.sidebar-brand').evaluate(element=>element.querySelector('[data-brand-logo]').getBoundingClientRect().right<=element.querySelector('.sidebar-header-actions').getBoundingClientRect().left),'The official lockup leaves room for search and collapse controls');
   assert.ok(await page.locator('.sidebar-brand').evaluate(element=>element.scrollWidth<=element.clientWidth),'Braand wordmark must fit beside navigation controls');
   assert.doesNotMatch(await page.locator('body').innerText(),/\bA[iï]ra\b/iu,'Visible application keeps the new product name');
   checks.push('Braand identity fits the existing sidebar and replaces the legacy visible product name');

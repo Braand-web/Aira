@@ -1,6 +1,6 @@
 # Direction
 
-Design system Muse v3 fourni par le client, adapté à Braand. Surface de travail sobre et française ; une seule police Manrope conservée, aucune fonte propriétaire importée.
+Identité Braand Relais, approuvée le 30 octobre 2026, sur le design system existant. Surface de travail sobre et française ; Manrope conservée et auto-hébergée sous licence OFL, aucune fonte propriétaire importée. Les dimensions et comportements hérités de la référence Muse v3 restent des adaptations sémantiques à Braand.
 
 Palette sémantique dans `app/design-tokens.css` : fond #181819, fenêtre #28292b, surface élevée #323435, couches blanches translucides, texte blanc, action #1793ff avec texte noir, focus bleu. Les petits textes secondaires sont éclaircis pour maintenir leur contraste.
 
@@ -8,7 +8,9 @@ Navigation déployée 240 px, rail réduit 72 px ; conversation centrée sur 768
 
 Bulles agent #1f1f20 et utilisateur #0074e8, texte 16/22. Compositeur compact de 58 px au repos sur ordinateur : texte et actions sur une rangée. Dès que le texte dépasse une ligne, il occupe toute la largeur et les actions passent en dessous. Sur mobile, les actions restent sous le texte avec des cibles de 44 px. Hauteur automatique jusqu’à 192 px pour le texte puis défilement interne ; sa largeur reste fixe.
 
-Le clover de Bot Avatars accompagne l’assistant : 64 px sur l’accueil et 32 px à côté des réponses. Sur l’accueil, les yeux et la tête suivent la souris à proximité avec un amorti progressif, puis retrouvent doucement leur pose au repos quand elle s’éloigne. Seule la réponse en cours utilise l’état « working » ; les avatars des anciens messages restent immobiles. Le composant se charge à la demande et respecte la réduction du mouvement. Le logo Braand de navigation conserve sa forme.
+Le clover de Bot Avatars accompagne l’assistant : 64 px sur l’accueil et 32 px à côté des réponses. Sur l’accueil, les yeux et la tête suivent la souris à proximité avec un amorti progressif, puis retrouvent doucement leur pose au repos quand elle s’éloigne. Seule la réponse en cours utilise l’état « working » ; les avatars des anciens messages restent immobiles. Le composant se charge à la demande et respecte la réduction du mouvement. L’identité statique utilise désormais Relais, distinct du compagnon animé.
+
+Relais réunit deux formes pleines asymétriques et un mot-symbole « braand » vectorisé, issus de la piste retenue. `brand/relais.geometry.json` est la source ; `scripts/build-brand-assets.mjs` produit les SVG et `lib/brand.mjs`. `components/brand.tsx` réutilise ces tracés pour la navigation, la connexion, l’aide et les pages légales. Le nom accessible reste « Braand ». Le symbole seul sert au rail, aux petits emplacements et au favicon. Bleu de communication #4b93ff, encre #181819, blanc #ffffff ; dans l’application les couleurs sémantiques suivent la palette choisie. Aucun dégradé, effet 3D, déformation ou animation du logo n’est introduit. Le dossier `docs/brand/` et le kit téléchargeable documentent les tailles, fonds et zones de protection.
 
 Paramètres dans une fenêtre native 880 × 680, navigation latérale 224 px défilante, contenu indépendant défilant. Dix rubriques regroupent compte, connecteurs, compétences, portefeuille, facturation, équipe, stockage, autorisations, aide et informations légales. La barre principale réserve sa place aux activités ; la facturation et les compétences ne remplacent plus la conversation par une page distincte. Coins 32 px, ou squircle avec repli standard. Les cartes ont un rayon de 16 px ; les petits contrôles sont arrondis.
 

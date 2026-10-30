@@ -24,6 +24,7 @@ import {FILE_POLICY} from "@/lib/file-policy.mjs";
 import {BrowserPanel} from "../components/browser-panel";
 import {AiStatus} from "@/components/ui/ai-status";
 import {BraandAvatar} from "@/components/braand-avatar";
+import {BrandLogo,BrandMark} from "@/components/brand";
 import {EmailSignIn} from "@/components/email-sign-in";
 import {HelpDialogContent} from "@/components/help-dialog-content";
 
@@ -109,7 +110,7 @@ function SkillMarketplace({resources,onImport,onUse,embedded=false}:{resources:R
    <footer className="skill-card-footer"><span className="skill-version">v{skill.version}</span><span className={"skill-status "+(skill.status==="ready"?"ready":"candidate")}>{skill.status==="ready"?<Check size={13}/>:<Clock3 size={13}/>} {skill.status==="ready"?"Disponible":"À évaluer"}</span><button className="skill-use" onClick={()=>applySkill(skill)}>Utiliser<ArrowUpRight size={13}/></button></footer></article>)}</div>:catalogState==="ready"||source==="workspace"?<div className="skills-empty"><h2>{source==="community"?"La bibliothèque communautaire arrive bientôt.":"Aucune compétence ne correspond à ces filtres."}</h2><p>{source==="community"?"Seules les méthodes vérifiées seront publiées dans la communauté.":"Essayez une autre recherche ou choisissez une autre source."}</p><button onClick={()=>{setQuery("");setSource("all");setCategory("all");}}>Effacer les filtres</button></div>:null}
  </div></div>;
 }
-function Mark({small=false}:{small?:boolean}){return <span className={"brand-mark "+(small?"small":"")} aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M20 4v32M4 20h32M8.7 8.7l22.6 22.6M8.7 31.3 31.3 8.7" stroke="currentColor" strokeWidth="5" strokeLinecap="round"/><circle cx="20" cy="20" r="5" fill="currentColor"/></svg></span>;}
+function Mark({small=false}:{small?:boolean}){return <span className={"brand-mark "+(small?"small":"")} aria-hidden="true"><BrandMark/></span>;}
 function SidebarNavItem({label,icon:Icon,active,collapsed,onClick,badge}:{label:string;icon:LucideIcon;active:boolean;collapsed:boolean;onClick:()=>void;badge?:number}){return <button type="button" className={"nav-item sidebar-nav-item "+(active?"active":"")} aria-label={collapsed?(badge?`${label}, ${badge} missions en cours`:label):undefined} aria-current={active?"page":undefined} data-tooltip={collapsed?label:undefined} onClick={onClick}><Icon size={20} strokeWidth={1.6}/>{!collapsed&&<span>{label}</span>}{badge&&badge>0?(collapsed?<span className="mission-dot collapsed-dot" aria-hidden="true"/>:<span className="mission-badge"><i className="mission-live-dot" aria-hidden="true"/>{badge}</span>):null}</button>;}
 function RecentChats({resources,currentId,loading,onOpen,onSeeAll,actions,busy}:{resources:Resource[];currentId?:string;loading:boolean;onOpen:(resource:Resource)=>void;onSeeAll:()=>void;actions:ConversationActions;busy:boolean}){
  const [showArchived,setShowArchived]=useState(false);
@@ -364,7 +365,7 @@ export default function Studio(){
   {mobileNav&&<button className="nav-scrim" aria-label="Fermer la navigation" onClick={()=>setMobileNav(false)}/>}
    <aside className={"sidebar "+(mobileNav?"mobile-open":"")}>
     <header className="sidebar-brand">
-    {sidebarRailCollapsed?<button type="button" className="brand-expand" aria-label="Déployer la navigation" onClick={()=>setSidebarPreference(true)}><Mark small/></button>:<div className="brand-lockup"><Mark small/><span>Braand</span></div>}
+    {sidebarRailCollapsed?<button type="button" className="brand-expand" aria-label="Déployer la navigation" onClick={()=>setSidebarPreference(true)}><Mark small/></button>:<div className="brand-lockup"><BrandLogo/></div>}
     <div className="sidebar-header-actions">{!sidebarRailCollapsed&&<button type="button" className="sidebar-icon-button" aria-label="Rechercher" aria-keyshortcuts="Control+K Meta+K" onClick={()=>{setSearchConversationsOnly(false);setModal("search");}}><Search size={20} strokeWidth={1.6}/></button>}{!sidebarRailCollapsed&&<button type="button" className="sidebar-icon-button collapse-button" aria-label="Replier la navigation" onClick={()=>{if(mobileNav)setMobileNav(false);else setSidebarPreference(false);}}><PanelLeftClose size={20} strokeWidth={1.6}/></button>}</div>
     </header>
     {sidebarRailCollapsed&&<button type="button" className="collapsed-new-chat" data-tooltip="Nouvelle discussion" aria-label="Nouvelle discussion" onClick={newChat}><Plus size={20} strokeWidth={1.6}/></button>}

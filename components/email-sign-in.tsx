@@ -2,6 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState, type FormEvent} from "react";
 import {ArrowUpRight, CheckCircle2, LoaderCircle} from "lucide-react";
+import {BrandMark} from "./brand";
 
 type LoginForm = {authenticated: boolean; browser?: string; returnTo: string};
 
@@ -59,7 +60,7 @@ export function EmailSignIn({returnTo}: {returnTo?: string}) {
  };
 
  return <div className="auth-content" aria-busy={!form && !error || sending}>
-  <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M20 4v32M4 20h32M8.7 8.7l22.6 22.6M8.7 31.3 31.3 8.7" stroke="currentColor" strokeWidth="5" strokeLinecap="round"/><circle cx="20" cy="20" r="5" fill="currentColor"/></svg></span>
+  <span className="brand-mark" aria-hidden="true"><BrandMark/></span>
   <h3>Gardons vos idées ensemble.</h3>
   <p>Connectez-vous ou inscrivez-vous avec votre e-mail. Aucun mot de passe à retenir.</p>
   <div className="auth-intents" role="group" aria-label="Choisir une option">
