@@ -28,7 +28,7 @@ const conversation={id:'conversation-fixture',workspace_id:'fixture',kind:'conve
 const sources=[{id:'source-real',title:'Rapport de test',domain:'example.org',url:'https://example.org/report'},{id:'source-unsafe',title:'<script>source non exécutable</script>',domain:'Document joint',url:'javascript:alert(1)'}];
 const history=[];const votes=new Map();
 const workspaceResources=[proposal,conversation],workspaceMutations=[];
-let skillReads=0,failSkills=false,browserWrites=0;
+let skillReads=0,failSkills=false,browserWrites=0,anonymousSession=false,authSends=0;
 let approvals=0,polls=0,chatCalls=0,stops=0,imageRequests=0,feedbackCalls=0,failFeedback=false;
 const firstChatHeaders=Promise.withResolvers();
 const backgroundCompletion=Promise.withResolvers();
@@ -46,6 +46,8 @@ const json=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'applica
 const drafts=new Map();
 const server=createServer(async(req,res)=>{
   const url=new URL(req.url,'http://fixture.test');
+  if(url.pathname==='/auth/form'){json(res,{authenticated:false,browser:'A'.repeat(43),returnTo:'/'});return;}
+  if(url.pathname==='/auth/request'){authSends++;json(res,{error:'Email sending is forbidden in the layout fixture'},403);return;}
   if(url.pathname==='/fonts/Manrope.ttf'){res.writeHead(200,{'Content-Type':'font/ttf'});res.end(await readFile(path.join(root,'public/fonts/Manrope.ttf')));return;}
   if(url.pathname==='/brand/relais-logo-dark.svg'){res.writeHead(200,{'Content-Type':'image/svg+xml'});res.end(await readFile(path.join(root,'public/brand/relais-logo-dark.svg')));return;}
   if(url.pathname==='/api/drafts'){
@@ -66,7 +68,7 @@ skillReads++;if(failSkills){res.writeHead(503,{'content-type':'application/json'
     const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks).toString());workspaceMutations.push(body);
     const created={id:'fixture-imported-skill',workspace_id:'fixture',kind:body.kind,title:body.title,status:'candidate',version:1,created_at:now,updated_at:now,data:body.data};workspaceResources.push(created);json(res,created);return;
   }
-  if(url.pathname==='/api/workspace'){workspaceReads++;json(res,{role:workspaceRole,user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false,metaConnected:analyticsConnected}});return;}
+  if(url.pathname==='/api/workspace'){workspaceReads++;if(anonymousSession){json(res,{error:'Sign in required'},401);return;}json(res,{role:workspaceRole,user:{id:'fixture-user',name:'Compte de test',email:'fixture@example.test'},workspace:{id:'fixture',name:'Espace de test',credits:walletAvailable+12,reserved:12},resources:workspaceResources,catalog:[{id:'fixture-image',kind:'image'}],capabilities:{model:true,modelReady:true,filePreview:false,metaConnected:analyticsConnected}});return;}
   const campaignIndex=workspaceResources.findIndex(resource=>resource.kind==='campaign'&&url.pathname==='/api/resources/'+resource.id);
   if(campaignIndex>=0){
     if(req.method==='GET'){json(res,workspaceResources[campaignIndex]);return;}
@@ -737,6 +739,36 @@ try{
   assert.equal(browserWrites,0);assert.equal(checkoutCalls,0);checks.push('Atelier uses one content selector, handles unavailable navigation honestly, keeps the latest page/source, and restores chat and focus after expanded Escape');
 
   await page.setViewportSize({width:1280,height:800});await page.locator('.new-chat-icon').click();const liveDraft=page.getByRole('textbox',{name:'Votre demande à Braand'});await liveDraft.fill('Préserver le navigateur');await liveDraft.press('Enter');await page.getByText('Préparation du livrable de la fixture.',{exact:true}).waitFor();await page.getByRole('button',{name:'Ouvrir l’espace de travail',exact:true}).click();await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Navigateur',exact:true}).click();await panel.getByRole('heading',{name:'Activation en attente',exact:true}).waitFor();deferredDelivery.resolve();await page.locator('.message.assistant .artifact-links button').filter({hasText:'Livrable pendant la navigation'}).waitFor();assert.ok(await panel.getByRole('heading',{name:'Sessions privées',exact:true}).isVisible());assert.equal(await panel.locator('.artifact-heading').count(),0);assert.equal(browserWrites,0);checks.push('A streamed deliverable appears in chat without taking over a manually selected browser context');
+  // The reported 774px layout must stay aligned, compact and usable with a real draft.
+  await page.setViewportSize({width:1280,height:800});await page.goto(origin);await page.locator('.account-trigger:not(:disabled)').waitFor();
+  const callsBeforeLayout=chatCalls;
+  const alignedHeader=()=>page.evaluate(()=>{const brand=document.querySelector('.sidebar-brand').getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect();return Math.abs(brand.y+brand.height/2-bar.y-bar.height/2)<1;});
+  assert.ok(await alignedHeader());assert.equal(Math.round((await page.locator('.chat-nav-row').boundingBox()).y),80);
+  assert.equal(await page.locator('.home-shortcuts .platform-quick-start>button').count(),3);
+  await page.getByRole('button',{name:'Autres idées',exact:true}).click();const ideas=page.getByRole('group',{name:'Autres idées',exact:true});assert.equal(await ideas.getByRole('button').count(),4);await ideas.getByRole('button',{name:'Créer un visuel',exact:true}).click();assert.match(await composer.inputValue(),/visuel/);assert.equal(chatCalls,callsBeforeLayout);
+  await page.setViewportSize({width:774,height:668});await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===72);
+  assert.ok(await alignedHeader());assert.equal(await page.locator('.brand-expand').count(),1);
+  await page.getByRole('button',{name:'Déployer la navigation',exact:true}).click();await page.waitForFunction(()=>Math.round(document.querySelector('.sidebar').getBoundingClientRect().width)===248);
+  await composer.fill('Je voudrais créer un visuel pour mon produit.');assert.ok(await alignedHeader());
+  assert.ok(await page.locator('.welcome').evaluate(element=>element.scrollHeight<=element.clientHeight+1));
+  assert.ok(await page.locator('.home-footer').evaluate(element=>element.getBoundingClientRect().bottom<=innerHeight+1));
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const shortcutRows=await page.locator('.home-shortcuts').evaluate(element=>[...element.querySelector('.platform-quick-start').children].map(child=>Math.round(child.getBoundingClientRect().top)));
+  assert.equal(shortcutRows[0],shortcutRows[1]);assert.equal(shortcutRows[2],shortcutRows[3]);
+  await capture({path:path.join(output,'essential-aligned-tablet.png'),fullPage:true});
+  await page.setViewportSize({width:1280,height:800});assert.equal(await page.locator('.app-shell.sidebar-collapsed').count(),0);
+  checks.push('Shared header alignment, compact tablet rail, manual expansion and four balanced shortcuts preserve the draft without sending it');
+  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Ouvrir la navigation',exact:true}).click();
+  for(const selector of ['.sidebar-icon-button','.new-chat-icon','.sidebar-section-heading .icon-button','.sidebar-nav-item'])for(const target of await page.locator(selector).all()){const box=await target.boundingBox();assert.ok(box.width>=44&&box.height>=44,selector+' is too small for touch');}
+  assert.ok(await alignedHeader());await capture({path:path.join(output,'essential-touch-mobile.png'),fullPage:true});
+  await page.locator('.nav-scrim').click({position:{x:380,y:100}});await page.waitForFunction(()=>getComputedStyle(document.querySelector('.sidebar')).visibility==='hidden');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  anonymousSession=true;await page.setViewportSize({width:1280,height:800});await page.goto(origin);const signIn=page.getByRole('button',{name:'Se connecter à Braand',exact:true});await signIn.waitFor();
+  assert.equal(await signIn.getAttribute('aria-haspopup'),'dialog');assert.equal(await signIn.locator('.account-chevron').count(),0);assert.equal(await signIn.locator('strong').innerText(),'Se connecter');
+  assert.equal(await page.locator('.sidebar-projects h2').count(),0);await page.getByRole('button',{name:'Ajouter un projet',exact:true}).click();
+  const login=page.getByRole('dialog',{name:'Bienvenue chez Braand',exact:true});await login.waitFor();await login.getByRole('button',{name:'Fermer',exact:true}).click();
+  await signIn.click();await login.waitFor();await login.getByRole('button',{name:'Fermer',exact:true}).click();assert.ok(await signIn.evaluate(element=>element===document.activeElement));
+  assert.equal(authSends,0);assert.equal(chatCalls,callsBeforeLayout);checks.push('Touch controls reach 44px and an empty anonymous space offers project creation and a clear, keyboard-restored sign-in dialog without email or provider calls');
   assert.deepEqual(pageErrors,[]);checks.push('No unhandled browser errors');
   await writeFile(path.join(output,'results.json'),JSON.stringify({checks,chatCalls,approvals,polls,connectorAuthorizationCalls:authorizationRequests.length,connectorRevocationCalls:revocationRequests.length,billingQuoteCalls:quoteRequests.length,billingCheckoutCalls:checkoutCalls,organizationMutationCalls:organizationMutations.length,externalProviderCalls:0},null,2));
   for(const check of checks)console.log('PASS '+check);
