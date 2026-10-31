@@ -1,0 +1,42 @@
+[
+  {
+    "name": "pack-skills-systeme-et-execution.zip",
+    "sha256": "0f559545aaaa58bfdc97f573471003186d1523f14271ef04466d6d9174d3b6a4"
+  },
+  {
+    "name": "pack-skills-premium.zip",
+    "sha256": "256c31fc65d5ab543a1788a0143f693c237f6d5debffee6063854957e89903d4"
+  },
+  {
+    "name": "claude-skills-apache2.zip",
+    "sha256": "fb8463762d0c85e1e5caabc0057b4d2fe2d2930eb6ae4f473cbbd980e6c2af85"
+  },
+  {
+    "name": "pack-prompt-systeme-et-contexte.zip",
+    "sha256": "9a2bf80497a2a3143b3bcc29f03c5f97330958b4595d3c1940b58245dd077fa2"
+  },
+  {
+    "name": "Codex-Skills-Cloud (1).zip",
+    "sha256": "6d269eb403e57ff01c31846d5dc25076e2ce5f747d368217648e0cac84e16123"
+  },
+  {
+    "name": "Codex-Skills-Cloud.zip",
+    "sha256": "6d269eb403e57ff01c31846d5dc25076e2ce5f747d368217648e0cac84e16123"
+  },
+  {
+    "name": "Codex-Skills-Execution.zip",
+    "sha256": "e30bf6570cb04dfaa27313a0832dbc77bfe3704cd0114126ae447564061c133e"
+  },
+  {
+    "name": "Codex-Skills-Systeme.zip",
+    "sha256": "0d74011c261f54338a319a4fb2c1c3757002ffdebd0f514d9f2513f791f360aa"
+  },
+  {
+    "name": "system_prompt.md",
+    "sha256": "c0e8a0e665a6f0d08297422eda907cd807d7a8563baafe6d95b2a85fd404123f"
+  },
+  {
+    "name": "Codex-Outils-338.md",
+    "sha256": "1b0d72900b4c22f39819c07e8fb1d85f4e7b859d3d06091ccb07756c4e78cb2d"
+  }
+]

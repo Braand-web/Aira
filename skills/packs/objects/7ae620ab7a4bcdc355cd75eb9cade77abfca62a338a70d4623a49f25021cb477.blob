@@ -1,0 +1,92 @@
+---
+name: produit_digital_gagnant
+description: "Trouver, valider et construire un produit digital qui se vend dans n'importe quel secteur, pays et langue, avec preuve de longévité, calcul de rentabilité dans la devise du projet et plan de test chiffré."
+---
+
+# Produit Digital Gagnant, Méthode Universelle
+
+## Adapter à n'importe quel projet
+
+- Commencer par fixer les variables du projet, depuis la demande ou en demandant seulement celles qui manquent et changent le résultat.
+
+- Variables à fixer : le domaine ou le secteur, le public visé, le marché (pays, langue et culture), la devise, la plateforme de vente ou de diffusion, l'offre et son prix, le budget disponible et l'objectif mesurable.
+
+- Ne jamais appliquer un chiffre d'un autre projet tel quel, toujours le recalculer dans la devise, le prix et le contexte du projet en cours.
+
+- Traiter les exemples chiffrés de ce skill comme des illustrations de la méthode, jamais comme des valeurs par défaut.
+
+
+## Partir d'un problème réel et fréquent
+
+- Partir d'un problème concret vécu souvent par beaucoup de personnes du public visé, jamais d'une idée copiée d'un autre secteur sans adaptation.
+
+- Formuler le problème en une phrase avec le public, la douleur et le coût de ne rien faire.
+
+- Garder seulement les idées qui touchent un public assez large, se comprennent en 5 secondes et visent un résultat vérifiable sans promettre l'impossible.
+
+- Écarter toute idée qui exige un stock, une logistique lourde ou une compétence que le vendeur ne peut pas prouver.
+
+## Prouver la demande avant de construire
+
+- Vérifier la longévité de la demande avec les preuves disponibles dans le secteur, publicités actives depuis au moins 14 jours, produits vendus depuis longtemps, recherches répétées ou communautés actives sur le problème.
+
+- Chercher les requêtes précises et de niche pour remonter aux offres anciennes, car les requêtes larges renvoient surtout les nouveautés.
+
+- Vérifier sur les places de marché et boutiques du secteur si un équivalent est déjà vendu, à quel prix, pour quel public et avec quels avis.
+
+- Traiter une offre ancienne et toujours active comme une preuve de demande et une absence totale d'offre comme un risque à tester petit, pas comme une opportunité automatique.
+
+- Appliquer la méthode en 3 couches pour dépasser les sujets évidents.
+  - Couche 1, le produit ou le service que tout le monde voit déjà.
+  - Couche 2, l'outil, le système ou l'accompagnement qui aide à obtenir le résultat.
+  - Couche 3, le problème précis et vécu que personne ne vend encore sous forme digitale, vérifié absent des boutiques avant de le retenir.
+
+- Rejeter une idée de couche 3 dès qu'un équivalent est déjà vendu sous un autre nom.
+
+## Calculer la rentabilité avant d'écrire une page
+
+- Calculer le net vendeur après toutes les commissions et tous les frais de la plateforme choisie, en revérifiant ces taux le jour du lancement.
+
+- Fixer un prix public simple et cohérent avec le marché, le pouvoir d'achat du public et la valeur du résultat, avec un prix barré seulement s'il est réel et défendable.
+
+- Calculer le point mort publicitaire, le net par vente divisé par un coût par achat cible, et écrire ce plafond avant de dépenser.
+
+- Prévoir un upsell utile et directement lié au produit, sans gonfler ni vider le produit de base.
+
+- Refuser de lancer si le coût par achat réaliste dans ce marché dépasse durablement le net par vente.
+
+## Construire un produit livrable et contrôlé
+
+- Livrer un produit propre et vérifié dans le format adapté au sujet, guide, formation, modèles, calculateurs, bibliothèque de ressources ou outil, avec un sommaire et des exemples du contexte du public.
+
+- Adapter les exemples, les noms, les prix, les situations et la langue au marché visé, jamais des exemples importés sans adaptation.
+
+- Faire relire par un praticien du domaine dès que le contenu touche la santé, le droit, l'argent, la sécurité ou tout sujet réglementé, et afficher les limites du produit dès le début quand un risque existe.
+
+- Interdire les dates, chiffres, témoignages et preuves inventés, et retirer toute promesse que le produit ne peut pas tenir.
+
+- Ajouter 2 ou 3 bonus courts et directement utiles plutôt qu'un gros bonus vague.
+
+## Préparer le test de vente
+
+- Préparer la page de vente, 3 à 4 créatifs et les messages de suivi avant de lancer la moindre publicité.
+
+- Écrire des règles d'arrêt chiffrées avant le test, budget total, coût par achat cible et nombre minimum de ventes pour continuer.
+
+- Lancer le test sur le segment ou le marché le plus prometteur d'abord quand le budget est petit, puis élargir seulement après des ventes prouvées.
+
+- Décider à la fin du test avec les ventes réelles, continuer et augmenter, corriger une seule variable et retester petit, ou arrêter.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Vendre d'abord en organique à un petit groupe du public visé pour valider la compréhension du produit avant tout budget publicitaire.
+
+- Comparer 2 plateformes de vente sur la commission, la confiance et les moyens de paiement du public, puis choisir celle qui garde le point mort atteignable.
+
+- Commencer par une version plus petite du produit quand le public ne connaît pas encore le vendeur.

@@ -1,0 +1,39 @@
+# Codex-Skills-Systeme
+
+Cet extrait contient 2 dossiers de skills.
+
+# Skills et outils accessibles dans cette session
+
+Export du 2026-10-31.
+
+Ce pack conserve les fichiers d’origine des skills accessibles : **59 dossiers**, correspondant à **36 noms distincts**. Les variantes locale et cloud restent séparées.
+
+| Dossier | Contenu | Nombre |
+| --- | --- | ---: |
+| `systeme/` | Skills système : imagegen et openai-docs | 2 |
+| `execution/` | Skills de documents et plugins exécutables localement | 27 |
+| `cloud/` | Skills fournis par les applications | 30 |
+
+Chaque dossier de skill contient son `SKILL.md` et tous les scripts, références et assets présents dans sa source accessible. Les fichiers n’ont pas été réécrits pour cet export.
+
+Le pack inclut aussi :
+
+- `INVENTAIRE-SKILLS.md` : liste et rôle des skills.
+- `SKILLS.json` : inventaire lisible par un programme.
+- `OUTILS.md` et `OUTILS.json` : liste des 338 outils exposés dans cette session.
+- `CHECKSUMS.sha256` : empreintes des fichiers du pack.
+
+## Réutiliser les skills
+
+1. Choisis le skill et une seule variante quand son nom apparaît dans plusieurs dossiers.
+2. Conserve ensemble son `SKILL.md` et ses sous-dossiers.
+3. Place ce dossier dans le répertoire reconnu par le chargeur de skills de ton agent.
+4. Configure les outils, bibliothèques et services mentionnés dans le skill.
+
+Un skill décrit un workflow. Copier ses fichiers ne fournit pas automatiquement les outils MCP, les services hébergés, les bibliothèques du runtime ou les connexions de compte dont il dépend. Les appels et chemins propres à cet environnement devront être adaptés pour un autre agent. Les scripts n’ont pas été exécutés pour tester leur portabilité.
+
+Les skills de documents, présentations et tableurs peuvent dépendre de bibliothèques et de programmes de rendu installés dans leur environnement d’origine. Les skills des applications peuvent dépendre des outils de l’application correspondante. Les skills de visualisation, d’onboarding et de compagnons animés utilisent des fonctions propres à ChatGPT Work.
+
+L’export porte sur les dossiers de skills accessibles et l’inventaire des interfaces. Il ne constitue pas une copie du runtime ou des services qui exécutent les outils.
+
+Documentation officielle sur les skills : https://learn.chatgpt.com/docs/build-skills

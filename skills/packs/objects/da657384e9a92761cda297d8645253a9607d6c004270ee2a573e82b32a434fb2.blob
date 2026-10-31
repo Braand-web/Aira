@@ -1,0 +1,15 @@
+# Inventaire des skills
+
+Instantané du 2026-10-31.
+
+| Catégorie | Skill | Fichiers | Dossier |
+| --- | --- | ---: | --- |
+| systeme | `imagegen` | 12 | `systeme/imagegen` |
+| systeme | `openai-docs` | 17 | `systeme/openai-docs` |
+
+Les occurrences locale et cloud sont conservées séparément. Choisis une version par skill pour une installation.
+
+## Rôle de chaque skill
+
+- **imagegen** : Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, textures, sprites, mockups, or transparent-background cutouts. Use when Codex should create a brand-new image, transform an existing image, or derive visual variants from references, and the output should be a bitmap asset rather than repo-native code or vector. Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas.
+- **openai-docs** : Use for Codex models/pricing, scheduled tasks, skills, settings, setup, troubleshooting, customization, automations, and self-knowledge—including 'you,' 'your,' 'this app,' or 'this coding agent' when they refer to Codex—and for OpenAI APIs/products and ChatGPT Work. Also use for model choice/migration, prompting, SDKs, Responses, Realtime, agents, evals, and Chat/Work/Codex comparisons. Do not use for generic app/software tasks that merely mention Codex.

@@ -97,3 +97,13 @@ for(const probe of probes){
  assert.ok(matching.some(({file})=>dynamicTargets.has(file)),`The ${probe.label} must be present in a separate dynamically imported server chunk`);
 }
 console.log(`PASS ${probes.length} corpus probes are compiled into lazily imported server chunks; the browser does not receive them.`);
+
+// Imported payloads stay in R2; neither the browser nor Worker embeds the supplied persona.
+const suppliedPersona='You were created by Meta and are powered by Muse Spark 1.3';
+const packManifest=JSON.parse(readFileSync(path.join(project,'skills/packs/manifest.json'),'utf8'));
+const prompt=packManifest.coverage.find(file=>file.path.endsWith('system_prompt.md'));
+const promptObject=packManifest.objects.find(file=>file.sha256===prompt.sha256);
+assert.ok(readFileSync(path.join(project,promptObject.path),'utf8').includes(suppliedPersona));
+for(const file of [...clientFiles,...serverFiles])assert.ok(!decodeEscapes(readFileSync(file,'utf8')).includes(suppliedPersona),'Imported prompts must not become the active product system prompt');
+assert.ok(serverSources.some(({source})=>source.includes('skills/packs/v1/')),'Private pack loader must be present');
+console.log('PASS supplied persona remains inert in private object storage, and the Worker contains only its bounded loader.');

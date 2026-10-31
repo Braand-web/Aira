@@ -1,0 +1,464 @@
+# Inventaire des outils
+
+Instantané du 2026-10-31 : **338 entrées appelables**.
+
+327 opérations du registre et 11 outils directs. Les sous-commandes Web et méthodes du navigateur ne sont pas comptées séparément.
+
+Outils exposés dans cette session. Leur utilisation dépend de la connexion, des autorisations et du contexte de la demande.
+
+Cet inventaire décrit les interfaces disponibles. Il ne contient pas leurs implémentations ni de connexions authentifiées.
+
+| Famille | Nombre | Capacités |
+| --- | ---: | --- |
+| Exécution, fichiers et orchestration | 10 | Terminal, processus, édition de fichiers, images locales, ressources MCP et questions utilisateur. |
+| Gestion des skills | 2 | Découvrir et lire les skills disponibles. |
+| Coordination des agents | 6 | Créer, coordonner, interrompre et suivre des agents. |
+| Navigateur | 2 | Automatisation du navigateur et gestion de la session JavaScript. |
+| Génération d’images | 1 | Créer et retoucher des images. |
+| Recherche Internet | 1 | Recherche Web et images, lecture de pages et PDF, données météo, finance, sport et heure via une interface. |
+| Automatisations | 7 | Créer, modifier, lister et exécuter des tâches planifiées ou conditionnelles. |
+| GitHub | 89 | Dépôts, code, branches, commits, issues, pull requests, revues et exécutions de workflows. |
+| Gmail | 21 | Rechercher et lire les emails, gérer les brouillons, labels et messages. |
+| Fichiers | 11 | Rechercher, lire, créer, remplacer, organiser, transférer et partager des fichiers. |
+| Contexte personnel | 1 | Rechercher le contexte personnel pertinent. |
+| Compagnons animés | 11 | Créer, choisir, partager et gérer des compagnons animés. |
+| Plugins | 6 | Découvrir les plugins et gérer leurs permissions et dépendances. |
+| Railway | 84 | Projets, services, déploiements, domaines, variables, stockage, métriques et automatisations. |
+| Sites | 25 | Créer et publier des sites, gérer les versions, domaines, accès et variables. |
+| Supabase | 31 | Projets, bases SQL, migrations, branches, fonctions, journaux et documentation. |
+| TinyFish | 24 | Tâches Web, recherches approfondies, profils et surveillance. |
+| Paramètres familiaux | 5 | Lire et gérer les contrôles parentaux et informations de contact de confiance. |
+| Aide locale | 1 | Rechercher les coordonnées locales de services d’aide. |
+
+## Exécution, fichiers et orchestration — 10
+
+| Nom exact | Fonction |
+| --- | --- |
+| `apply_patch` | The `apply_patch` tool can be used to edit files. |
+| `exec_command` | Runs a command in a PTY, returning output or a session ID for ongoing interaction. |
+| `functions.exec` | Orchestrate tool calls with JavaScript, including independent calls in parallel. |
+| `functions.request_user_input` | Ask one to three short questions with selectable answers. |
+| `functions.wait` | Resume or terminate a yielded JavaScript execution cell. |
+| `list_mcp_resource_templates` | Lists resource templates provided by MCP servers. |
+| `list_mcp_resources` | Lists resources provided by MCP servers. |
+| `read_mcp_resource` | Read a specific resource from an MCP server given the server name and resource URI. |
+| `view_image` | View a local image file from the filesystem when visual inspection is needed. |
+| `write_stdin` | Writes characters to an existing unified exec session and returns recent output. |
+
+## Gestion des skills — 2
+
+| Nom exact | Fonction |
+| --- | --- |
+| `skills__list` | List skills owned by the requested authority. |
+| `skills__read` | Read one page from a skill. |
+
+## Coordination des agents — 6
+
+| Nom exact | Fonction |
+| --- | --- |
+| `collaboration.followup_task` | Give an existing sub-agent a follow-up task. |
+| `collaboration.interrupt_agent` | Interrupt a sub-agent's current task. |
+| `collaboration.list_agents` | List live agents in the task tree. |
+| `collaboration.send_message` | Send a coordination message to an existing agent. |
+| `collaboration.spawn_agent` | Create a sub-agent for an explicitly delegated task. |
+| `collaboration.wait_agent` | Wait for an agent update. |
+
+## Navigateur — 2
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__cua_repl.js` | Interact with a browser through the initialized computer-use API. |
+| `mcp__cua_repl.js_reset` | Reset the persistent browser automation JavaScript session. |
+
+## Génération d’images — 1
+
+| Nom exact | Fonction |
+| --- | --- |
+| `image_gen__imagegen` | The `image_gen.imagegen` tool enables image generation from descriptions and editing of existing images based on specific instructions. |
+
+## Recherche Internet — 1
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__search_service_web_run` | Run the web commands documented in this namespace. |
+
+## Automatisations — 7
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__automations_create` | Create a task automation. |
+| `mcp__codex_apps__automations_discover_webhook_schema` | Discover supported webhook events, trigger schemas, connector identifiers, filters, and execution guidance for a connected, authorized app. |
+| `mcp__codex_apps__automations_list` | Display task automations only when the user asks to view them. |
+| `mcp__codex_apps__automations_list_event_sources` | List connected apps with supported automation events. |
+| `mcp__codex_apps__automations_peek` | Privately look up task automations without displaying the list to the user. |
+| `mcp__codex_apps__automations_run_now` | Run an existing enabled task automation once now by jawbone_id, using its saved prompt and delivery settings without changing its schedule. |
+| `mcp__codex_apps__automations_update` | Update an existing task automation by `jawbone_id`. |
+
+## GitHub — 89
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__github_add_comment_to_issue` | Create a top-level PR Conversation comment (Issue comment) |
+| `mcp__codex_apps__github_add_issue_assignees` | Add assignees to an issue or pull request. |
+| `mcp__codex_apps__github_add_issue_labels` | Add labels to an issue or pull request. |
+| `mcp__codex_apps__github_add_reaction_to_issue_comment` | Add a reaction to an issue comment |
+| `mcp__codex_apps__github_add_reaction_to_pr` | Add a reaction to a GitHub pull request |
+| `mcp__codex_apps__github_add_reaction_to_pr_review_comment` | Add a reaction to a pull request review comment |
+| `mcp__codex_apps__github_add_review_to_pr` | Add a review to a GitHub pull request. review is required for REQUEST_CHANGES and COMMENT events |
+| `mcp__codex_apps__github_compare_commits` | Compare two commits/refs and return per-file stats plus compare metadata. |
+| `mcp__codex_apps__github_convert_pull_request_to_draft` | Convert an open pull request back to draft state. |
+| `mcp__codex_apps__github_create_blob` | Create a blob in the repository and return its SHA |
+| `mcp__codex_apps__github_create_branch` | Create a new branch from exactly one existing commit SHA or base ref |
+| `mcp__codex_apps__github_create_commit` | Create a commit pointing to tree_sha with one or more parents |
+| `mcp__codex_apps__github_create_file` | Create a new UTF-8 text file through GitHub's contents API. |
+| `mcp__codex_apps__github_create_issue` | Create a GitHub issue. |
+| `mcp__codex_apps__github_create_pull_request` | Open a pull request in the repository. |
+| `mcp__codex_apps__github_create_tree` | Create a tree object in the repository from the given elements |
+| `mcp__codex_apps__github_delete_file` | Delete a file through GitHub's contents API. |
+| `mcp__codex_apps__github_dismiss_pull_request_review` | Dismiss a submitted pull request review. |
+| `mcp__codex_apps__github_download_user_content` | Download a GitHub private user image attachment URL. |
+| `mcp__codex_apps__github_download_workflow_artifact` | Download a GitHub Actions workflow artifact ZIP archive. |
+| `mcp__codex_apps__github_enable_auto_merge` | Enable auto-merge for a pull request. |
+| `mcp__codex_apps__github_fetch` | Fetch approved public GitHub repository resources and repository files. |
+| `mcp__codex_apps__github_fetch_blob` | Fetch blob content by SHA from the given repository |
+| `mcp__codex_apps__github_fetch_commit` | Fetch a commit with its metadata, diff, and canonical URL |
+| `mcp__codex_apps__github_fetch_commit_workflow_runs` | Fetch GitHub Actions workflow runs associated with a commit SHA. |
+| `mcp__codex_apps__github_fetch_file` | Fetch file content by repository path, using the default branch when ref is omitted |
+| `mcp__codex_apps__github_fetch_issue` | Fetch a GitHub issue. |
+| `mcp__codex_apps__github_fetch_issue_comments` | Fetch comments for a GitHub issue across all pages |
+| `mcp__codex_apps__github_fetch_pr` | Fetch a pull request with its diff, metadata, and optionally comments |
+| `mcp__codex_apps__github_fetch_pr_comments` | Fetch a merged PR discussion timeline. |
+| `mcp__codex_apps__github_fetch_pr_file_patch` | Fetch the patch for one validated changed file in an accessible pull request. |
+| `mcp__codex_apps__github_fetch_pr_patch` | Fetch the patch for a GitHub pull request across all changed-file pages |
+| `mcp__codex_apps__github_fetch_workflow_job_logs` | Fetch decoded logs for a GitHub Actions workflow job. |
+| `mcp__codex_apps__github_fetch_workflow_job_steps` | Fetch steps for a GitHub Actions workflow job. |
+| `mcp__codex_apps__github_fetch_workflow_run_artifacts` | Fetch artifacts for a GitHub Actions workflow run. |
+| `mcp__codex_apps__github_fetch_workflow_run_jobs` | Fetch jobs for a GitHub Actions workflow run. |
+| `mcp__codex_apps__github_get_commit_combined_status` | Fetch the combined CI status and individual status checks for a commit |
+| `mcp__codex_apps__github_get_issue_comment_reactions` | Fetch reactions for an issue comment |
+| `mcp__codex_apps__github_get_pr_diff` | Fetch just the diff or patch text for a pull request |
+| `mcp__codex_apps__github_get_pr_info` | Get metadata (title, description, refs, and status) for a pull request. |
+| `mcp__codex_apps__github_get_pr_reactions` | Fetch reactions for a GitHub pull request |
+| `mcp__codex_apps__github_get_pr_review_comment_reactions` | Fetch reactions for a pull request review comment |
+| `mcp__codex_apps__github_get_profile` | Retrieve the GitHub profile for the authenticated user |
+| `mcp__codex_apps__github_get_repo` | Retrieve metadata for a GitHub repository. |
+| `mcp__codex_apps__github_get_repo_collaborator_permission` | Return the collaborator permission level for a user on a repository |
+| `mcp__codex_apps__github_get_user_login` | Return the GitHub login for the authenticated user |
+| `mcp__codex_apps__github_get_users_recent_prs_in_repo` | List the user's recent GitHub pull requests in a repository. `limit` is the final number of PRs returned. |
+| `mcp__codex_apps__github_label_pr` | Label a pull request |
+| `mcp__codex_apps__github_list_installations` | List accessible installations, optionally filtering to managed setup accounts |
+| `mcp__codex_apps__github_list_installed_accounts` | List all accounts that the user has installed our GitHub app on |
+| `mcp__codex_apps__github_list_pr_changed_filenames` | List changed filenames for a PR across all paginated file-list pages |
+| `mcp__codex_apps__github_list_pull_request_review_threads` | List inline review threads on a pull request, including resolved state. |
+| `mcp__codex_apps__github_list_pull_request_reviews` | List review submissions on a pull request. |
+| `mcp__codex_apps__github_list_recent_issues` | Return the most recent GitHub issues the user can access. `top_k` is the final result limit. |
+| `mcp__codex_apps__github_list_repositories` | List repositories accessible to the authenticated user |
+| `mcp__codex_apps__github_list_repositories_by_affiliation` | List repositories accessible to the authenticated user filtered by affiliation |
+| `mcp__codex_apps__github_list_repositories_by_installation` | List repositories accessible to the authenticated user |
+| `mcp__codex_apps__github_list_user_org_memberships` | List the authenticated user's organization memberships |
+| `mcp__codex_apps__github_list_user_orgs` | List organizations the authenticated user is a member of |
+| `mcp__codex_apps__github_lock_issue_conversation` | Lock an issue or pull request conversation. |
+| `mcp__codex_apps__github_mark_pull_request_ready_for_review` | Mark a draft pull request as ready for review. |
+| `mcp__codex_apps__github_merge_pull_request` | Merge a pull request immediately. |
+| `mcp__codex_apps__github_remove_issue_assignees` | Remove assignees from an issue or pull request. |
+| `mcp__codex_apps__github_remove_issue_label` | Remove one label from an issue or pull request. |
+| `mcp__codex_apps__github_remove_pull_request_reviewers` | Remove individual or team reviewer requests from a pull request. |
+| `mcp__codex_apps__github_remove_reaction_from_issue_comment` | Remove a reaction from an issue comment |
+| `mcp__codex_apps__github_remove_reaction_from_pr` | Remove a reaction from a GitHub pull request |
+| `mcp__codex_apps__github_remove_reaction_from_pr_review_comment` | Remove a reaction from a pull request review comment |
+| `mcp__codex_apps__github_reply_to_review_comment` | Reply to an inline review comment on a PR (Files changed thread). comment_id must be the ID of the thread’s top-level inline review comment (replies-to-replies are not supported by the API) |
+| `mcp__codex_apps__github_request_pull_request_reviewers` | Request individual or team reviewers on a pull request. |
+| `mcp__codex_apps__github_rerun_failed_workflow_run_jobs` | Re-run all failed jobs in a GitHub Actions workflow run. |
+| `mcp__codex_apps__github_rerun_workflow_job` | Re-run one GitHub Actions workflow job. |
+| `mcp__codex_apps__github_resolve_review_thread` | Resolve an inline pull request review thread. |
+| `mcp__codex_apps__github_search` | Search GitHub files and return matching excerpts when available. |
+| `mcp__codex_apps__github_search_branches` | Search GitHub branches within a repository |
+| `mcp__codex_apps__github_search_commits` | Search GitHub commits globally, by organization, or optionally by repository. |
+| `mcp__codex_apps__github_search_installed_repositories_streaming` | Search for a repository (not a file) by name or description. |
+| `mcp__codex_apps__github_search_installed_repositories_v2` | Search repositories within the user's installations using GitHub search |
+| `mcp__codex_apps__github_search_issues` | Search one repository or every repository the linked account can access. |
+| `mcp__codex_apps__github_search_prs` | Search GitHub pull requests globally, by organization, or optionally by repository |
+| `mcp__codex_apps__github_search_repositories` | Search for a repository (not a file) by name or description. |
+| `mcp__codex_apps__github_unlock_issue_conversation` | Unlock an issue or pull request conversation. |
+| `mcp__codex_apps__github_unresolve_review_thread` | Mark an inline pull request review thread as unresolved. |
+| `mcp__codex_apps__github_update_file` | Replace a UTF-8 text file through GitHub's contents API. |
+| `mcp__codex_apps__github_update_issue` | Update a GitHub issue, including title/body, state, labels, assignees, or milestone. |
+| `mcp__codex_apps__github_update_issue_comment` | Update a top-level PR Conversation comment (Issue comment) |
+| `mcp__codex_apps__github_update_pull_request` | Update PR metadata, base branch, or open/closed state. |
+| `mcp__codex_apps__github_update_ref` | Move a branch ref to a commit, rejecting a mismatched expected_sha. |
+| `mcp__codex_apps__github_update_review_comment` | Update an inline review comment (or a reply) on a PR |
+
+## Gmail — 21
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__gmail_apply_labels_to_emails` | Apply labels to Gmail messages using label names rather than Gmail label IDs. |
+| `mcp__codex_apps__gmail_archive_emails` | Archive Gmail threads while keeping their messages available in Gmail. |
+| `mcp__codex_apps__gmail_batch_modify_email` | Add or remove Gmail labels on a batch of individual messages. |
+| `mcp__codex_apps__gmail_batch_read_email` | Read up to 100 Gmail messages as MIME trees, preserving request order. |
+| `mcp__codex_apps__gmail_batch_read_email_threads` | Read recent messages from threads identified by message IDs or thread IDs. |
+| `mcp__codex_apps__gmail_bulk_label_matching_emails` | Apply a label to every Gmail message matching a Gmail search query. |
+| `mcp__codex_apps__gmail_create_draft` | Create an unsent Gmail draft from message headers and a MIME tree. |
+| `mcp__codex_apps__gmail_create_label` | Create a Gmail label. |
+| `mcp__codex_apps__gmail_delete_emails` | Move one or more existing Gmail messages to Trash. |
+| `mcp__codex_apps__gmail_forward_emails` | Forward Gmail messages with structured MIME content. |
+| `mcp__codex_apps__gmail_get_profile` | Return the current Gmail user's profile information |
+| `mcp__codex_apps__gmail_list_drafts` | List Gmail drafts with summarized metadata so they can be reviewed or selected. |
+| `mcp__codex_apps__gmail_list_labels` | List Gmail labels with per-label counts. |
+| `mcp__codex_apps__gmail_read_attachment` | Read one attachment from a Gmail message. |
+| `mcp__codex_apps__gmail_read_email` | Read one Gmail message in the requested Gmail API representation. |
+| `mcp__codex_apps__gmail_read_email_thread` | Read the most recent messages in a Gmail thread as headers and MIME parts. |
+| `mcp__codex_apps__gmail_search_email_ids` | Retrieve Gmail message IDs that match a search. |
+| `mcp__codex_apps__gmail_search_emails` | Search Gmail for emails matching a query or exact label IDs. |
+| `mcp__codex_apps__gmail_send_draft` | Send an existing Gmail draft as currently stored. |
+| `mcp__codex_apps__gmail_send_email` | Send a Gmail message now from the authenticated account. |
+| `mcp__codex_apps__gmail_update_draft` | Patch selected fields in an existing Gmail draft. |
+
+## Fichiers — 11
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__library_create_library_file` | Create persistent ChatGPT Library files from local Codex files. |
+| `mcp__codex_apps__library_finalize_uploads` | Finalize a batch of completed upload sessions into ChatGPT Library create or replace writes. |
+| `mcp__codex_apps__library_find` | Find Library text. |
+| `mcp__codex_apps__library_list` | List persistent ChatGPT Library file and folder metadata. |
+| `mcp__codex_apps__library_manage_library` | Mutate persistent ChatGPT Library state. files-tool-compatible operations are create_folder, move, rename, and delete. |
+| `mcp__codex_apps__library_prepare_materialize` | Copy known Library files into the model workspace for programmatic use. |
+| `mcp__codex_apps__library_prepare_uploads` | Prepare local files that will become new Library items or versions of existing items. |
+| `mcp__codex_apps__library_read` | Read Library. |
+| `mcp__codex_apps__library_replace_library_file` | Replace an existing ChatGPT Library file with a local Codex file. |
+| `mcp__codex_apps__library_search` | Search Library. |
+| `mcp__codex_apps__library_share` | Share one native ChatGPT Library file or folder you own or can edit with one eligible recipient by email or everyone in the current workspace, or set revoke=true to remove an existing share. |
+
+## Contexte personnel — 1
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__personal_context_search` | The personal_context tool retrieves user-specific personal context gathered from multiple underlying sources (e.g., linked accounts, prior interactions, and other personal context streams). |
+
+## Compagnons animés — 11
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__pets_adopt` | Adopt a shared ChatGPT pet from its opaque sharepet_ ID. |
+| `mcp__codex_apps__pets_create_pet` | Consume a completed prepare_pet_upload session by its upload_session_id, validate the sprite sheet with the same deterministic preflight, run image scanning and pet moderation, and create a ChatGPT pet for Work mode. |
+| `mcp__codex_apps__pets_delete_pet` | Permanently delete one owned custom ChatGPT pet and its stored sprite sheet. |
+| `mcp__codex_apps__pets_get_pet_download_link` | Get a download URL for one built-in or owned custom ChatGPT pet sprite sheet. |
+| `mcp__codex_apps__pets_list_pets` | List one page of built-in and custom ChatGPT pet metadata plus the active pet ID. |
+| `mcp__codex_apps__pets_prepare_pet_upload` | Prepare a user-scoped ChatGPT pet sprite-sheet upload. |
+| `mcp__codex_apps__pets_select_pet` | Persist a built-in or owned custom ChatGPT pet as active by its stable pet ID. |
+| `mcp__codex_apps__pets_share_pet` | Create a share link for one owned custom ChatGPT pet. |
+| `mcp__codex_apps__pets_unshare_pet` | Stop sharing one owned custom ChatGPT pet and invalidate its current share URL. |
+| `mcp__codex_apps__pets_update_pet` | Update the name, description, sprite sheet, or any combination for one owned custom ChatGPT pet. |
+| `mcp__codex_apps__pets_validate_pet_spritesheet` | Validate a ChatGPT pet PNG or WebP before creating an upload session. |
+
+## Plugins — 6
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__plugin_management_get_app_permissions` | Inspect one named ChatGPT plugin's global/default and plugin-specific permission settings. |
+| `mcp__codex_apps__plugin_management_get_plugin_dependencies` | Resolve the canonical public plugins declared by one plugin's app manifest. |
+| `mcp__codex_apps__plugin_management_search_plugins` | Search available plugins when the user explicitly requests a plugin or provider, or when their task would benefit from an external app, account, service, data source, or capability not available through existing tools. |
+| `mcp__codex_apps__plugin_management_suggest_plugins` | Suggest plugins when an external integration would help the user. |
+| `mcp__codex_apps__plugin_management_uninstall_app` | Uninstall ChatGPT plugins only for explicit uninstall, remove, or disconnect intent. |
+| `mcp__codex_apps__plugin_management_update_app_permissions` | Update global ChatGPT plugin permissions or a plugin-specific override. |
+
+## Railway — 84
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__railway_accept_deploy` | DESTRUCTIVE: Commits all staged changes in a Railway environment and triggers a deploy. |
+| `mcp__codex_apps__railway_cancel_cloud_agent_task` | Stop a cloud-agent task. |
+| `mcp__codex_apps__railway_connect_service_source` | Attach a source to an existing service: a GitHub repository (deploys on push, builds immediately) or a Docker image. |
+| `mcp__codex_apps__railway_create_automation` | Turn a repeatable task into an automation using the requested instructions and UTC schedules. |
+| `mcp__codex_apps__railway_create_automation_trigger` | Add a UTC cron schedule to an automation owned by the caller. |
+| `mcp__codex_apps__railway_create_bucket` | Create an S3-compatible object storage bucket in a project and provision it in an environment. |
+| `mcp__codex_apps__railway_create_deployment` | Create a new service from a GitHub repository and trigger its first deployment. |
+| `mcp__codex_apps__railway_create_function` | Create a Railway Function: a service that runs one file of TypeScript on the Bun runtime, with no repository, Dockerfile or build step. |
+| `mcp__codex_apps__railway_create_project` | Create a new Railway project |
+| `mcp__codex_apps__railway_create_service` | Create a new service in a project from a Docker image, or an empty service to configure later (e.g. before setting variables and attaching a source). |
+| `mcp__codex_apps__railway_create_tcp_proxy` | Expose a service on the public internet over a raw TCP port (e.g. make a database reachable externally). |
+| `mcp__codex_apps__railway_create_volume` | Create a persistent volume in a project and optionally attach it to a service at a mount path. |
+| `mcp__codex_apps__railway_create_webhook` | Create a project webhook: Railway POSTs a JSON payload to the URL whenever one of the chosen deployment, monitor or volume-alert events happens in the project. |
+| `mcp__codex_apps__railway_delete_automation` | Delete an automation owned by the caller and stop future scheduled invocations. |
+| `mcp__codex_apps__railway_delete_automation_trigger` | Remove one automation schedule, preserving its runs. |
+| `mcp__codex_apps__railway_delete_bucket` | Permanently delete an object storage bucket and its contents. |
+| `mcp__codex_apps__railway_delete_domain` | Remove a domain from a service: a Railway-generated *.up.railway.app service domain or a custom domain. |
+| `mcp__codex_apps__railway_delete_feature_flag` | Delete a project-scoped feature flag. |
+| `mcp__codex_apps__railway_delete_service` | Permanently delete a service: its deployments stop and are removed, along with its domains, variables and deployment triggers. |
+| `mcp__codex_apps__railway_delete_tcp_proxy` | Remove a service's TCP proxy, taking its public endpoint offline. |
+| `mcp__codex_apps__railway_delete_volume` | Permanently delete a volume and its data. |
+| `mcp__codex_apps__railway_delete_webhook` | Delete a project webhook so Railway stops POSTing to its URL. |
+| `mcp__codex_apps__railway_deploy_template` | Deploy a Railway template into a project — a database (postgres, mysql, redis, mongo), a clustered high-availability database, or an application template. |
+| `mcp__codex_apps__railway_describe_environment` | Inventory of everything in a Railway environment — services, volumes, buckets, shared variable names — with staged changes applied. |
+| `mcp__codex_apps__railway_describe_service` | Everything about one service in an environment: its config with staged changes applied (source, build, deploy, networking, volume mounts), the per-field staged changes pending on it, mounted volumes, live domains and TCP proxies, the latest deployment, and its tracing state. `state` says whether the service is live, staged-create, staged-delete, or |
+| `mcp__codex_apps__railway_describe_template` | Read one Railway template: its name, description, README, the services it creates, every env-var input it takes (which are required and which are optional), and — for clustered database templates like postgres-ha — the HA topology counts deploy-template can size. |
+| `mcp__codex_apps__railway_domain_status` | Get detailed status for one domain on a service, by hostname, URL, or domain ID: required DNS records and whether they currently match, ownership verification, certificate status, and any certificate error. |
+| `mcp__codex_apps__railway_environment_status` | Health overview of every service in an environment in one call: current LIVE (settled) deployment state, replica status, recent failures, unresolved warnings/criticals, and cron execution results. |
+| `mcp__codex_apps__railway_fetch_docs` | Fetch the full markdown content of a Railway documentation page by URL or slug (e.g. 'https://docs.railway.com/quick-start' or 'reference/variables'). |
+| `mcp__codex_apps__railway_generate_domain` | Expose a service publicly. |
+| `mcp__codex_apps__railway_get_automation` | Read an automation's instructions, owner, enabled state, and bootstrap selection. |
+| `mcp__codex_apps__railway_get_automation_run` | Read one automation run's saved inputs, bootstrap version, result or failure, and linked agent/session IDs. |
+| `mcp__codex_apps__railway_get_bucket_credentials` | Get the S3-compatible connection details for a bucket in an environment: endpoint, bucket name, region, URL style, access key and secret. |
+| `mcp__codex_apps__railway_get_cloud_agent_transcript` | Read what a cloud agent session is doing: its messages, tool calls and short tool results, oldest first, including the turn in flight. |
+| `mcp__codex_apps__railway_get_deployment_diagnosis` | Get the AI-generated diagnosis for a failed deployment: root cause category, analysis, and suggested fixes, along with deployment context (service config, source repo, branch, commit, PR, failure stage and error). |
+| `mcp__codex_apps__railway_get_feature_flag` | Get a Railway feature flag (Signal) by name for a project or its parent workspace scope |
+| `mcp__codex_apps__railway_get_function_source_code` | Get a Railway Function's source code and runtime in an environment. |
+| `mcp__codex_apps__railway_get_logs` | Get logs from Railway — deploy (runtime), build, http (proxy request), network-flow (per-connection egress/ingress) and dns (name lookups) streams. |
+| `mcp__codex_apps__railway_get_service_config` | Prefer describe-service: it applies the staged changes onto the live config for you and adds mounted volumes, domains, TCP proxies and the latest deployment. |
+| `mcp__codex_apps__railway_get_service_metrics` | Get resource usage metrics (CPU, memory, disk, network) for a service, summarized as current/average/min/max over a time window. |
+| `mcp__codex_apps__railway_get_staged_changes` | Show the changes staged in a Railway environment that accept-deploy would commit: per resource (service, volume, bucket, group) the action — create, delete, update — and each changed field with its live and staged value. |
+| `mcp__codex_apps__railway_get_status` | Prefer describe-environment: it also lists services that exist only in the staged patch, unattached volumes, and each resource's staged state. |
+| `mcp__codex_apps__railway_get_trace` | Get the spans of one distributed trace, as a tree from the edge down through every service that handled the request. |
+| `mcp__codex_apps__railway_get_tracing` | Read the tracing settings of an environment's services: whether each is traced and its auto-instrumentation switch. |
+| `mcp__codex_apps__railway_get_tracing_coverage` | Report what one service's own instrumentation covers: the spans its app exported in the window, by span kind, by the remote system they name (database, cache, queue, RPC or HTTP client) and by the instrumentation library that emitted them. |
+| `mcp__codex_apps__railway_http_error_rate` | Get the HTTP error rate for a service over time — the share of requests answered with a 5xx. |
+| `mcp__codex_apps__railway_http_requests` | Get HTTP request counts for a service, bucketed over time and split by response status class (2xx/3xx/4xx/5xx). |
+| `mcp__codex_apps__railway_http_response_time` | Get HTTP latency percentiles (p50, p90, p95, p99) for a service, bucketed over time, in milliseconds. |
+| `mcp__codex_apps__railway_list_automation_runs` | List automation runs, newest first, with manual/scheduled origin, task status, timestamps, failures, and agent/session IDs. |
+| `mcp__codex_apps__railway_list_automation_triggers` | List an automation's UTC schedule triggers, oldest first. |
+| `mcp__codex_apps__railway_list_automations` | List automations in a project/environment, newest first. |
+| `mcp__codex_apps__railway_list_beta_features` | List the account's beta features: whether the user is in Priority Boarding (Railway's beta programme, which auto-enables new beta features) and every beta feature they may turn on or off, with its current state. |
+| `mcp__codex_apps__railway_list_cloud_agent_models` | List the models a cloud-agent task in this environment can run on, with each model's reasoning efforts and the default a new conversation starts on. |
+| `mcp__codex_apps__railway_list_cloud_agent_tasks` | List cloud-agent task lifecycle records in an environment, newest first. |
+| `mcp__codex_apps__railway_list_connector_tunnels` | List this workspace's connector tunnels: status, running copies, where they run and their targets. |
+| `mcp__codex_apps__railway_list_deployments` | List recent deployments for a Railway project, optionally filtered by environment, service, or status. |
+| `mcp__codex_apps__railway_list_domains` | List all domains (Railway-generated service domains and custom domains) for a service in an environment. |
+| `mcp__codex_apps__railway_list_feature_flags` | List Railway feature flags (Signals) for a project and optionally the parent workspace. |
+| `mcp__codex_apps__railway_list_projects` | List all Railway projects accessible to the authenticated user |
+| `mcp__codex_apps__railway_list_services` | List the ids and names of all services and environments in a Railway project. |
+| `mcp__codex_apps__railway_list_tcp_proxies` | List the TCP proxies exposing a service over the public internet on a raw TCP port (e.g. a database's public endpoint). |
+| `mcp__codex_apps__railway_list_traces` | List distributed traces of an environment, newest first — one row per request that has at least one span matching the filter. |
+| `mcp__codex_apps__railway_list_variables` | List all environment variables for a service, fully rendered (reference variables like ${{Postgres.DATABASE_URL}} are resolved). |
+| `mcp__codex_apps__railway_list_webhooks` | List a project's webhooks: for each, the URL Railway POSTs to, the deployment, monitor and volume-alert events that trigger it, whether it covers preview (PR) environments, the names of its custom headers (values are write-only), and its ID for update-webhook and delete-webhook |
+| `mcp__codex_apps__railway_list_workspaces` | List the Railway workspaces the current user belongs to. |
+| `mcp__codex_apps__railway_redeploy` | Re-run the most recent deployment of a service in a given environment, reusing that deployment's existing build. |
+| `mcp__codex_apps__railway_reset_bucket_credentials` | Regenerate the S3-compatible credentials for a bucket in an environment and return the new ones. |
+| `mcp__codex_apps__railway_restart_service` | Restart a service's running deployment in place — the containers restart without rebuilding the image, and no new deployment is created (use redeploy for a fresh build copy). |
+| `mcp__codex_apps__railway_retry_domain_certificate` | Request a new TLS certificate for a custom domain whose issuance failed. |
+| `mcp__codex_apps__railway_run_automation` | Run an automation now as its stored owner, even if its schedules are disabled. |
+| `mcp__codex_apps__railway_search_docs` | Search the Railway documentation (docs.railway.com) for features, configuration, guides, and tutorials. |
+| `mcp__codex_apps__railway_search_templates` | Search the Railway template marketplace by name, description or keyword — databases (postgres, mysql, mongo, redis, clickhouse), their high-availability variants, and application templates. |
+| `mcp__codex_apps__railway_set_beta_feature` | Turn an account beta feature on or off for the current user. |
+| `mcp__codex_apps__railway_set_feature_flag` | Create a project-scoped feature flag or update its default value, optionally replacing its targeting rules. |
+| `mcp__codex_apps__railway_set_service_tracing` | Enable or disable tracing and auto-instrumentation for one service in one environment, each independently. tracingEnabled switches whether the edge traces requests to the service; changing it redeploys the service so the OpenTelemetry exporter variables follow. autoInstrumentationEnabled switches eBPF (OBI) instrumentation of the service's processe |
+| `mcp__codex_apps__railway_set_variables` | Set one or more environment variables on a service (or environment-wide shared variables when serviceId is omitted). |
+| `mcp__codex_apps__railway_test_webhook` | POST a sample event payload to a URL and report the HTTP status it answered with, to check a webhook endpoint before creating or after updating a webhook. |
+| `mcp__codex_apps__railway_update_bucket` | Rename a bucket. |
+| `mcp__codex_apps__railway_update_domain` | Repoint or rename an existing domain on a service. targetPort changes which container port the domain routes to (for a service listening on several ports). subdomain renames a Railway-generated service domain to <subdomain>.up.railway.app; custom domains cannot be renamed — delete the old one and add the new one with generate-domain. |
+| `mcp__codex_apps__railway_update_function_source_code` | Replace a Railway Function's source code. |
+| `mcp__codex_apps__railway_update_service` | Update a service's configuration: build/start/pre-deploy commands and pre-deploy timeout, builder, healthcheck, sleep mode, root directory, cron schedule, Dockerfile path, restart policy, config file path, watch patterns, replicas per region, resource limits, deployment overlap/draining, outbound IPv6, the private network endpoint name, tracing (ed |
+| `mcp__codex_apps__railway_update_volume` | Update a volume's name, mount path, or which service it is attached to. |
+| `mcp__codex_apps__railway_update_webhook` | Change a project webhook's URL, the events that trigger it, or whether it covers preview (PR) environments. |
+| `mcp__codex_apps__railway_whoami` | Get the current authenticated Railway user's profile information |
+
+## Sites — 25
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__sites_add_custom_domain` | Add a custom domain to a published site. |
+| `mcp__codex_apps__sites_change_site_slug` | Change a site's public URL label. |
+| `mcp__codex_apps__sites_create_schedule` | Create and link a cloud task for a published Site when the user has requested scheduling. |
+| `mcp__codex_apps__sites_create_site` | Create a site only when .openai/hosting.json has no project_id. |
+| `mcp__codex_apps__sites_create_source_repository_write_credential` | Create a short-lived source repository write credential when the credential returned by create_site is missing or no longer usable. |
+| `mcp__codex_apps__sites_deploy_private_site_version` | Deploy a saved site version to production for a site created in the current flow whose owner-only access has not changed, or an existing site already known to be owner-private for the selected account. |
+| `mcp__codex_apps__sites_deploy_site_version` | Deploy a saved site version to production when the site is shared, public, cannot be verified as owner-only, or private deployment is unavailable. |
+| `mcp__codex_apps__sites_generate_siwc_bypass_token` | Generate a bearer token for identity-less API requests that bypasses a site's Sign in with ChatGPT gate. |
+| `mcp__codex_apps__sites_get_deployment_status` | Get the current status of a production deployment. |
+| `mcp__codex_apps__sites_get_environment_variables` | Get the production runtime environment variables for a site. |
+| `mcp__codex_apps__sites_get_site` | Get a site and its current access configuration, including external visitors. |
+| `mcp__codex_apps__sites_get_site_version` | Get a saved site version and its source provenance. |
+| `mcp__codex_apps__sites_get_site_worker_logs` | Read recent production Cloudflare Worker logs for a Site when diagnosing why a deployed website is crashing, returning an error, or failing after a click or tap. |
+| `mcp__codex_apps__sites_list_custom_domains` | List custom domains attached to a site |
+| `mcp__codex_apps__sites_list_site_versions` | List saved site versions in newest-first order for history, deployment, or rollback selection. |
+| `mcp__codex_apps__sites_list_sites` | List Sites you own in the selected account, including personal accounts. |
+| `mcp__codex_apps__sites_read_database_overview` | Inspect the user tables in a deployed site's live Cloudflare D1 database before reading rows. |
+| `mcp__codex_apps__sites_read_database_table_rows` | Read one bounded page of rows from a user table in a deployed site's live Cloudflare D1 database. |
+| `mcp__codex_apps__sites_refresh_custom_domain_status` | Refresh custom domain validation status for a site |
+| `mcp__codex_apps__sites_remove_custom_domain` | Remove a custom domain from a site |
+| `mcp__codex_apps__sites_save_site_version` | Save a version of the site's pushed source without deploying it. |
+| `mcp__codex_apps__sites_save_version_and_deploy_private` | For a site created in the current flow whose owner-only access has not changed, or an existing site already known to be owner-private for the selected account, use this instead of save_site_version followed by deploy_private_site_version. |
+| `mcp__codex_apps__sites_update_environment_variables` | Update production runtime environment variables for a site. |
+| `mcp__codex_apps__sites_update_site_access` | Update who can visit a site only when the user asks to change access. |
+| `mcp__codex_apps__sites_update_site_metadata` | Update a site's display title. |
+
+## Supabase — 31
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__supabase_apply_migration` | Applies a migration to the database. |
+| `mcp__codex_apps__supabase_confirm_cost` | Returns a confirmation ID for the cost of a new project or branch returned by `get_cost`. |
+| `mcp__codex_apps__supabase_create_branch` | Creates a development branch on a Supabase project, which can incur hourly compute and other usage charges. |
+| `mcp__codex_apps__supabase_create_project` | Creates a new Supabase project, which can add to the organization's bill. |
+| `mcp__codex_apps__supabase_delete_branch` | Deletes a development branch |
+| `mcp__codex_apps__supabase_delete_feedback` | Deletes feedback sent with submit_feedback. |
+| `mcp__codex_apps__supabase_deploy_edge_function` | Deploys an Edge Function to a Supabase project. |
+| `mcp__codex_apps__supabase_execute_sql` | Executes raw SQL in the Postgres database. |
+| `mcp__codex_apps__supabase_generate_typescript_types` | Generates TypeScript types for a project |
+| `mcp__codex_apps__supabase_get_advisors` | Gets a list of advisory notices for the Supabase project. |
+| `mcp__codex_apps__supabase_get_cost` | Gets the cost of creating a new project or branch. |
+| `mcp__codex_apps__supabase_get_edge_function` | Retrieves file contents for an Edge Function in a Supabase project |
+| `mcp__codex_apps__supabase_get_organization` | Gets details for an organization. |
+| `mcp__codex_apps__supabase_get_project` | Gets details for a Supabase project |
+| `mcp__codex_apps__supabase_get_project_url` | Gets the API URL for a project |
+| `mcp__codex_apps__supabase_get_publishable_keys` | Gets all publishable API keys for a project, including legacy anon keys (JWT-based) and modern publishable keys (format: sb_publishable_...). |
+| `mcp__codex_apps__supabase_list_branches` | Lists all development branches of a Supabase project. |
+| `mcp__codex_apps__supabase_list_edge_functions` | Lists all Edge Functions in a Supabase project |
+| `mcp__codex_apps__supabase_list_extensions` | Lists all extensions in the database |
+| `mcp__codex_apps__supabase_list_migrations` | Lists all migrations in the database |
+| `mcp__codex_apps__supabase_list_organizations` | Lists all organizations that the user is a member of |
+| `mcp__codex_apps__supabase_list_projects` | Lists all Supabase projects for the user. |
+| `mcp__codex_apps__supabase_list_tables` | Lists all tables in one or more schemas. |
+| `mcp__codex_apps__supabase_merge_branch` | Merges migrations and edge functions from a development branch to production |
+| `mcp__codex_apps__supabase_pause_project` | Pauses a Supabase project |
+| `mcp__codex_apps__supabase_query_logs` | Runs a custom read-only ClickHouse SQL query against a Supabase project's unified logs stream, for filtering, aggregating, or joining across log fields more precisely than a simple per-service log dump. |
+| `mcp__codex_apps__supabase_rebase_branch` | Rebases a development branch on production. |
+| `mcp__codex_apps__supabase_reset_branch` | Resets migrations of a development branch. |
+| `mcp__codex_apps__supabase_restore_project` | Restores a Supabase project |
+| `mcp__codex_apps__supabase_search_docs` | Search the Supabase documentation using GraphQL. |
+| `mcp__codex_apps__supabase_submit_feedback` | Sends feedback about Supabase tools to the Supabase team. |
+
+## TinyFish — 24
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__tinyfish_cancel_deep_research` | Cancels a TinyFish deep research run by ID when the user requests it. |
+| `mcp__codex_apps__tinyfish_cancel_monitor` | Only use when the user explicitly asks to delete or cancel a Monitor. |
+| `mcp__codex_apps__tinyfish_cancel_profile_setup_session` | Closes a setup session and discards anything not yet saved. |
+| `mcp__codex_apps__tinyfish_cancel_run` | Only use when the user explicitly asks to stop a running or pending automation. |
+| `mcp__codex_apps__tinyfish_create_monitor` | Use when the user asks to monitor a webpage for changes or subscribe to updates about a web topic. |
+| `mcp__codex_apps__tinyfish_create_profile` | Creates a Browser Context Profile and returns setup_url. |
+| `mcp__codex_apps__tinyfish_fetch_content` | Fetches and extracts structured content from up to 10 URLs in parallel, including JavaScript-rendered pages. |
+| `mcp__codex_apps__tinyfish_get_deep_research` | Returns the status of a TinyFish deep research run, waiting up to about 25 seconds for it to finish. |
+| `mcp__codex_apps__tinyfish_get_monitor` | Only use when the user asks for one Monitor. |
+| `mcp__codex_apps__tinyfish_get_run` | Only use after run_web_automation errors, times out, or returns a run_id that needs polling. |
+| `mcp__codex_apps__tinyfish_get_wallet` | Read-only. |
+| `mcp__codex_apps__tinyfish_list_deep_research` | Lists the user's most recent TinyFish deep research runs with their status and a link to each report, for finding an earlier report |
+| `mcp__codex_apps__tinyfish_list_monitors` | Only use when the user asks which Monitors they have. |
+| `mcp__codex_apps__tinyfish_list_profiles` | Lists Browser Context Profiles, including which one is the default. signed_in_sites are sites where a TinyFish setup saw the user sign in, or the user said they signed in when saving, and whose cookies are still saved; a sign-in may have expired since its claimed_at. |
+| `mcp__codex_apps__tinyfish_list_runs` | Only use when you need to find a run_id for a recently created automation, usually after run_web_automation timed out before returning one. |
+| `mcp__codex_apps__tinyfish_pause_monitor` | Only use when the user asks to pause a Monitor. |
+| `mcp__codex_apps__tinyfish_resume_monitor` | Only use when the user asks to resume a paused Monitor and start its schedule again |
+| `mcp__codex_apps__tinyfish_run_monitor` | Only use when the user asks to check a Monitor immediately. |
+| `mcp__codex_apps__tinyfish_run_web_automation` | Metered web automation is available through your wallet — use it for clicking, forms, login, or dynamic pages. |
+| `mcp__codex_apps__tinyfish_save_profile_setup_session` | Saves cookies and browser storage from a setup session onto the profile, then closes the browser. |
+| `mcp__codex_apps__tinyfish_search` | Searches the public web and returns compact, structured results. |
+| `mcp__codex_apps__tinyfish_start_deep_research` | Starts an asynchronous TinyFish deep research run that searches, reads, and synthesizes many web sources into a comprehensive cited report. |
+| `mcp__codex_apps__tinyfish_start_profile_setup_session` | Returns setup_url for signing in to an EXISTING Browser Context Profile. |
+| `mcp__codex_apps__tinyfish_wait_for_run` | Wait for a run started by run_web_automation. |
+
+## Paramètres familiaux — 5
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__safety_settings_get_family_info` | Call first for any Parental Controls question or action, including unnamed children. |
+| `mcp__codex_apps__safety_settings_get_parental_controls` | Read one family member's controls. |
+| `mcp__codex_apps__safety_settings_get_trusted_contact` | Call first for any Trusted Contact setup, status, privacy, or notification question. |
+| `mcp__codex_apps__safety_settings_prepare_parental_control_update` | Validate one authorized parental-control change and return the exact approval summary and operation ID. |
+| `mcp__codex_apps__safety_settings_update_parental_control` | Apply a prepared parental-control change only after the parent explicitly approves its exact confirmation summary. |
+
+## Aide locale — 1
+
+| Nom exact | Fonction |
+| --- | --- |
+| `mcp__codex_apps__hotline_get_local_hotline` | Look up local helpline information for the user based on country inferred from the conversation. |

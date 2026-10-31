@@ -1,0 +1,56 @@
+---
+name: video_audio_transcription_check
+description: "Check a finished video mix by transcription so only the intended voice is heard, whenever a video carries voiceover over music or a reused soundtrack. Improved version with frame and loudness checks."
+---
+
+# Video Audio Transcription Check
+
+## Transcribe the finished mix
+
+- Transcribe the final mixed audio from start to finish and list every spoken phrase in order.
+
+- Compare every transcribed phrase with the intended script and flag any phrase that is not in that script.
+
+- Reject the mix when an unscripted phrase appears even when that phrase is quiet or buried under music.
+
+- Deliver a mix only after its transcription matches the intended script exactly.
+
+## Transcribe the music bed alone
+
+- Transcribe the music track on its own before mixing it under any voice.
+
+- Reject a reused soundtrack when its own transcription contains any words because lowering its volume does not remove a hidden voice.
+
+- Replace a rejected bed with a purely instrumental track and transcribe that replacement on its own before use.
+
+- Treat a bed that transcribes to zero words as the only bed that is safe to mix under a voice.
+
+## Check loudness and frames with the audio
+
+- Measure the final mix loudness and peaks and keep a short form video near minus 14 LUFS with true peaks at or below minus 3 dB unless the platform asks otherwise.
+
+- Extract frames from every scene and check them in the same pass as the transcription.
+
+- Reject the delivery when a frame shows truncated text, a sticker covering a key word or an empty static scene, even when the audio passes.
+
+## Fix and recheck before delivery
+
+- Remove the source of any unscripted voice instead of masking it with volume changes or ducking.
+
+- Rebuild the mix after the fix and transcribe the new mix again from start to finish.
+
+- Report the transcription result in plain words with the count of intended phrases found and confirmation that no unscripted phrase remains.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Ask for separate voice and music stems when reusing a format soundtrack so voice and music can be checked apart.
+
+- Use a newly composed instrumental bed when the source of a reused track cannot be verified.
+
+- Keep the intended script to one voice in one language so the transcription comparison stays exact.

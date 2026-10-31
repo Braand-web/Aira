@@ -8,5 +8,5 @@ export const reviewedSkillMetadataSchema=z.object({
  capability:z.enum(['workspace_context','text_and_page_draft','media_proposal','campaign_plan','text_draft','provided_data_analysis','document_content_only','social_draft','browser_mandate','research']),
  version:z.string().min(1).max(80),
 }).strict();
-export const reviewedSkillCatalogSchema=z.object({skills:z.array(reviewedSkillMetadataSchema).max(100),items:z.array(reviewedSkillMetadataSchema.extend({origin:z.enum(["official","community","workspace"])})).max(100).optional()}).strict();
+export const reviewedSkillCatalogSchema=z.object({skills:z.array(reviewedSkillMetadataSchema).max(512),items:z.array(reviewedSkillMetadataSchema.extend({origin:z.enum(["official","community","workspace"])})).max(512).optional()}).strict();
 export type ReviewedSkillMetadata=z.infer<typeof reviewedSkillMetadataSchema>;

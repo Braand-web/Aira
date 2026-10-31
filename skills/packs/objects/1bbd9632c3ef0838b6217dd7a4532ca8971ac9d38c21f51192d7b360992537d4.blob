@@ -1,0 +1,70 @@
+---
+name: revue-de-code
+description: Relire et évaluer du code fourni par l'utilisateur : correction, sécurité, performance, lisibilité et tests. À utiliser pour une revue de code, un audit rapide ou avant une mise en production.
+---
+
+# Revue de code
+
+Tu es un relecteur senior. Ta mission : dire ce qui va, ce qui casse, ce qui est risqué — avec un correctif concret pour chaque problème important.
+
+## Quand utiliser ce skill
+
+- L'utilisateur colle du code et demande un avis, une relecture ou une amélioration.
+- Vérification avant un rendu, un entretien, un déploiement ou une fusion de branche.
+- Audit rapide de sécurité ou de performance sur un fichier ou un projet.
+
+## Ordre de lecture (ne le change pas)
+
+### 1. Correction fonctionnelle
+
+- Le code fait-il ce qu'il prétend faire ? Suis le chemin principal à la main avec un exemple.
+- Vérifie les cas limites : vide, nul, zéro, dépassement, doublons, ordre des données.
+- Vérifie la gestion d'erreur : que se passe-t-il quand le fichier manque, le réseau coupe, l'API renvoie une erreur ?
+
+### 2. Sécurité
+
+- Injections : requêtes construites par concaténation de chaînes, commandes système avec des entrées non nettoyées.
+- Secrets en dur : mots de passe, clés API, jetons dans le code ou l'historique.
+- Données sensibles affichées ou journalisées.
+- Entrées externes utilisées sans validation (formulaires, fichiers, paramètres d'URL).
+- Droits et accès : le code vérifie-t-il que l'utilisateur a le droit de faire cette action ?
+
+### 3. Performance
+
+- Boucles dans des boucles sur de gros volumes, requêtes en boucle là où une requête groupée suffit (problème N+1).
+- Chargement de tout en mémoire là où un traitement par morceaux suffit.
+- Calculs répétés identiques qui pourraient être mis en cache ou sortis d'une boucle.
+- Ne signale un problème de performance que s'il peut réellement se produire à l'échelle d'usage du code.
+
+### 4. Lisibilité et maintenance
+
+- Noms qui mentent ou qui n'expliquent rien, fonctions trop longues ou qui font 3 choses à la fois.
+- Code dupliqué à 3 endroits ou plus : propose le regroupement.
+- Nombres magiques et chaînes codées en dur qui devraient être des constantes nommées.
+- Commentaires faux ou périmés : pire que pas de commentaire.
+
+### 5. Tests
+
+- Y a-t-il des tests ? Couvrent-ils le chemin principal ET les cas d'erreur ?
+- Un test qui ne peut jamais échouer ne vaut rien : signale-le.
+- Propose les 2 ou 3 tests manquants les plus utiles, pas une liste exhaustive.
+
+## Format de la revue
+
+Pour chaque problème trouvé, donne :
+
+- **Niveau** : Bloquant (bug ou faille réelle) / Important (risque sérieux) / Mineur (qualité).
+- **Où** : fichier et fonction ou ligne concernée.
+- **Pourquoi** : le risque concret, en une phrase.
+- **Correctif** : le bout de code corrigé ou la modification précise.
+
+Commence par un verdict global en 2 phrases : l'état général, et le problème numéro un à traiter.
+Termine par ce qui est bien fait — précisément, pas par politesse.
+
+## Règles
+
+- Ne réécris pas tout le code si des correctifs ciblés suffisent. Une réécriture complète se propose seulement si la structure elle-même est le problème, et tu le justifies.
+- Distingue les faits (« cette requête est injectable parce que... ») des préférences de style (« je préfère... »). Étiquette les préférences comme telles.
+- Ne signale pas 30 problèmes mineurs de style quand il y a un bug bloquant : hiérarchise.
+- Si le code est bon, dis-le clairement et explique pourquoi. Une revue qui invente des problèmes pour exister est une mauvaise revue.
+- Adapte la profondeur au contexte annoncé : un script perso d'un soir n'a pas les mêmes exigences qu'un service en production.

@@ -1,0 +1,35 @@
+# Pack Skills Système et Exécution
+
+Ce pack rassemble tout ce qui peut être téléchargé et réinstallé dans un autre agent.
+
+## Contenu
+
+### 01-CATALOGUE-SKILLS-SYSTEME.md
+La liste complète des **56 skills système** de Muse, avec nom, titre et catégorie pour chacun : documents, publicité, réseaux sociaux, voyages, réservations, shopping, e-mail, calendrier, santé, maison connectée, recherche, traduction, et tous les autres.
+
+Point honnête : le texte interne intégral de ces 56 skills est une instruction produit de Meta. Elle vit dans le système, elle est remplacée et mise à jour à chaque déploiement, et elle ne s'exporte pas comme un fichier d'utilisateur. Ce pack donne donc leur catalogue complet, plus des versions portables équivalentes et réutilisables dans les sections 3 et 4, qui couvrent les mêmes domaines en format installable partout.
+
+### 02-skills-execution
+Les **5 skills d'exécution en texte complet** :
+1. Agent bout en bout
+2. Codage avec exécution
+3. Navigation web agent
+4. Création de livrables
+5. Mémoire, planification et surveillance
+
+### 03-skills-personnalises-universels
+Les **8 skills créés à partir des sessions de travail réelles**, en édition universelle v2 : produit digital gagnant, reels viraux en motion design, publicité Meta rentable, page de vente qui convertit, analyses et prédictions fiables, vidéo publicitaire Monolithe, contrôle vidéo par transcription, connexion avec code d'authentificateur.
+
+### 04-pack-portable-37-skills
+Le **pack portable complet de 37 skills** : codage, productivité, rédaction, gestion de projet, apprentissage, finances personnelles, création de contenu, marketing social, bibliothèques publicitaires, les 5 skills d'exécution, l'agent marketing complet et les campagnes publicitaires en temps réel.
+
+## Total téléchargeable dans ce pack
+
+- 1 catalogue de 56 skills système
+- 5 skills d'exécution complets
+- 8 skills personnalisés complets
+- 37 skills portables complets
+
+## Installation
+
+Chaque skill est un dossier avec un fichier `SKILL.md`. Copie les dossiers voulus dans le dossier de skills de ton agent : `~/.claude/skills/` ou `.claude/skills/` pour Claude Code, `~/workspace/custom-skills/` pour Muse, ou joins le fichier à un projet pour ChatGPT, Gemini et les autres assistants. Voir aussi le fichier INSTALL.md du Pack Skills Premium pour le détail par plateforme.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Messaging Onboarding"
+  short_description: "Connect messaging and try a useful task"
+  default_prompt: "Use $onboarding-messaging to connect Slack or Teams and demonstrate one useful task."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Website Onboarding"
+  short_description: "Build a personal one-page website"
+  default_prompt: "Use $onboarding-website-creation to quickly build a personal one-page website."
+policy:
+  allow_implicit_invocation: false

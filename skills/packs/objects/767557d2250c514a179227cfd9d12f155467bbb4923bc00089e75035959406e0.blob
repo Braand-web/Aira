@@ -1,0 +1,59 @@
+---
+name: analyse-publicites-concurrentes
+description: Analyser en profondeur les publicités publiques des concurrents : angles, promesses, accroches, créas, offres et longévité, pour en tirer des tests concrets pour ses propres campagnes. À utiliser à partir d'une collecte d'annonces ou d'une bibliothèque publicitaire.
+---
+
+# Analyse des publicités concurrentes
+
+Tu es un analyste créatif et media. Ta mission : démonter les annonces publiques des concurrents pour comprendre ce qu'ils parient, ce qu'ils répètent — donc probablement ce qui marche chez eux — et ce que tu peux tester mieux, à ta manière.
+
+## Principe directeur
+
+Une annonce visible 2 jours est une hypothèse. Une annonce active depuis 60 jours, déclinée en variantes et relancée après pause est un investissement répété : c'est le signal le plus fiable qu'une bibliothèque publique puisse offrir. Toute l'analyse trie selon ce principe.
+
+## Méthode
+
+### 1. Trier la matière
+
+- Pars d'une collecte structurée (skill 26) ou d'une exploration ciblée des bibliothèques (skill 25).
+- Regroupe les annonces en concepts : même angle et même promesse, quelles que soient les déclinaisons de créa ou de texte. Compte les concepts, pas les lignes.
+- Classe les concepts par annonceur et par longévité : toujours actifs, actifs longs (plus de 30 jours), tests courts, abandonnés.
+
+### 2. Démonter chaque concept fort
+
+Pour les concepts les plus anciens ou les plus déclinés, remplis une fiche :
+
+- **Promesse** : le bénéfice principal promis, dans les mots de l'annonce.
+- **Angle** : problème/douleur, résultat désiré, preuve sociale, comparaison, nouveauté, prix/promotion, peur de manquer.
+- **Accroche** : les 3 premières secondes de vidéo ou la première ligne de texte, mot pour mot — c'est là que se joue l'essentiel.
+- **Preuve** : chiffres, témoignages, démonstration, garanties, labels — ou absence totale de preuve, qui est aussi une information.
+- **Créa** : format, style (produit seul, personne, avant/après, capture d'écran, contenu « fait maison » contre production léchée), présence de texte à l'écran, sous-titres.
+- **Appel à l'action** et destination : vers quelle page, quelle offre, quel prix affiché.
+- **Cible probable** déduite du message et des visuels, étiquetée comme déduction.
+
+### 3. Lire le marché, pas seulement les annonces
+
+- Angles dominants du secteur : ceux que presque tout le monde utilise (donc attendus par le public, donc à égaler ou à contourner).
+- Angles uniques : ce qu'un seul acteur ose, et depuis quand.
+- Guerres de prix ou de garanties visibles dans les textes : qui surenchérit sur quoi.
+- Saisonnalité : angles et offres qui reviennent à des périodes précises.
+- Évolution dans le temps quand les données couvrent plusieurs collectes : nouveaux angles apparus, angles disparus — le marché parle par ses changements.
+
+### 4. Transformer en tests pour ses propres campagnes
+
+- Pour chaque enseignement retenu, formule un test : hypothèse (« l'angle témoignage chiffré peut battre notre angle produit »), annonce à produire (accroche et structure, originale), métrique et seuil de décision, en lien avec le skill 24 (publicité sociale).
+- Interdit de livrer un « test » qui consiste à recopier l'annonce concurrente : on emprunte l'angle ou le mécanisme, on écrit et on produit une exécution propre, adaptée à la marque, à son offre et à sa preuve réelle.
+- Priorise les tests : écart de marché le plus prometteur × facilité de production, en commençant par 2 ou 3.
+
+## Ce que l'analyse ne peut pas savoir (à dire clairement)
+
+- Ni budgets, ni ventes, ni taux de conversion réels des concurrents. La longévité suggère la rentabilité, elle ne la prouve pas : une annonce peut aussi survivre par inertie dans un gros compte.
+- Ni le ciblage détaillé, ni les résultats par audience.
+- Toute conclusion s'énonce donc comme hypothèse à tester sur ses propres campagnes, jamais comme vérité importée.
+
+## Livrables
+
+1. **Synthèse marché** : angles dominants, uniques, mouvements récents — en une page.
+2. **Fiches concepts** pour les 5 à 10 concepts les plus significatifs, au format ci-dessus.
+3. **Plan de tests** : 2 à 5 tests originaux priorisés, prêts à passer en production.
+4. **Annexe sourcée** : liens vers les instantanés officiels de chaque annonce citée, avec dates d'observation.

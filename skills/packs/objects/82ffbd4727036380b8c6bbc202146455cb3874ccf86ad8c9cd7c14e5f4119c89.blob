@@ -1,0 +1,77 @@
+---
+name: page_vente_qui_convertit
+description: "Écrire une page de vente complète et honnête pour n'importe quel produit ou service, sur n'importe quelle plateforme et dans n'importe quelle devise, avec valeur empilée, bonus utiles, réassurance paiement et FAQ qui lève les vraies objections."
+---
+
+# Page de Vente qui Convertit, Méthode Universelle
+
+## Adapter à n'importe quel projet
+
+- Commencer par fixer les variables du projet, depuis la demande ou en demandant seulement celles qui manquent et changent le résultat.
+
+- Variables à fixer : le domaine ou le secteur, le public visé, le marché (pays, langue et culture), la devise, la plateforme de vente ou de diffusion, l'offre et son prix, le budget disponible et l'objectif mesurable.
+
+- Ne jamais appliquer un chiffre d'un autre projet tel quel, toujours le recalculer dans la devise, le prix et le contexte du projet en cours.
+
+- Traiter les exemples chiffrés de ce skill comme des illustrations de la méthode, jamais comme des valeurs par défaut.
+
+
+## Construire la promesse et la valeur
+
+- Ouvrir par le problème précis du client et le résultat concret que l'offre aide à obtenir, sans promesse garantie ni transformation impossible.
+
+- Présenter le contenu ou la prestation partie par partie, pour que le client voie ce qu'il reçoit avant de voir le prix.
+
+- Empiler la valeur de façon lisible, offre principale, bonus liés, modèles ou outils prêts à utiliser et aide de démarrage, avec un total cohérent.
+
+- Afficher un prix clair dans la devise du public avec le prix normal barré seulement si ce prix normal est réel et défendable.
+
+- Ajouter l'économie réalisée en montant et en pourcentage seulement quand le calcul est exact.
+
+## Lever les objections une par une
+
+- Écrire une FAQ de 8 à 12 questions qui répond aux vraies peurs, livraison, paiement, délai, niveau requis, support et cas où l'offre ne convient pas.
+
+- Expliquer la réception ou le démarrage après paiement en étapes simples et numérotées.
+
+- Rassurer sur le paiement avec les moyens réellement acceptés par la plateforme du projet, sans inventer un moyen non disponible.
+
+- Dire clairement à qui l'offre ne convient pas, car cette honnêteté augmente la confiance des bons acheteurs.
+
+- Ne jamais afficher de garantie, de témoignage ou de preuve de vente qui n'existe pas réellement.
+
+## Rendre la page propre et cohérente
+
+- Vérifier que le titre ne contient aucun mot provisoire, aucune copie et aucune ancienne version du prix ou de la promesse.
+
+- Vérifier que le prix et la promesse sont identiques dans le titre, la description, les visuels, les publicités et les messages liés à la page.
+
+- Relire toute la page après un changement, y compris la dernière ligne, car les anciens prix restent souvent oubliés en bas.
+
+- Utiliser un visuel principal net où le titre, le public et le bénéfice restent lisibles en miniature.
+
+- Garder les crédits des visuels libres dans un fichier séparé quand la licence le permet.
+
+## Préparer la vente et l'après vente
+
+- Préparer 3 messages prêts à envoyer, présentation, réponse à l'objection du prix et relance douce après un délai adapté au secteur.
+
+- Préparer un message de bienvenue ou de livraison qui explique par où commencer en quelques minutes.
+
+- Prévoir un upsell utile proposé après l'achat, jamais une condition cachée pour utiliser l'offre de base.
+
+- Tester la page comme un client, ouvrir le lien public, vérifier le prix affiché dans la devise du visiteur et suivre le parcours jusqu'au paiement sans payer.
+
+- Corriger la page avant d'augmenter le trafic dès qu'un visiteur signale un fichier défectueux, un lien mort ou un prix incohérent.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Ajouter une courte démonstration réelle de l'offre quand les acheteurs hésitent sur ce qu'ils vont recevoir.
+
+- Proposer un extrait ou un essai limité quand l'offre est nouvelle et sans aucun avis.

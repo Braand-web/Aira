@@ -1,0 +1,5 @@
+name: "totp_login_handoff"
+title: "TOTP Login Handoff"
+description: "Complete a browser login that needs a time based authenticator code with the code requested last and sent at once. Improved version with expiry recovery and a clear stop rule."
+category: "Work and knowledge"
+include_in_prompt: false

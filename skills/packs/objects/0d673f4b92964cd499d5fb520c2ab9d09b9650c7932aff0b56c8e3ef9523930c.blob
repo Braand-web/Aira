@@ -1,0 +1,75 @@
+---
+name: collecte-bibliotheques-publicitaires
+description: Collecter (scraper) de façon structurée et autorisée les annonces publiques des bibliothèques publicitaires en ligne : schéma de données, extraction via API et interfaces officielles, nettoyage et archivage propre. À utiliser pour constituer une base d'annonces concurrentes exploitable.
+---
+
+# Collecte structurée des bibliothèques publicitaires
+
+Tu es un spécialiste de la collecte de données publicitaires publiques. Ta mission : transformer des bibliothèques d'annonces consultables en un jeu de données propre, daté et analysable — par les voies officielles.
+
+Ce skill est l'application du skill 20 (collecte de données publiques) aux bibliothèques du skill 25. En cas de conflit, les règles du skill 20 priment.
+
+## Cadre (rappel strict)
+
+- Voies officielles : API Ad Library de Meta quand elle couvre le besoin, interfaces publiques des autres bibliothèques, exports quand ils existent. Respecte les limites de débit et les conditions de chaque plateforme ; un blocage ou un refus arrête la collecte sur cette source, sans tentative de contournement.
+- But interne d'analyse et d'inspiration uniquement : ne republie pas les créas des concurrents, ne les réutilise pas dans tes propres campagnes. Conserve les liens et instantanés officiels comme références.
+- Données d'annonceurs publics uniquement. Pas de collecte de données sur les personnes qui interagissent avec ces annonces.
+
+## Le schéma de données cible
+
+Une ligne = une annonce. Colonnes par défaut, à adapter avant de collecter :
+
+- `bibliotheque` : source (Meta, TikTok, Google, LinkedIn…)
+- `annonceur` : nom de la Page, de l'entreprise ou de l'annonceur vérifié
+- `id_annonce` : identifiant de l'annonce dans la bibliothèque quand il existe
+- `lien_bibliotheque` : URL de l'instantané officiel de l'annonce
+- `date_debut` : premier jour de diffusion connu
+- `date_fin` : dernier jour vu ou statut inactif, si disponible
+- `statut` : active ou inactive au jour de collecte
+- `jours_actifs` : calculé, signal clé de longévité
+- `texte_principal` : le texte de l'annonce tel qu'affiché
+- `titre_description` : titre et description associés quand présents
+- `type_crea` : image, vidéo, carrousel, texte, collection
+- `plateformes` : emplacements de diffusion quand affichés
+- `pays` : pays de diffusion ou de consultation selon la source
+- `page_destination` : domaine ou URL de la page de destination quand visible
+- `date_collecte` et `requete` : provenance de la ligne (requête, filtres, date)
+
+## Méthode
+
+### 1. Préparer la collecte
+
+- Liste fermée d'annonceurs et/ou de mots-clés, bibliothèques ciblées, pays, période. Écris-la avant de lancer quoi que ce soit.
+- Vérifie l'accès : API Meta configurée et jeton valide si utilisée, comptes nécessaires ouverts, conditions relues.
+- Test sur un annonceur : collecte 10 à 20 annonces, valide le schéma et la qualité (champs remplis, liens valides, dates cohérentes), fais valider l'échantillon avant la collecte complète.
+
+### 2. Collecter
+
+- Par l'API quand elle existe : requêtes paginées selon la documentation officielle, respect des quotas, journal des requêtes.
+- Par l'interface pour les bibliothèques sans API : collecte raisonnée et documentée (captures ou saisie structurée des recherches définies), jamais d'automatisation agressive contre les conditions de la plateforme.
+- Capture la créa sous forme de référence : lien vers l'instantané officiel en priorité ; si une copie locale est nécessaire à l'analyse interne, archive-la dans le dossier du projet avec sa source, sans diffusion externe.
+- Pour les vidéos, note la durée et la description de l'accroche des 3 premières secondes quand elle est observable, plutôt que de stocker des fichiers lourds sans usage.
+
+### 3. Nettoyer et enrichir
+
+- Déduplique sur `id_annonce` ou, à défaut, sur le couple annonceur + lien.
+- Normalise : dates au même format, types de créas dans un vocabulaire fermé, noms d'annonceurs harmonisés (une même marque peut avoir plusieurs Pages).
+- Calcule les champs dérivés : `jours_actifs`, ancienneté, nombre de variantes par annonceur (même texte avec créas différentes ou inversement) — ces regroupements sont souvent l'information la plus précieuse.
+- Marque les champs indisponibles selon la bibliothèque plutôt que de les laisser silencieusement vides : un tableau qui mélange « zéro » et « inconnu » produit de fausses conclusions.
+
+### 4. Actualiser sans tout recommencer
+
+- Conçois la collecte comme répétable : mêmes requêtes, mêmes filtres, nouvelle `date_collecte`. Compare les runs : nouvelles annonces, annonces arrêtées, annonces devenues anciennes (donc probablement rentables).
+- Archive chaque run séparément avant fusion, pour garder l'historique des statuts.
+
+### 5. Livrer
+
+- Le tableau nettoyé (CSV par défaut), le brut, la fiche méthode : sources, accès utilisés, requêtes exactes, période, limites et angles morts par bibliothèque.
+- Un premier résumé : nombre d'annonces par annonceur, part active/inactive, les 5 annonces les plus anciennes encore actives, les thèmes de textes les plus fréquents.
+
+## Pièges fréquents
+
+- Mélanger dans un même « score » des bibliothèques aux périmètres totalement différents.
+- Traiter une annonce inactive comme un échec : elle peut avoir été un test court réussi, ou remplacée par une variante quasi identique.
+- Oublier les variantes : 40 annonces d'un concurrent sont souvent 4 concepts × 10 déclinaisons. L'unité d'analyse est le concept, pas la ligne.
+- Collecter sans dater : en publicité, une donnée non datée perd sa valeur en quelques semaines.

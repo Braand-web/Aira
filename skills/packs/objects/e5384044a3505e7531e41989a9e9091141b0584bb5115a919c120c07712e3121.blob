@@ -1,0 +1,17 @@
+# Pack Prompt Système et Contexte
+
+## 01-prompt-systeme
+`system_prompt.md` : le prompt système principal du chat principal de Muse, tel qu'il est sauvegardé par le système au démarrage de la session. C'est le document qui définit le fonctionnement de l'agent : rôle, mémoire, skills, outils, sécurité, paiements, travail en arrière-plan.
+
+## 02-fichiers-de-contexte
+Les 5 fichiers injectés à chaque conversation pour personnaliser l'agent pour cet utilisateur :
+- `SOUL.md` : la personnalité et le ton de l'agent.
+- `IDENTITY.md` : son nom, son caractère, son style.
+- `AGENTS.md` : ses conventions et leçons de travail dans cet espace.
+- `USER.md` : qui est l'utilisateur aidé.
+- `MEMORY.md` : la mémoire durable construite au fil des sessions.
+
+Ces 5 fichiers sont éditables par l'utilisateur et par l'agent : c'est en les modifiant qu'on change durablement le comportement de l'agent sans toucher au prompt système.
+
+## 03-charge-a-la-demande
+Le reste n'existe pas sous forme de fichiers livrables uniques : ce sont les skills (56 système, 8 personnalisés), les documentations produit et les docs connecteurs, lus à la demande quand une tâche les concerne. Le catalogue des 56 skills système est inclus ici. Les skills en texte complet téléchargeables sont dans les packs compagnons : Pack Skills Premium Universelle v2 et Pack Skills Système et Exécution.

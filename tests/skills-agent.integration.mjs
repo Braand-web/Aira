@@ -20,13 +20,17 @@ function statement(query,args=[]){return {
  _run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};},
 };}
 const DB={prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const results=statements.map(item=>item._run());sql.exec('COMMIT');return results;}catch(error){sql.exec('ROLLBACK');throw error;}}};
-const fixture={env:{DB},headers:new Headers({'x-braand-identity-id':'skills-integration-owner','x-braand-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
+const packManifest=JSON.parse(readFileSync(path.join(project,'skills/packs/manifest.json'),'utf8'));
+const packedObjects=new Map(packManifest.objects.map(file=>['skills/packs/v1/'+file.sha256,file]));
+let packedReads=0;
+const BUCKET={async get(key){packedReads++;const file=packedObjects.get(key);assert.ok(file,'Object must be in the pinned pack');const bytes=readFileSync(path.join(project,file.path));return {size:bytes.length,async arrayBuffer(){return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);}};}};
+const fixture={env:{DB,BUCKET},headers:new Headers({'x-braand-identity-id':'skills-integration-owner','x-braand-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
 globalThis.__skillsAgentTest=fixture;
 const out=path.join(project,'.local-build','skills-agent-test.mjs');
 mkdirSync(path.dirname(out),{recursive:true});
 const entry=file=>JSON.stringify(path.join(project,file).replaceAll('\\','/'));
 await build({
- stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as skillsRoute from ${entry('app/api/skills/route.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
+ stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as skillsRoute from ${entry('app/api/skills/route.ts')};export * as skillAssetRoute from ${entry('app/api/skills/[id]/asset/route.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
  outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],
  plugins:[{name:'skills-agent-isolation',setup(builder){
   builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'bindings'}));
@@ -42,7 +46,7 @@ await build({
   }[args.path]}));
  }}],
 });
-const {agent,server,skillsRoute,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
+const {agent,server,skillsRoute,skillAssetRoute,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
 const who=await server.identity(new Request('https://braand.test/api/chat'));
 globalThis.fetch=async()=>{fixture.external.push('network');throw Error('Network forbidden in skills integration tests');};
 const emit=async(type,data)=>{fixture.events.push({type,data});};
@@ -88,8 +92,8 @@ await check('master discovers metadata, explicitly reads a method and receives i
  const initial=fixture.requests[0],initialBody=JSON.stringify(initial.body);
  assert.deepEqual(initial.body.tools.filter(item=>['search_skills','read_skill'].includes(item.name)).map(item=>item.name),['search_skills','read_skill']);
  for(const method of SKILL_CATALOG){
-  assert.ok(initial.body.system[0].text.includes(method.id+' : '+method.description));
-  const files=await method.load();
+  assert.ok(initial.body.system[0].text.includes(method.id+' ['+method.category+'] : '+method.title));
+  const files=await method.load('SKILL.md',BUCKET);
   for(const content of Object.values(files))assert.ok(!initialBody.includes(JSON.stringify(content.slice(0,Math.min(240,content.length))).slice(1,-1)),`Initial prompt leaked method corpus: ${method.id}`);
  }
  const discovery=parsedResult(fixture.requests[1],'discover');
@@ -207,11 +211,16 @@ await check('settings metadata requires identity and workspace access and never 
  try{
   const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
   assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
-  const dto=await response.json();assert.equal(dto.skills.length,42);
+  const dto=await response.json();assert.equal(dto.skills.length,146);
   assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
   assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
   const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);
+  const packed=packManifest.entries.find(entry=>!entry.augment),reference='SKILL.md';
+  const asset=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference='+encodeURIComponent(reference)),{params:Promise.resolve({id:packed.id})});assert.equal(asset.status,200);assert.match(asset.headers.get('content-disposition'),/^attachment;/);
+  const readsBeforeForeign=packedReads;
+  const denied=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference=SKILL.md',{headers:{'x-braand-workspace':'another-client'}}),{params:Promise.resolve({id:packed.id})});assert.equal(denied.status,403);assert.equal(packedReads,readsBeforeForeign);
   fixture.headers=new Headers();
+  const anonymousAsset=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference=SKILL.md'),{params:Promise.resolve({id:packed.id})});assert.equal(anonymousAsset.status,401);assert.equal(packedReads,readsBeforeForeign);
   const anonymous=await skillsRoute.GET(new Request('https://braand.test/api/skills'));assert.equal(anonymous.status,401);assert.equal(anonymous.headers.get('cache-control'),'private, no-store');
  }finally{fixture.headers=headers;}
 });
@@ -244,6 +253,16 @@ await check('video skill is available to the real harness with progressive guide
  const entry=parsedResult(fixture.requests[2],'video-entry');assert.equal(entry.capability,'media_proposal');assert.equal(entry.provenance.license,'User-provided');
  assert.ok(parsedResult(fixture.requests[3],'motion-guide').content.includes('easing'));
  assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','run_python','build_timeline.py','prepare_video_edit'].includes(tool.name))));
+ assertNoExternalOrMutation(before);
+});
+
+await check('an imported method and its original text run through the real tool loop with private storage and unchanged permissions',async()=>{
+ const execution=await setup(),before=mutationCount(),readsBefore=packedReads;
+ const entry=packManifest.entries.find(entry=>entry.id==='reels-viraux-motion-design'),reference=entry.variants[0].entry;
+ fixture.responses=[stream([read('pack-entry',entry.id)]),stream([read('pack-source',entry.id,{reference})]),text('Voici une proposition fondée sur la méthode importée, à adapter aux ressources disponibles.')];
+ await run(execution);
+ assert.equal(packedReads,readsBefore+2);assert.match(parsedResult(fixture.requests[1],'pack-entry').content,/Braand/);assert.ok(parsedResult(fixture.requests[2],'pack-source').content.length>100);assert.equal(skillAudits().length,2);
+ assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','exec_command','image_gen__imagegen','skills__read'].includes(tool.name))));
  assertNoExternalOrMutation(before);
 });
 
