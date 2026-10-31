@@ -94,4 +94,4 @@ jobs:
           node scripts/prepare-production-deploy.mjs
           npx --no-install wrangler deploy --config .wrangler/deploy/production-live.json --no-x-provision --keep-vars --message "Verified personal agent system ${GITHUB_SHA}"
           curl --fail --silent --show-error https://braand.fun/api/health
-          node --input-type=module -e 'const r=await fetch("https://braand.fun/api/health?check=assistant");const b=await r.json();if(!r.ok||!b.assistantReady||b.agentSystemVersion!=="braand-personal-agent-v1")throw Error("Assistant system readiness not confirmed");console.log(JSON.stringify(b));'
+          node --input-type=module -e 'const r=await fetch("https://braand.fun/api/health?check=assistant");const b=await r.json();if(!r.ok||!b.assistantReady||b.agentSystemVersion!=="braand-personal-agent-v2")throw Error("Assistant system readiness not confirmed");console.log(JSON.stringify(b));'
