@@ -61,7 +61,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Save the verified production build
-        if: github.ref == 'refs/heads/feat/global-workflow' || github.ref == 'refs/heads/feat/system-agent-context'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/global-workflow' || github.ref == 'refs/heads/feat/system-agent-context'
         uses: actions/upload-artifact@v4
         with:
           name: verified-production-build
