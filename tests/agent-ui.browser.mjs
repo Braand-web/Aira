@@ -660,8 +660,10 @@ try{
   await capture({path:path.join(output,'campaigns-overview-desktop.png'),fullPage:true});
   await campaignList.getByRole('article').filter({hasText:'Plan de campagne complet'}).getByRole('button',{name:'Ouvrir l’atelier',exact:true}).click();
   const workshop=page.getByRole('region',{name:'Atelier de campagne',exact:true});await workshop.waitFor();await workshop.getByText(/9\/9 éléments renseignés/).waitFor();await workshop.getByText('Publication non vérifiée',{exact:true}).waitFor();
+  const stages=workshop.getByRole('list',{name:'Étapes de préparation',exact:true});assert.equal(await stages.getByRole('listitem').count(),4);assert.match(await stages.innerText(),/Destination\s+À vérifier/);assert.match(await stages.innerText(),/Validation\s+Accord requis/);await workshop.getByText(/Contrôles détaillés/).click();assert.equal(await workshop.locator('li[data-state]').count(),9);await workshop.getByText(/Contrôles détaillés/).click();
   assert.equal(await workshop.getByRole('button',{name:'Visuel associé au plan',exact:true}).count(),1);assert.equal(await workshop.getByRole('button',{name:'Page associée au plan',exact:true}).count(),1);
   await capture({path:path.join(output,'campaigns-workshop-desktop.png'),fullPage:true});
+  await workshop.getByRole('button',{name:'Tous les plans',exact:true}).click();await page.waitForFunction(()=>document.activeElement?.id==='campaign-open-campaign-plan');await campaignList.getByRole('article').filter({hasText:'Plan de campagne complet'}).getByRole('button',{name:'Ouvrir l’atelier',exact:true}).click();await workshop.waitFor();
   await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();
   const campaignEditor=page.getByRole('form',{name:'Modifier le brief de campagne',exact:true});await campaignEditor.waitFor();
   await campaignEditor.getByLabel('Nom du plan',{exact:true}).fill('Plan affiné et enregistré');await campaignEditor.getByLabel('Public visé',{exact:true}).fill('Public modifié sans perte de focus');
@@ -676,7 +678,7 @@ try{
   const currentCampaignIndex=workspaceResources.findIndex(resource=>resource.id==='campaign-plan');workspaceResources[currentCampaignIndex]={...workspaceResources[currentCampaignIndex],version:4,data:{...workspaceResources[currentCampaignIndex].data,offer:'Offre de la version externe'}};
   await campaignEditor.getByLabel('Offre',{exact:true}).fill('Ma saisie en conflit');await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).click();await campaignEditor.getByRole('alert').getByText('La version a changé. Actualisez avant de continuer.',{exact:true}).waitFor();assert.equal(await campaignEditor.getByLabel('Offre',{exact:true}).inputValue(),'Ma saisie en conflit');
   await campaignEditor.getByRole('button',{name:'Recharger le plan et remplacer ma saisie',exact:true}).click();await page.waitForFunction(()=>document.querySelector('textarea[name="offer"]')?.value==='Offre de la version externe');assert.equal(await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).isDisabled(),false);await campaignEditor.getByRole('button',{name:'Annuler',exact:true}).click();
-  await workshop.getByRole('button',{name:'Préparer un test créatif',exact:true}).click();await composer.waitFor();assert.match(await composer.inputValue(),/une seule variable/);assert.match(await composer.inputValue(),/Plan affiné et enregistré/);assert.equal(chatCalls,callsBeforeCampaigns);assert.equal(approvals,approvalsBeforeCampaigns);
+  await workshop.getByText('Autres actions',{exact:true}).click();await workshop.getByRole('button',{name:'Préparer un test créatif',exact:true}).click();await composer.waitFor();assert.match(await composer.inputValue(),/une seule variable/);assert.match(await composer.inputValue(),/Plan affiné et enregistré/);assert.equal(chatCalls,callsBeforeCampaigns);assert.equal(approvals,approvalsBeforeCampaigns);
   checks.push('Campaign workshop binds actual resources, saves versioned draft briefs once, preserves failed edits, recovers conflicts and exports the saved plan without an ad launch');
   workspaceRole='reader';await page.goto(origin+'/?view=campaigns');await campaignList.waitFor();await campaignList.getByRole('article').filter({hasText:'Plan affiné et enregistré'}).getByRole('button',{name:'Ouvrir l’atelier',exact:true}).click();await workshop.getByRole('button',{name:'Modifier le brief',exact:true}).click();await campaignEditor.waitFor();assert.equal(await campaignEditor.getByRole('button',{name:'Enregistrer le brief',exact:true}).isDisabled(),true);await campaignEditor.getByRole('button',{name:'Annuler',exact:true}).click();
   await page.setViewportSize({width:390,height:844});await capture({path:path.join(output,'campaigns-workshop-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await workshop.getByRole('button',{name:'Tous les plans',exact:true}).click();await capture({path:path.join(output,'campaigns-overview-mobile.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -698,14 +700,39 @@ try{
   // Essentielle and Atelier exercise real routes and protections with isolated fixtures.
   workspaceRole='owner';
   workspaceResources.push({id:'shell-project',workspace_id:'fixture',kind:'project',title:'Un projet réel de la fixture',status:'saved',version:1,created_at:now,updated_at:now,data:{}},...['a','b'].map(id=>({id:'shell-page-'+id,workspace_id:'fixture',kind:'page',title:'Page de contrôle '+id.toUpperCase(),status:'draft',version:1,created_at:now,updated_at:now,data:{}})));
+  workspaceResources.push(
+   {...conversation,id:'gallery-document',kind:'deliverable',title:'Rapport de la bibliothèque',status:'ready',data:{format:'markdown',summary:'Synthèse réelle enregistrée pour la fixture.'}},
+   {...conversation,id:'gallery-pending',kind:'file',title:'Document en validation.pdf',status:'quarantined',data:{mime:'application/pdf',size:1024}},
+   {...media,id:'gallery-unsafe',title:'Création sans aperçu fiable',data:{output:{images:[{url:'javascript:alert(1)'}]}}},
+   {...conversation,id:'gallery-foreign',workspace_id:'other-workspace',kind:'deliverable',title:'Document d’un autre espace',data:{}}
+  );
   await page.setViewportSize({width:1280,height:800});await page.goto(origin+'/?view=library');await page.getByRole('heading',{name:'Bibliothèque',exact:true}).waitFor();
+  const library=page.locator('[data-library-gallery]'),libraryFilters=library.getByRole('group',{name:'Contenu de la bibliothèque',exact:true}),libraryItems=library.locator('[data-library-resource]');
+  const libraryCalls=chatCalls;
+  assert.equal(await library.getByRole('button',{name:'Ouvrir Document d’un autre espace',exact:true}).count(),0);
+  assert.equal(await library.getByRole('button',{name:'Ouvrir Document en validation.pdf',exact:true}).isDisabled(),true);
+  assert.equal(await library.getByRole('button',{name:'Ouvrir Création sans aperçu fiable',exact:true}).locator('img').count(),0);
+  assert.ok(await library.getByRole('button',{name:'Ouvrir Visuel associé au plan',exact:true}).locator('img').count()>0);
+  await library.getByRole('button',{name:'Vue liste',exact:true}).click();assert.equal(await library.getByRole('button',{name:'Vue liste',exact:true}).getAttribute('aria-pressed'),'true');
+  await library.getByRole('combobox',{name:'Trier la bibliothèque',exact:true}).selectOption('name');const libraryTitles=await libraryItems.locator('button:first-child').evaluateAll(buttons=>buttons.map(button=>button.getAttribute('title')));assert.deepEqual(libraryTitles,[...libraryTitles].sort((a,b)=>a.localeCompare(b,'fr')));
+  await library.getByRole('searchbox',{name:'Rechercher dans la bibliothèque',exact:true}).fill('Rapport de la bibliothèque');assert.equal(await libraryItems.count(),1);assert.match(await libraryItems.innerText(),/Livrable/);
+  await library.getByRole('searchbox',{name:'Rechercher dans la bibliothèque',exact:true}).fill('aucun-résultat-unique');await library.getByRole('heading',{name:'Aucune correspondance',exact:true}).waitFor();await library.getByRole('button',{name:'Voir toutes les ressources',exact:true}).click();
+  await page.evaluate(()=>localStorage.setItem('braand.library.pins:other-user:other-workspace',JSON.stringify(['campaign-asset'])));
+  await library.getByRole('button',{name:'Épingler Rapport de la bibliothèque',exact:true}).click();await libraryFilters.getByRole('button',{name:'Épinglés',exact:true}).click();assert.equal(await libraryItems.count(),1);assert.match(await libraryItems.innerText(),/Rapport de la bibliothèque/);
+  await page.reload();await library.waitFor();await libraryFilters.getByRole('button',{name:'Épinglés',exact:true}).click();assert.equal(await libraryItems.count(),1);assert.match(await libraryItems.innerText(),/Rapport de la bibliothèque/);assert.equal(await page.evaluate(()=>localStorage.getItem('braand.library.pins:other-user:other-workspace')),'["campaign-asset"]');
+  await libraryFilters.getByRole('button',{name:'Tout',exact:true}).click();await library.getByRole('button',{name:'Vue galerie',exact:true}).click();
+  await capture({path:path.join(output,'library-gallery-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture({path:path.join(output,'library-gallery-mobile.png'),fullPage:true});await library.getByRole('button',{name:'Vue liste',exact:true}).click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await capture({path:path.join(output,'library-list-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1280,height:800});await library.getByRole('button',{name:'Vue galerie',exact:true}).click();assert.equal(chatCalls,libraryCalls);
+  checks.push('Library gallery and list search, sort, filter and retain scoped pins; show only actual previews; reject unsafe images and unavailable files; stay within mobile width without starting a model');
+
   const primary=page.getByRole('navigation',{name:'Navigation principale',exact:true});
   for(const name of ['Chat','Bibliothèque','Missions','Automatisations'])assert.equal(await primary.getByRole('button',{name,exact:true}).count(),1);
   assert.equal(await primary.getByRole('button',{name:'Connecteurs',exact:true}).count(),0);
   assert.ok(await primary.getByRole('region',{name:'Projets',exact:true}).isVisible());
   assert.ok(await primary.getByRole('region',{name:'Historique des discussions',exact:true}).isVisible());
   await page.getByRole('group',{name:'Contenu de la bibliothèque',exact:true}).getByRole('button',{name:'Pages',exact:true}).click();
-  assert.equal(await page.locator('.library-content .resource-card').count(),workspaceResources.filter(r=>r.kind==='page').length);
+  assert.equal(await page.locator('[data-library-resource]').count(),workspaceResources.filter(r=>r.kind==='page').length);
   await primary.getByRole('button',{name:'Plus d’outils',exact:true}).press('ArrowDown');
   const more=page.getByRole('group',{name:'Plus d’outils',exact:true});await more.getByRole('button',{name:'Studio',exact:true}).click();await page.getByRole('heading',{name:'Créations',exact:true}).waitFor();
   await primary.getByRole('button',{name:'Automatisations',exact:true}).click();await page.getByRole('heading',{name:'Automatisations',exact:true}).waitFor();assert.equal(new URL(page.url()).searchParams.get('section'),'routines');
@@ -727,7 +754,7 @@ try{
   await picker.press('ArrowDown');await page.keyboard.press('Escape');assert.equal(await panel.isVisible(),true);
   await page.keyboard.press('Escape');assert.equal(await panel.count(),0);assert.equal(await page.locator('.main-area').isVisible(),true);await page.waitForFunction(()=>document.activeElement?.hasAttribute('data-workspace-trigger'));
   await primary.getByRole('button',{name:'Bibliothèque',exact:true}).click();await page.getByRole('group',{name:'Contenu de la bibliothèque',exact:true}).getByRole('button',{name:'Pages',exact:true}).click();
-  await page.locator('.resource-card').filter({hasText:'Page de contrôle A'}).click();
+  await page.getByRole('button',{name:'Ouvrir Page de contrôle A',exact:true}).click();
   await picker.click();await page.getByRole('group',{name:'Choisir le contenu de l’espace de travail',exact:true}).getByRole('button',{name:'Page de contrôle B',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.page-frame iframe')?.getAttribute('srcdoc')?.includes('Page B'));
   await new Promise(resolve=>setTimeout(resolve,750));assert.ok(await panel.locator('.page-frame iframe').getAttribute('srcdoc').then(value=>value.includes('Page B')&&!value.includes('Page A')));
