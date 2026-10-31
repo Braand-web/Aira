@@ -53,5 +53,20 @@ await check('planning cannot acquire computation or file-writing rights through 
  const execution=await setup(),before=blobs.size;fixture.responses=[stream([tool('discover','capabilities',{area:'analysis'})]),stream([tool('denied','analyze_data',{title:'No mutation',dataset:{format:'inline',columns:['x'],rows:[[1]]},steps:[]})]),text('La préparation reste sans exécution.')];
  await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emit,signal(),execution.budget,'autonomous');assert.equal(fixture.requests[1].body.tools.some(t=>t.name==='analyze_data'),false);assert.equal(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='denied').data.error!==undefined,true);assert.equal(blobs.size,before);assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE title='No mutation'").get().n,0);assert.deepEqual(fixture.external,[]);
 });
+await check('the real principal receives the new policy and runtime and can read guides and time',async()=>{
+ const execution=await setup();fixture.responses=[stream([tool('clock','get_current_time',{timezone:'Europe/Paris'}),tool('guide','read_agent_guide',{topic:'tool-map'})]),text('Voici les capacités et l’heure vérifiées.')];await run(execution);
+ const initial=fixture.requests[0].body;assert.match(initial.system[0].text,/IDENTITÉ ET RELATION/);assert.ok(initial.system.some(block=>block.text.includes('braand-personal-agent-v1')));
+ assert.equal(initial.tools.some(t=>t.name==='read_agent_context'),true);assert.equal(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='clock').data.result.timezone,'Europe/Paris');assert.match(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='guide').data.result.content,/Correspondance/);assert.deepEqual(fixture.external,[]);
+});
+await check('profile updates have durable receipts and appear in the next real conversation',async()=>{
+ const execution=await setup(),input={version:0,profile:{displayName:'Recette privée',timezone:'Africa/Abidjan'}};
+ fixture.responses=[stream([tool('profile-one','update_agent_context',input),tool('profile-duplicate','update_agent_context',input)]),text('Vos préférences sont enregistrées.')];await run(execution);
+ assert.equal(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='profile-one').data.result.version,1);assert.equal(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='profile-duplicate').data.result.reused,true);
+ const next=await setup();fixture.responses=[text('Bonjour.')];await run(next);assert.ok(fixture.requests[0].body.system.some(block=>block.text.includes('Recette privée')&&block.text.includes('Africa/Abidjan')));
+});
+await check('a planning conversation cannot mutate the assistant profile',async()=>{
+ const execution=await setup();fixture.responses=[stream([tool('profile-forbidden','update_agent_context',{version:1,profile:{displayName:'Unexpected'}})]),text('Le profil reste inchangé.')];
+ await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emit,signal(),execution.budget,'autonomous');assert.equal(fixture.requests[0].body.tools.some(t=>t.name==='update_agent_context'),false);assert.ok(fixture.events.find(e=>e.type==='tool_result'&&e.data.id==='profile-forbidden').data.error);assert.equal((await agent.executeTool(who.tenant,'read_agent_context',{})).profile.displayName,'Recette privée');
+});
 console.log(`${count} native engine orchestrator checks passed. Real services/SQLite, simulated model and capability readiness, no provider calls.`);
 sql.close();delete globalThis.__internalAgentTest;
