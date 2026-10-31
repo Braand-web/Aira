@@ -1,6 +1,6 @@
 # Braand — système d’agent personnel
 
-Le noyau commun `lib/agent-system.mjs` complète les politiques d’exécution, droits, budgets et approbations existantes. Il est réellement injecté dans chaque appel principal. Une horloge serveur et le profil privé de l’espace sont chargés séparément à chaque demande, avec la mémoire et le checkpoint courants.
+Le noyau commun compact `lib/agent-system.mjs` complète les politiques d’exécution, droits, budgets et approbations existantes. Il est réellement injecté dans chaque appel principal. Une horloge serveur et le profil privé de l’espace sont chargés séparément à chaque demande, avec la mémoire et le checkpoint courants. Les règles détaillées et la politique de travail antérieure sont conservées dans le guide `execution` ; `capabilities(context)` charge seulement les quatre outils de contexte nécessaires. Cette lecture progressive préserve les échanges à petit budget.
 
 Les quatre documents fournis sont complémentaires, mais ne constituent ni une preuve des capacités Muse décrites ni une autorisation d’accès. L’identité Meta/Muse, les chemins personnels et les commandes propriétaires sont remplacés par les contrats Braand. Les protections serveur restent prioritaires. Les profils ne modifient pas les modèles, tarifs, permissions, politiques ou processus en arrière-plan.
 
