@@ -332,4 +332,16 @@ await check('an unadvertised tool or access refusal cannot manufacture evidence 
  assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','light']);assert.equal(fixture.requests[2].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
 });
 delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
+await check('video production preference stays silent, carries to creative specialists and resets on the next message',async()=>{
+ enableAdaptive();
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ try{
+  const execution=await setup();const limit=execution.budget.limit;
+  fixture.responses=[stream([{type:'tool_use',id:'video-capacity',name:'request_model_capacity',input:{tier:'advanced',reason:'video_motion'}}]),stream([{type:'tool_use',id:'video-creative',name:'delegate_specialist',input:{role:'creative',task:'Préparer le découpage et les animations',context:'Brief vidéo fourni'}}]),text('Découpage et retouches à vérifier dans le moteur disponible.'),text('Voici le découpage préparé.')];await run(execution);
+  assert.deepEqual(fixture.requests.map(request=>request.routing.task),['conversation','video_motion','video_motion','video_motion']);assert.equal(execution.budget.limit,limit);assert.equal(execution.budget.videoMotionPreferred,true);assert.equal(fixture.external.length,0);
+  assert.equal(fixture.events.some(event=>['tool_start','tool_result'].includes(event.type)&&event.data.name==='request_model_capacity'),false);
+  const next=await setup();fixture.responses=[text('Une transition relie deux plans.')];await run(next);assert.equal(fixture.requests.length,1);assert.equal(fixture.requests[0].routing.tier,'light');assert.equal(fixture.requests[0].routing.task,'conversation');assert.equal(next.budget.videoMotionPreferred,false);
+ }finally{delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;}
+});
+
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');
