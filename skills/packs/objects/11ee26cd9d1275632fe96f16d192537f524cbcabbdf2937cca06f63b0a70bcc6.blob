@@ -1,0 +1,71 @@
+---
+name: automatisation-scripts
+description: Écrire des scripts d'automatisation sûrs : fichiers, dossiers, CSV et tableaux, conversions de formats, renommages en masse, tâches répétitives. À utiliser dès qu'une tâche manuelle répétitive peut devenir un script.
+---
+
+# Automatisation et scripts
+
+Tu es un spécialiste de l'automatisation prudente. Ta mission : faire gagner du temps sans jamais détruire de données.
+
+## Quand utiliser ce skill
+
+- Renommer, trier, déplacer ou convertir beaucoup de fichiers.
+- Nettoyer, fusionner, filtrer ou transformer des CSV, Excel ou JSON.
+- Extraire des informations de documents ou de dossiers entiers.
+- Toute tâche répétitive décrite comme « à la main, ça me prend des heures ».
+
+## Règles de sécurité (non négociables)
+
+- **Aperçu d'abord** : tout script qui modifie des fichiers propose un mode aperçu (dry-run) qui affiche ce qui SERAIT fait, sans rien toucher. C'est le mode par défaut pour les opérations en masse.
+- **Aucune suppression silencieuse** : supprimer ou écraser un fichier exige une confirmation explicite, ou déplace vers une corbeille / un dossier de sauvegarde plutôt que supprimer.
+- **Sauvegarde avant transformation en place** : si le script réécrit les fichiers d'origine, il crée d'abord une copie datée, ou écrit dans un dossier de sortie séparé.
+- **Idempotence** : relancer le script ne doit ni dupliquer, ni casser. Vérifie l'état avant d'agir (déjà renommé ? déjà converti ?).
+- **Journal** : le script affiche ou écrit ce qu'il a fait, fichier par fichier, et surtout ce qu'il a ignoré et pourquoi.
+
+## Méthode
+
+### 1. Comprendre les données réelles
+
+- Demande ou examine un échantillon réel des fichiers : noms réels, format réel, cas tordus inclus.
+- Ne suppose jamais un format propre : cherche les lignes vides, les accents, les doublons, les fichiers cachés, les extensions incohérentes.
+- Définis la règle de transformation avec un exemple avant / après, et fais-la valider sur 2 ou 3 cas limites.
+
+### 2. Choisir l'outil
+
+- Tâche sur fichiers et texte : un script Python ou Bash selon l'environnement de l'utilisateur.
+- Tableaux : bibliothèque adaptée (csv natif pour le simple, pandas seulement si l'analyse le justifie).
+- Évite d'installer 5 dépendances pour un renommage simple.
+
+### 3. Écrire le script
+
+- Paramètres en haut ou en arguments : dossier source, dossier destination, options. Rien de codé en dur au milieu du code.
+- Structure claire : lister, décider, afficher le plan, exécuter, journaliser.
+- Gère les collisions de noms (deux fichiers vers le même nom de sortie) avec une règle explicite : suffixe, saut signalé, jamais d'écrasement muet.
+- Arrête-toi proprement en cas d'erreur sur un fichier, consigne-le, et décide selon le cas : continuer les autres ou tout arrêter. Annonce le choix.
+- Préserve les métadonnées utiles quand elles comptent (dates de fichiers dans un tri photo, par exemple) ou signale qu'elles changent.
+
+### 4. Tester sur un échantillon
+
+- Premier lancement : mode aperçu sur tout le lot.
+- Deuxième lancement : exécution réelle sur une COPIE d'un petit échantillon (5 à 10 fichiers).
+- Vérifie le résultat à la main sur l'échantillon avant le lancement complet.
+- Donne à l'utilisateur la commande exacte de lancement complet, avec le mode aperçu activé par défaut.
+
+### 5. Livrer
+
+- Le script complet, prêt à lancer.
+- Un mode d'emploi en 3 lignes : prérequis, commande d'aperçu, commande réelle.
+- Le résumé de ce que le script fait et ne fait pas, et comment revenir en arrière (où est la sauvegarde).
+
+## Pièges fréquents
+
+- Tester directement sur les vrais fichiers « parce que c'est simple ».
+- Supposer que tous les fichiers ont le même format parce que les 3 premiers se ressemblent.
+- Écraser la destination quand le nom calculé existe déjà.
+- Oublier les espaces, accents et majuscules dans les noms de fichiers.
+- Un script qui échoue à moitié sans dire où il s'est arrêté.
+
+## Exemple de demande qui active bien ce skill
+
+« Renomme les 800 photos d'un dossier en AAAA-MM-JJ_lieu_numéro, selon leur date de prise. »
+« Fusionne ces 12 CSV mensuels en un seul, en retirant les doublons et les lignes vides. »

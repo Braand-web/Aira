@@ -1,0 +1,50 @@
+# Guide d'installation — Pack Skills Premium
+
+Chaque skill est un dossier qui contient `SKILL.md` (la méthode, avec nom et description en en-tête) et `skill.yaml` (les métadonnées pour Muse). Installe seulement les skills dont tu as besoin, ou tout le dossier `skills/`.
+
+## 1. Muse (Meta)
+
+1. Décompresse le pack.
+2. Copie les dossiers de skills voulus dans `~/workspace/custom-skills/`.
+3. Chaque dossier doit contenir `SKILL.md` et `skill.yaml` au même niveau.
+4. Redémarre la conversation. Le skill devient trouvable par la recherche de skills et peut être appelé par son sujet.
+
+Exemple pour un seul skill :
+
+```
+cp -r skills/reels_viraux_motion_design ~/workspace/custom-skills/
+```
+
+## 2. Claude Code et agents compatibles Agent Skills
+
+1. Copie les dossiers de skills dans `.claude/skills/` à la racine de ton projet, ou dans `~/.claude/skills/` pour les rendre disponibles partout.
+2. Garde le fichier `SKILL.md` tel quel, son en-tête contient déjà le nom et la description que l'agent utilise pour choisir le skill.
+3. Lance une nouvelle session et demande la tâche couverte par le skill.
+
+## 3. Cursor, Windsurf et éditeurs avec règles
+
+1. Ouvre le `SKILL.md` du skill voulu.
+2. Copie son contenu, sans l'en-tête entre `---`, dans un fichier de règles du projet, par exemple `.cursor/rules/reels-viraux.md`.
+3. Adapte les chemins d'outils cités dans le skill à ceux de ton éditeur.
+
+## 4. ChatGPT, Gemini, Mistral et assistants sans système de skills
+
+1. Crée un projet ou une conversation dédiée.
+2. Ajoute le fichier `SKILL.md` du skill voulu dans les fichiers du projet ou en pièce jointe de la conversation.
+3. Commence par une phrase simple, par exemple : « Applique le skill Reels Viraux en Motion Design pour ce sujet : ... »
+4. L'assistant suit alors la procédure étape par étape.
+
+## 5. N'importe quel autre agent
+
+Le format est volontairement simple : un dossier, un fichier Markdown, aucune dépendance et aucun code à exécuter. Tout agent qui peut lire un fichier texte et suivre des instructions en liste peut utiliser ces skills. Si ton agent utilise un autre nom de fichier, renomme `SKILL.md` selon sa documentation en gardant le contenu intact.
+
+## Personnaliser un skill
+
+- Change les exemples de pays, de devises, de plateformes ou de prix dans ta copie, pas dans l'original, pour pouvoir comparer plus tard.
+- Garde les règles de vérification et les règles d'arrêt, ce sont elles qui font la valeur du skill.
+- Quand une amélioration marche 2 fois de suite dans ton contexte, écris-la dans le skill et augmente sa version dans le README de ta copie.
+
+## Vérifier une installation
+
+Demande à ton agent : « Quels skills as-tu disponibles pour créer un produit digital en Afrique francophone ? »
+Il doit citer le skill installé et résumer ses étapes principales. S'il ne le trouve pas, vérifie que le dossier est au bon endroit et que `SKILL.md` est bien à l'intérieur du dossier du skill, pas un niveau au-dessus.

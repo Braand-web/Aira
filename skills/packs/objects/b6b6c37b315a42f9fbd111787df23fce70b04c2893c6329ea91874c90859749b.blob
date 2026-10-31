@@ -1,0 +1,69 @@
+# Pack de Skills portables pour agents IA — Codage, productivité, rédaction, projets, apprentissage, finances, contenu, marketing, bibliothèques publicitaires, capacités d'agent
+
+37 skills complets, écrits au format standard **SKILL.md** (frontmatter `name` + `description`,
+puis des instructions en Markdown). Ce format est volontairement neutre : aucun outil
+propriétaire n'est requis, donc le même fichier fonctionne avec n'importe quel agent
+capable de lire des instructions.
+
+## Les 37 skills
+
+| Dossier | Skill | À utiliser quand… |
+|---|---|---|
+| `01-developpement-complet/` | developpement-complet | Créer un programme, un site, une API ou une fonctionnalité de zéro |
+| `02-debogage-systematique/` | debogage-systematique | Corriger un bug, une erreur, un plantage, un comportement inattendu |
+| `03-revue-de-code/` | revue-de-code | Relire du code, vérifier qualité, sécurité et performance |
+| `04-architecture-conception/` | architecture-conception | Choisir une stack, concevoir une base de données ou une API |
+| `05-automatisation-scripts/` | automatisation-scripts | Automatiser fichiers, CSV, conversions, tâches répétitives |
+| `06-recherche-documentation/` | recherche-documentation | Chercher une info technique fiable et documenter un projet |
+| `07-productivite-organisation/` | productivite-organisation | Trier des tâches en vrac et structurer une journée ou une semaine |
+| `08-priorisation-decision/` | priorisation-decision | Choisir entre plusieurs options et trancher une décision bloquée |
+| `09-redaction-professionnelle/` | redaction-professionnelle | Écrire un e-mail, une relance, un refus ou un message délicat |
+| `10-ecriture-style/` | ecriture-style | Améliorer clarté, style et ton d'un article, discours ou publication |
+| `11-gestion-de-projet/` | gestion-de-projet | Cadrer, planifier et suivre un projet avec risques et responsables |
+| `12-reunions-suivi/` | reunions-suivi | Préparer une réunion et transformer des notes en compte rendu actionnable |
+| `13-apprentissage-accelere/` | apprentissage-accelere | Apprendre un sujet avec un plan, des exemples et une vraie vérification |
+| `14-memorisation-revision/` | memorisation-revision | Transformer un cours en fiches et planning de révision espacée |
+| `15-finances-budget/` | finances-budget | Construire un budget, épargner et constituer un fonds d'urgence |
+| `16-depenses-dettes/` | depenses-dettes | Réduire ses dépenses et planifier un remboursement de dettes |
+| `17-creation-de-contenu/` | creation-de-contenu | Stratégie, idées et calendrier de contenu tenables dans la durée |
+| `18-storytelling-scripts/` | storytelling-scripts | Raconter une histoire et écrire un script vidéo, podcast ou discours |
+| `19-veille-concurrentielle-reseaux/` | veille-concurrentielle-reseaux | Analyser les comptes publics concurrents et créateurs d'un secteur |
+| `20-collecte-donnees-publiques/` | collecte-donnees-publiques | Scraper de façon légale des données publiques web et réseaux sociaux |
+| `21-audit-profil-social/` | audit-profil-social | Auditer et améliorer ses propres pages, chaînes et comptes |
+| `22-tendances-viralite/` | tendances-viralite | Repérer les formats et hooks qui percent et les adapter sans copier |
+| `23-strategie-social-media/` | strategie-social-media | Stratégie marketing complète : objectifs, piliers, tunnel, KPIs |
+| `24-publicite-sociale/` | publicite-sociale | Campagnes payantes Meta, TikTok, YouTube : ciblage, créas, tests |
+| `25-bibliotheques-publicitaires/` | bibliotheques-publicitaires | Cartographier toutes les bibliothèques d'annonces publiques et leurs accès |
+| `26-collecte-bibliotheques-publicitaires/` | collecte-bibliotheques-publicitaires | Scraper les bibliothèques d'annonces en tableau propre, via les voies officielles |
+| `27-analyse-publicites-concurrentes/` | analyse-publicites-concurrentes | Démonter angles, promesses et longévité des annonces concurrentes |
+| `28-swipe-file-publicitaire/` | swipe-file-publicitaire | Bibliothèque d'inspiration publicitaire étiquetée et transformable en briefs |
+| `29-veille-lancements-offres/` | veille-lancements-offres | Suivre en continu lancements, offres et prix publics des concurrents |
+| `30-analyse-tunnels-publics/` | analyse-tunnels-publics | Analyser le parcours annonce, page, offre derrière une publicité |
+| `31-agent-bout-en-bout/` | agent-bout-en-bout | Mener une mission longue multi-étapes jusqu'au résultat, en arrière-plan |
+| `32-codage-avec-execution/` | codage-avec-execution | Coder dans des fichiers, exécuter, lire les erreurs et corriger en boucle |
+| `33-navigation-web-agent/` | navigation-web-agent | Utiliser de vrais sites : formulaires, comparaisons, paniers et réservations |
+| `34-creation-livrables/` | creation-livrables | Produire et vérifier documents, pages, tableaux, présentations et médias |
+| `35-memoire-planification-surveillance/` | memoire-planification-surveillance | Mémoire durable, tâches planifiées et alertes proactives utiles |
+| `36-agent-marketing-complet/` | agent-marketing-complet | Agent marketing de bout en bout : diagnostic, audience, positionnement, offre, tunnel, canaux, budget, mesure |
+| `37-campagnes-pub-temps-reel/` | campagnes-pub-temps-reel | Créer, modifier, tester et scaler des campagnes pub complètes dans le(s) compte(s) choisi(s), mono ou multi-réseaux, meilleurs angles par la preuve, créatifs via fal.ai |
+
+## Comment l'utiliser avec n'importe quel agent
+
+**Agents qui gèrent les skills (Muse, Claude Code et compatibles)**
+1. Copie le dossier du skill (celui qui contient `SKILL.md`) dans le dossier de skills de l'agent.
+2. L'agent le découvre grâce au frontmatter et l'active quand la tâche correspond à sa `description`.
+
+**Agents sans système de skills (ChatGPT, Gemini, autre chatbot)**
+1. Ouvre le `SKILL.md` voulu.
+2. Colle tout son contenu comme instruction système / instruction personnalisée, ou au début de ta conversation.
+3. Décris ensuite ta tâche normalement.
+
+**Agents de code (Cursor, Copilot, Windsurf, etc.)**
+1. Colle le contenu du skill dans le fichier de règles du projet (`AGENTS.md`, `.cursor/rules`, etc.), ou utilise le fichier `AGENTS.md` à la racine de ce pack, qui combine les règles essentielles des 37 skills.
+
+## Conseils
+
+- N'active qu'un skill à la fois : celui qui correspond à la tâche en cours.
+- Un skill est un mode d'emploi pour l'agent, pas du code. Tu peux l'éditer librement : change les langages, ajoute tes conventions, retire ce qui ne te sert pas.
+- Si un skill demande une info manquante à l'agent, c'est normal : il doit demander plutôt que deviner.
+- Aucun skill de ce pack ne contient de secret, de clé API ou de donnée personnelle. N'en ajoute jamais dans un skill que tu partages.

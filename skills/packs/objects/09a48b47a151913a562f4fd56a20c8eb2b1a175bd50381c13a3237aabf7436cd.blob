@@ -1,0 +1,80 @@
+# Pack Skills Premium — Édition Universelle v2
+
+8 skills conçus pour servir **n'importe quel projet** : n'importe quel secteur, pays, langue, devise, plateforme et type de public.
+
+Ils sont nés de projets réels (produits digitaux, pages de contenu quotidien, tests publicitaires, analyses sportives), mais chaque méthode a été réécrite en version universelle : les valeurs propres à un projet sont devenues des **variables à remplir au démarrage**, pas des règles figées.
+
+## Le principe universel de chaque skill
+
+Chaque skill commence par la même étape : **« Adapter à n'importe quel projet »**.
+
+L'agent qui utilise le skill doit d'abord fixer :
+
+- le domaine ou le secteur du projet
+- le public visé
+- le marché : pays, langue, culture
+- la devise et le niveau de prix du marché
+- la plateforme de vente, de diffusion ou de travail
+- l'offre, son prix et sa marge réelle
+- le budget disponible
+- l'objectif mesurable
+
+Ensuite seulement, il applique la méthode, en recalculant tous les chiffres dans le contexte du projet. Un exemple donné dans un skill illustre la méthode, il ne s'applique jamais tel quel à un autre projet.
+
+**Exemples d'application du même pack :**
+un coach en Europe qui vend une formation, une boutique e-commerce en Asie, un créateur de contenu divertissement en Amérique, un SaaS en anglais, une page sport, une chaîne éducation, un produit digital en Afrique, un service local, une marque personnelle dans n'importe quelle niche.
+
+## Les 8 skills
+
+### 1. Produit Digital Gagnant, Méthode Universelle
+`skills/produit_digital_gagnant/`
+Valider avant de construire : problème réel et fréquent, preuve de longévité de la demande, méthode en 3 couches, rentabilité calculée après commissions de n'importe quelle plateforme, test avec règles d'arrêt.
+
+### 2. Reels et Vidéos Courtes Viraux en Motion Design
+`skills/reels_viraux_motion_design/`
+Pour toute niche : sujet noté sur 4 critères, script en 7 temps, voix en 1 à 3 longs segments, aucun écran vide, interaction obligatoire, bilan par les partages et journal d'amélioration.
+
+### 3. Publicité Meta Rentable, Test et Coupe
+`skills/publicite_meta_rentable/`
+Pour tout produit ou service : un seul pixel par projet, cohérence prix et promesse, 3 à 4 publicités par test, coupe après 2 à 3 fois le coût cible sans conversion, arrêt sur enveloppe fixée à l'avance.
+
+### 4. Page de Vente qui Convertit, Méthode Universelle
+`skills/page_vente_qui_convertit/`
+Pour toute plateforme de vente : valeur empilée, FAQ de 8 à 12 questions, réassurance avec les paiements réellement acceptés, zéro fausse preuve, contrôle complet après chaque changement de prix.
+
+### 5. Analyses et Prédictions Fiables Basées sur les Données
+`skills/analyses_predictions_fiables/`
+Pour tout domaine où l'on prédit ou conseille : sport, marchés, tendances, concours, business. Données croisées par 2 sources, grille de notation sur 10, seuil et indicateurs convergents, journal, verdict public et audit qui ajuste les pondérations sur preuves.
+
+### 6. Vidéo Publicitaire Monolithe
+`skills/video_pub_monolithe/`
+Format prestige en 8 temps, adaptable à n'importe quelle marque ou produit avec 4 variables : marque, chiffre preuve, 2 bénéfices, signature.
+
+### 7. Video Audio Transcription Check — version améliorée
+`skills/video_audio_transcription_check/`
+Contrôle universel de toute vidéo avec voix et musique : transcription du mix et de la bande son seule, niveau sonore et images vérifiés avant livraison.
+
+### 8. TOTP Login Handoff — version améliorée
+`skills/totp_login_handoff/`
+Connexion avec code d'authentificateur dans n'importe quel service : tout préparer avant de demander le code, l'envoyer immédiatement, règle d'arrêt après 2 échecs.
+
+## Chaîne d'utilisation type, pour un projet de vente
+
+1. `produit_digital_gagnant` pour choisir et valider l'offre.
+2. `page_vente_qui_convertit` pour la page.
+3. `video_pub_monolithe` et `reels_viraux_motion_design` pour les contenus et créatifs.
+4. `video_audio_transcription_check` avant chaque livraison vidéo.
+5. `publicite_meta_rentable` pour le test payant.
+
+Pour un projet de contenu d'expertise, combiner `reels_viraux_motion_design` et `analyses_predictions_fiables`.
+
+## Correspondance avec la v1
+
+La v1 était spécialisée Afrique francophone. La v2 la remplace :
+`produit_digital_afrique_francophone` devient `produit_digital_gagnant`, `meta_ads_produit_digital_afrique` devient `publicite_meta_rentable`, `page_vente_produit_digital_afrique` devient `page_vente_qui_convertit`, `pronostics_foot_fiables` devient `analyses_predictions_fiables`. Les 4 autres skills gardent leur nom.
+
+## Installation
+
+Voir `INSTALL.md` : Muse, Claude Code, Cursor, ChatGPT, Gemini et tout agent qui lit du Markdown.
+
+Version 2.0 Universelle — Octobre 2026

@@ -5,10 +5,12 @@ import { api, post } from '@/lib/client-api';
 import { WORK_LABELS, type WorkDTO } from '@/lib/platform-contracts';
 import type { Resource } from '@/lib/contracts';
 import './platform.css';
+import {RoutinesPanel} from './routines-panel';
 const credits = (value: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(value);
 const active = new Set(['running', 'waiting_approval', 'waiting_external']);
-export function WorkBoard({ conversationId, compact = false, role, ready = true, legacy = [], onAsk, onOpen }: {
+export function WorkBoard({ conversationId, compact = false, role, ready = true, legacy = [], onAsk, onOpen, title = "Missions" }: {
     conversationId?: string;
+    title?: string;
     compact?: boolean;
     role?: string;
     ready?: boolean;
@@ -16,9 +18,11 @@ export function WorkBoard({ conversationId, compact = false, role, ready = true,
     onAsk: (text: string) => void;
     onOpen: (resource: Resource) => void;
 }) {
+    const [section,setSection]=useState(()=>typeof window!=='undefined'&&new URL(window.location.href).searchParams.get('section')==='routines'?'routines':'work');
+    const chooseSection=(next:'work'|'routines')=>{setSection(next);if(!compact){const url=new URL(location.href);if(next==='routines')url.searchParams.set('section','routines');else url.searchParams.delete('section');history.replaceState(null,'',url.pathname+url.search+url.hash);window.dispatchEvent(new PopStateEvent('popstate'));}};
     const [items, setItems] = useState<WorkDTO[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState(''), [expanded, setExpanded] = useState<string | null>(null), [busy, setBusy] = useState<string | null>(null), [consent, setConsent] = useState<Record<string, boolean>>({}), [enabled, setEnabled] = useState(false);
     const canWrite = ['owner', 'admin', 'editor'].includes(role || ''), canApprove = ['owner', 'admin', 'approver'].includes(role || '');
-    const load = useCallback(async (signal?: AbortSignal) => { if (!ready)
+    const load = useCallback(async (signal?: AbortSignal) => { if (!ready||!compact&&section==='routines')
         return; try {
         const result = await api<{
             items: WorkDTO[];
@@ -37,7 +41,7 @@ export function WorkBoard({ conversationId, compact = false, role, ready = true,
     finally {
         if (!signal?.aborted)
             setLoading(false);
-    } }, [conversationId, ready,compact]);
+    } }, [conversationId, ready,compact,section]);
     useEffect(() => { const controller = new AbortController(), initial = setTimeout(() => void load(controller.signal), 0); const timer = setInterval(() => { if (document.visibilityState === 'visible')
         void load(controller.signal); }, 5000); return () => { controller.abort(); clearTimeout(initial); clearInterval(timer); }; }, [load]);
     const command = async (item: WorkDTO, action: 'activate' | 'pause' | 'resume' | 'cancel') => { if (busy)
@@ -59,11 +63,14 @@ export function WorkBoard({ conversationId, compact = false, role, ready = true,
         setError(e instanceof Error ? e.message : 'Le livrable est indisponible.');
     } };
     const visible = compact ? items.filter(item => !['completed', 'cancelled', 'expired'].includes(item.status)).slice(0, 2) : items;
+    const tabs=!compact&&<div className="platform-tabs" aria-label="Type de mission"><button type="button" className="platform-tab" aria-pressed={section==='work'} onClick={()=>chooseSection('work')}>Travaux</button><button type="button" className="platform-tab" aria-pressed={section==='routines'} onClick={()=>chooseSection('routines')}>Routines</button></div>;
+    if(!compact&&section==='routines')return <section className="platform-work"><header className="platform-heading"><div><h1>{title}</h1><p>Vos objectifs, les livrables et les décisions à prendre.</p></div></header>{tabs}<RoutinesPanel role={role} ready={ready} onAsk={onAsk}/></section>;
     if (compact && !visible.length && !error)
         return null;
     return <section className={'platform-work ' + (compact ? 'is-compact' : '')} aria-label={compact ? 'Travail dans cette discussion' : 'Travaux et décisions'}>
-  {!compact && <header className="platform-heading"><div><h1>Missions</h1><p>Vos objectifs, les livrables et les décisions à prendre.</p></div><div className="platform-actions"><button type="button" className="platform-button" onClick={() => void load()} disabled={loading || !!busy}><RefreshCw size={16} aria-hidden="true"/>Actualiser</button>{canWrite && <button type="button" className="platform-button primary" onClick={() => onAsk('Je souhaite confier un objectif à Braand. Aide-moi à préciser le résultat attendu, puis prépare un travail borné avec des étapes et un plafond de crédits à examiner avant activation.')}>Confier un objectif<ArrowRight size={16} aria-hidden="true"/></button>}</div></header>}
+  {!compact && <header className="platform-heading"><div><h1>{title}</h1><p>Vos objectifs, les livrables et les décisions à prendre.</p></div><div className="platform-actions"><button type="button" className="platform-button" onClick={() => void load()} disabled={loading || !!busy}><RefreshCw size={16} aria-hidden="true"/>Actualiser</button>{canWrite && <button type="button" className="platform-button primary" onClick={() => onAsk('Je souhaite confier un objectif à Braand. Aide-moi à préciser le résultat attendu, puis prépare un travail borné avec des étapes et un plafond de crédits à examiner avant activation.')}>Confier un objectif<ArrowRight size={16} aria-hidden="true"/></button>}</div></header>}
   {error && <div className="platform-notice error" role="alert"><p>{error}</p><button type="button" className="platform-button" onClick={() => void load()}>Réessayer</button></div>}
+  {tabs}
   {!compact && loading && !items.length ? <p className="platform-muted" role="status">Chargement des travaux…</p> : null}
   {!compact && !loading && !items.length && !legacy.length && <div className="platform-empty"><Clock3 size={28} aria-hidden="true"/><h2>Un objectif. Une suite claire.</h2><p>Confiez un résultat à Braand. Le plan, le budget et les validations resteront consultables ici.</p>{!enabled && <p>Les plans peuvent être préparés. L’exécution en arrière-plan attend sa validation de mise en service.</p>}</div>}
   <div className="platform-work-list">{visible.map(item => {

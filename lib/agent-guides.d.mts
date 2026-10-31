@@ -1,0 +1,1 @@
+export function readAgentGuide(input?: unknown): {version:string;notice:string;topics?:{id:string;chars:number;heading:string}[];provenance?:unknown[];topic?:string;content?:string;offset?:number;totalChars?:number;truncated?:boolean;nextOffset?:number|null};

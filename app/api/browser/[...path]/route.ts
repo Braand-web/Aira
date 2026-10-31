@@ -1,12 +1,14 @@
 import {identity,failure} from '@/lib/server';
 import {AppError} from '@/lib/core.mjs';
 import {browserService,requireBrowserOrigin} from '@/lib/browser';
+import {ensureModelPricing} from '@/lib/model-pricing';
 
 async function body(request:Request){if(Number(request.headers.get('content-length')||0)>20000)throw new AppError('Requête trop volumineuse.',413);const text=await request.text();if(new TextEncoder().encode(text).length>20000)throw new AppError('Requête trop volumineuse.',413);return text?JSON.parse(text) as unknown:{};}
 async function handle(request:Request){try{
  requireBrowserOrigin(request);
  if(request.headers.get('sec-fetch-site')==='cross-site')throw new AppError('Origine du navigateur non autorisée.',403,'browser_origin_required');
  const who=await identity(request),url=new URL(request.url),path=url.pathname.replace(/^\/api\/browser\/?/u,'').split('/').filter(Boolean).map(decodeURIComponent),method=request.method;
+ try{await ensureModelPricing(Date.now(),false);}catch{/* Readiness may report unavailable, but session control never waits on a pricing source. */}
  let result:unknown;
  if(method==='GET'&&!path.length)result=await browserService.list(who);
  else if(path[0]==='profiles'&&path.length===1&&method==='GET')result=await browserService.profiles(who);

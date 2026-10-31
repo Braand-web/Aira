@@ -20,13 +20,17 @@ function statement(query,args=[]){return {
  _run(){const result=sql.prepare(query).run(...args);return {meta:{changes:Number(result.changes)}};},
 };}
 const DB={prepare:query=>statement(query),async batch(statements){sql.exec('BEGIN');try{const results=statements.map(item=>item._run());sql.exec('COMMIT');return results;}catch(error){sql.exec('ROLLBACK');throw error;}}};
-const fixture={env:{DB},headers:new Headers({'x-braand-identity-id':'skills-integration-owner','x-braand-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
+const packManifest=JSON.parse(readFileSync(path.join(project,'skills/packs/manifest.json'),'utf8'));
+const packedObjects=new Map(packManifest.objects.map(file=>['skills/packs/v1/'+file.sha256,file]));
+let packedReads=0;
+const BUCKET={async get(key){packedReads++;const file=packedObjects.get(key);assert.ok(file,'Object must be in the pinned pack');const bytes=readFileSync(path.join(project,file.path));return {size:bytes.length,async arrayBuffer(){return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);}};}};
+const fixture={env:{DB,BUCKET},headers:new Headers({'x-braand-identity-id':'skills-integration-owner','x-braand-identity-email':'skills@test.invalid'}),requests:[],responses:[],external:[],events:[],beforeTools:0};
 globalThis.__skillsAgentTest=fixture;
 const out=path.join(project,'.local-build','skills-agent-test.mjs');
 mkdirSync(path.dirname(out),{recursive:true});
 const entry=file=>JSON.stringify(path.join(project,file).replaceAll('\\','/'));
 await build({
- stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
+ stdin:{contents:`export * as agent from ${entry('lib/agent.ts')};export * as skillsRoute from ${entry('app/api/skills/route.ts')};export * as skillAssetRoute from ${entry('app/api/skills/[id]/asset/route.ts')};export * as server from ${entry('lib/server.ts')};export {SKILL_CATALOG} from ${entry('lib/skills/catalog.generated.mjs')};export {SKILL_POLICY} from ${entry('lib/skills/policy.mjs')};`,resolveDir:project,loader:'ts'},
  outfile:out,bundle:true,platform:'node',format:'esm',nodePaths:[runtime],
  plugins:[{name:'skills-agent-isolation',setup(builder){
   builder.onResolve({filter:/^(cloudflare:workers|next\/headers|next\/navigation)$/},args=>({path:args.path,namespace:'bindings'}));
@@ -35,14 +39,14 @@ await build({
   builder.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:{
    './platform-runtime':`export async function executePlatformTool(){throw Error('Platform calls are covered by agent-platform.integration.mjs');}export async function trackArtifact(){throw Error('Unexpected durable artifact in legacy agent test');}`,
   './metering':`export async function meteredMessage(budget,role,body,signal,routing){const fixture=globalThis.__skillsAgentTest;const request={budget,role,body:structuredClone(body),routing:structuredClone(routing)};fixture.requests.push(request);if(signal.aborted)throw Error('Aborted');const response=fixture.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(typeof response==='function'?response(request):response,{headers:{'content-type':'text/event-stream'}});}`,
-   './composio':`export async function connectorAgentTools(){return [];}export async function executeConnectorAgentTool(){globalThis.__skillsAgentTest.external.push('connector');throw Error('Connector execution forbidden');}`,
+   './composio':`export async function connectorAgentTools(){return [];}export async function executeConnectorAgentTool(){globalThis.__skillsAgentTest.external.push('connector');throw Error('Connector execution forbidden');}export async function executeMissionConnectorTool(){globalThis.__skillsAgentTest.external.push('mission_connector');throw Error('Mission connector execution forbidden in skill tests');}`,
    './providers':`export function falCatalog(){return [];}export function mediaRoute(){globalThis.__skillsAgentTest.external.push('media');throw Error('Media execution forbidden');}export async function metaGet(){globalThis.__skillsAgentTest.external.push('meta');throw Error('External account access forbidden');}`,
    './browser':`export const browserService={async create(){globalThis.__skillsAgentTest.external.push('browser');throw Error('Browser execution forbidden');}};`,
    './browser-agent':`export async function runBrowserAgentTurn(){globalThis.__skillsAgentTest.external.push('browser-agent');throw Error('Browser runner forbidden');}`,
   }[args.path]}));
  }}],
 });
-const {agent,server,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
+const {agent,server,skillsRoute,skillAssetRoute,SKILL_CATALOG,SKILL_POLICY}=await import(pathToFileURL(out).href);
 const who=await server.identity(new Request('https://braand.test/api/chat'));
 globalThis.fetch=async()=>{fixture.external.push('network');throw Error('Network forbidden in skills integration tests');};
 const emit=async(type,data)=>{fixture.events.push({type,data});};
@@ -88,8 +92,8 @@ await check('master discovers metadata, explicitly reads a method and receives i
  const initial=fixture.requests[0],initialBody=JSON.stringify(initial.body);
  assert.deepEqual(initial.body.tools.filter(item=>['search_skills','read_skill'].includes(item.name)).map(item=>item.name),['search_skills','read_skill']);
  for(const method of SKILL_CATALOG){
-  assert.ok(initial.body.system[0].text.includes(method.id+' : '+method.description));
-  const files=await method.load();
+  assert.ok(initial.body.system[0].text.includes(method.id+' ['+method.category+'] : '+method.title));
+  const files=await method.load('SKILL.md',BUCKET);
   for(const content of Object.values(files))assert.ok(!initialBody.includes(JSON.stringify(content.slice(0,Math.min(240,content.length))).slice(1,-1)),`Initial prompt leaked method corpus: ${method.id}`);
  }
  const discovery=parsedResult(fixture.requests[1],'discover');
@@ -134,10 +138,10 @@ await check('delegated extraction reads the method using the same hold and share
 
 await check('reading a method never grants a specialist media preparation or another mutation',async()=>{
  const execution=await setup(),before=mutationCount();
- fixture.responses=[stream([read('specialist-read')]),stream([tool('forged-media','prepare_media',{title:'Interdit',rationale:'Une méthode ne donne aucun droit',task:'image',input:{},maxCredits:120})])];
+ fixture.responses=[stream([read('specialist-read','braand-campaign-operations')]),stream([tool('forged-media','prepare_media',{title:'Interdit',rationale:'Une méthode ne donne aucun droit',task:'image',input:{},maxCredits:120})])];
  await assert.rejects(()=>specialist(execution),/Outil interdit au spécialiste/);
  assert.equal(fixture.requests.length,2);
- assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: braand-pdf'));
+ assert.ok(parsedResult(fixture.requests[1],'specialist-read').content.includes('name: braand-campaign-operations'));
  assert.ok(fixture.requests.every(request=>request.budget===execution.budget&&!request.body.tools.some(item=>item.name==='prepare_media')));
  assert.equal(skillAudits().length,1);assertNoExternalOrMutation(before);
 });
@@ -202,6 +206,45 @@ await check('aggregate character limit truncates the final excerpt and refuses a
  assert.equal(skillAudits().length,4);assertNoExternalOrMutation(before);
 });
 
+await check('settings metadata requires identity and workspace access and never exposes method content',async()=>{
+ const headers=fixture.headers;
+ try{
+  const response=await skillsRoute.GET(new Request('https://braand.test/api/skills'));
+  assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
+  const dto=await response.json();assert.equal(dto.skills.length,166);
+  assert.ok(dto.skills.some(item=>item.id==='braand-meeting-actions'));
+  assert.ok(dto.skills.every(item=>Object.keys(item).sort().join(',')==='capability,category,description,id,title,version'));
+  const foreign=await skillsRoute.GET(new Request('https://braand.test/api/skills',{headers:{'x-braand-workspace':'another-client'}}));assert.equal(foreign.status,403);
+  const packed=packManifest.entries.find(entry=>!entry.augment),reference='SKILL.md';
+  const asset=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference='+encodeURIComponent(reference)),{params:Promise.resolve({id:packed.id})});assert.equal(asset.status,200);assert.match(asset.headers.get('content-disposition'),/^attachment;/);
+  const readsBeforeForeign=packedReads;
+  const denied=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference=SKILL.md',{headers:{'x-braand-workspace':'another-client'}}),{params:Promise.resolve({id:packed.id})});assert.equal(denied.status,403);assert.equal(packedReads,readsBeforeForeign);
+  fixture.headers=new Headers();
+  const anonymousAsset=await skillAssetRoute.GET(new Request('https://braand.test/api/skills/'+packed.id+'/asset?reference=SKILL.md'),{params:Promise.resolve({id:packed.id})});assert.equal(anonymousAsset.status,401);assert.equal(packedReads,readsBeforeForeign);
+  const anonymous=await skillsRoute.GET(new Request('https://braand.test/api/skills'));assert.equal(anonymous.status,401);assert.equal(anonymous.headers.get('cache-control'),'private, no-store');
+ }finally{fixture.headers=headers;}
+});
+
+await check('a simple response does not require method discovery, delegation or extra model calls',async()=>{
+ const execution=await setup(),before=mutationCount();fixture.responses=[text('Bonjour ! Comment puis-je vous aider ?')];
+ await run(execution);assert.equal(fixture.requests.length,1);assert.equal(skillAudits().length,0);assertNoExternalOrMutation(before);
+});
+
+await check('an adapted meeting method produces a real private artifact with an independent structural check',async()=>{
+ const execution=await setup();
+ fixture.responses=[stream([read('meeting-method','braand-meeting-actions')]),stream([tool('meeting-save','save_deliverable',{title:'Compte rendu — test isolé',content:'# Décisions\nOffre validée selon les notes fournies.\n\n## Actions\nResponsable et échéance à confirmer.',summary:'Compte rendu fondé sur les notes de test.',category:'management',sources:['Notes fournies dans la conversation de test']})]),request=>{
+  const saved=parsedResult(request,'meeting-save');assert.equal(saved.kind,'deliverable');assert.equal(saved.status,'draft');assert.equal(saved.data.executionConfirmed,false);
+  return stream([tool('meeting-verify','verify_deliverable',{id:saved.id,version:saved.version,criteria:['Compte rendu conservé avec référence aux notes'],requiredSources:true,requiredResourceIds:[]})]);
+ },text('Le compte rendu est enregistré. Les responsables et échéances restent à confirmer.')];
+ await run(execution);
+ const verified=parsedResult(fixture.requests.at(-1),'meeting-verify');assert.equal(verified.status,'structurally_verified');assert.equal(verified.executionConfirmed,false);assert.equal(verified.semanticReview,'required');
+ const row=sql.prepare('SELECT kind,workspace_id,data FROM resources WHERE id=?').get(verified.resourceId);
+ assert.equal(row.kind,'deliverable');assert.equal(row.workspace_id,who.tenant);assert.match(JSON.parse(row.data).content,/à confirmer/);
+ assert.ok(sql.prepare('SELECT COUNT(*) n FROM agent_verifications WHERE resource_id=?').get(verified.resourceId).n>=1);
+ assert.equal(skillAudits().length,1);assert.deepEqual(fixture.external,[]);assert.equal(fixture.responses.length,0);
+});
+
+
 await check('video skill is available to the real harness with progressive guides and no new execution authority',async()=>{
  const execution=await setup(),before=mutationCount();
  fixture.responses=[stream([tool('video-discovery','search_skills',{semanticIds:['video-motion-studio'],category:'creative'})]),stream([read('video-entry','video-motion-studio')]),stream([read('motion-guide','video-motion-studio',{reference:'references/motion-design.md'})]),text('Je prépare une direction visuelle adaptée à votre produit et aux moyens disponibles.')];
@@ -210,6 +253,16 @@ await check('video skill is available to the real harness with progressive guide
  const entry=parsedResult(fixture.requests[2],'video-entry');assert.equal(entry.capability,'media_proposal');assert.equal(entry.provenance.license,'User-provided');
  assert.ok(parsedResult(fixture.requests[3],'motion-guide').content.includes('easing'));
  assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','run_python','build_timeline.py','prepare_video_edit'].includes(tool.name))));
+ assertNoExternalOrMutation(before);
+});
+
+await check('an imported method and its original text run through the real tool loop with private storage and unchanged permissions',async()=>{
+ const execution=await setup(),before=mutationCount(),readsBefore=packedReads;
+ const entry=packManifest.entries.find(entry=>entry.id==='reels-viraux-motion-design'),reference=entry.variants[0].entry;
+ fixture.responses=[stream([read('pack-entry',entry.id)]),stream([read('pack-source',entry.id,{reference})]),text('Voici une proposition fondée sur la méthode importée, à adapter aux ressources disponibles.')];
+ await run(execution);
+ assert.equal(packedReads,readsBefore+2);assert.match(parsedResult(fixture.requests[1],'pack-entry').content,/Braand/);assert.ok(parsedResult(fixture.requests[2],'pack-source').content.length>100);assert.equal(skillAudits().length,2);
+ assert.ok(fixture.requests.every(request=>!request.body.tools.some(tool=>['shell','exec_command','image_gen__imagegen','skills__read'].includes(tool.name))));
  assertNoExternalOrMutation(before);
 });
 

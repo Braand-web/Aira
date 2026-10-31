@@ -1,0 +1,6 @@
+interface:
+  display_name: "Email Onboarding"
+  short_description: "Connect email and try a useful task"
+  default_prompt: "Use $onboarding-email to connect email and demonstrate one useful task."
+policy:
+  allow_implicit_invocation: false

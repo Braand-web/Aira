@@ -2,6 +2,9 @@
 skills/vendor/** -text
 skills/user/** -text
 skills/braand/** text eol=lf
+skills/user-adapted/** text eol=lf
 skills/integrations/** text eol=lf
 skills/catalog.json text eol=lf
 lib/skills/**/*.generated.mjs text eol=lf
+skills/packs/objects/** binary
+skills/packs/*.json text eol=lf

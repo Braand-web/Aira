@@ -37,6 +37,8 @@ function surfaces(file,source){
 
 // Phrases come from substantive source content, never public skill names or UI labels.
 const probes=[
+ {label:'adapted retention reference',source:'skills/user-adapted/braand-retention-economics/references/cohorts.md',marker:'Un dénominateur nul ne produit pas un taux nul.'},
+ {label:'adapted advertising action reference',source:'skills/user-adapted/braand-campaign-operations/references/live-actions.md',marker:'ne jamais transférer silencieusement les données ou audiences d\'un client à un autre.'},
  {label:'video method',source:'skills/user/video-motion-studio/references/color.md',marker:'One grade per video'},
  {label:'marketing method',source:'skills/vendor/marketing/copywriting/SKILL.md',marker:'second-generation tells such as wisdom-shaped sentences and tidy closers'},
  {label:'marketing reference',source:'skills/vendor/marketing/ad-creative/references/awareness-headlines.md',marker:'A complaint supports the pain angle; it does not substantiate a numerical performance promise.'},
@@ -95,3 +97,13 @@ for(const probe of probes){
  assert.ok(matching.some(({file})=>dynamicTargets.has(file)),`The ${probe.label} must be present in a separate dynamically imported server chunk`);
 }
 console.log(`PASS ${probes.length} corpus probes are compiled into lazily imported server chunks; the browser does not receive them.`);
+
+// Imported payloads stay in R2; neither the browser nor Worker embeds the supplied persona.
+const suppliedPersona='You were created by Meta and are powered by Muse Spark 1.3';
+const packManifest=JSON.parse(readFileSync(path.join(project,'skills/packs/manifest.json'),'utf8'));
+const prompt=packManifest.coverage.find(file=>file.path.endsWith('system_prompt.md'));
+const promptObject=packManifest.objects.find(file=>file.sha256===prompt.sha256);
+assert.ok(readFileSync(path.join(project,promptObject.path),'utf8').includes(suppliedPersona));
+for(const file of [...clientFiles,...serverFiles])assert.ok(!decodeEscapes(readFileSync(file,'utf8')).includes(suppliedPersona),'Imported prompts must not become the active product system prompt');
+assert.ok(serverSources.some(({source})=>source.includes('skills/packs/v1/')),'Private pack loader must be present');
+console.log('PASS supplied persona remains inert in private object storage, and the Worker contains only its bounded loader.');

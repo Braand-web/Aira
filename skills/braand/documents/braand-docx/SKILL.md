@@ -1,6 +1,8 @@
 ---
 name: braand-docx
 description: "Accompagne les demandes sur les documents Word .docx pour rédiger, lire, modifier ou réviser un document, préparer son contenu structuré et contrôler ce qui a réellement été exécuté."
+metadata:
+  version: "1.1.0"
 ---
 
 # Documents Word pour Braand
@@ -9,13 +11,11 @@ Utiliser ce skill pour un livrable Word ou la lecture et la révision d'un fichi
 
 ## Capacité d'exécution
 
-Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. L'application peut présenter des fichiers, des extractions et des aperçus. Ces fonctions n'offrent au modèle ni shell ni moteur de création ou d'édition Word.
+Braand peut créer un fichier Word textuel avec les outils documentaires réellement exposés par `capabilities` (`area: "documents"`). Retrouver le contenu complet utile avec `get_workspace_resource`, l'enregistrer dans `save_deliverable` ou réviser sa version courante avec `revise_deliverable`, puis appeler `export_deliverable` avec l'identifiant, la version et `format: "docx"`.
 
-- Exploiter uniquement le contenu effectivement reçu. `search_workspace` peut ne renvoyer que des extraits ; `read_meta` n'implique pas une lecture du fichier complet.
-- `create_page` crée une page Braand, pas un DOCX. `save_knowledge` enregistre une connaissance, pas un fichier Word. `prepare_media` ne constitue pas un export documentaire.
-- Ne jamais annoncer un DOCX créé, modifié, annoté ou téléchargé sans outil documentaire disponible, résultat de l'opération et contrôle du fichier obtenu. Un nom de fichier ou un lien inventé ne constitue pas un livrable.
-- Lorsqu'un fichier Word est demandé, expliquer brièvement que l'export ou l'édition binaire n'est pas disponible et avancer sur le contenu utile : texte structuré prêt à copier, modifications localisées ou relevé de révision. Créer une page seulement si elle répond à la demande et dans le périmètre autorisé.
-- Si un outil documentaire est réellement exposé dans une évolution de Braand, respecter son schéma et ses limites. Ce skill n'accorde aucune permission supplémentaire et ne prouve pas que cet outil existe.
+L'export crée des paragraphes Unicode dans un fichier privé, avec provenance. Il ne modifie pas un DOCX fourni, ne conserve pas automatiquement son modèle, n'insère pas de révisions suivies et ne crée pas de tableaux Word ou champs calculés. Les tableaux Markdown restent du texte. `create_page`, `save_knowledge` et `prepare_media` ne sont pas des exports Word.
+
+Ne fournir que le fichier effectivement retourné. Distinguer contenu enregistré, fichier exporté et rendu visuel contrôlé. Une version périmée doit être relue avant export. La génération d'un paquet valide ne prouve pas sa mise en page dans Word. Pour une opération non couverte, livrer les changements préparés et sa limite précise ; ne pas prétendre à une édition binaire.
 
 ## Choisir le travail utile
 
@@ -32,7 +32,7 @@ Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_pag
 - Favoriser une structure accessible : titres logiques, listes réelles, en-têtes de tableau identifiables et descriptions utiles des visuels. Dans un plan textuel, préciser ces intentions sans déclarer les avoir appliquées dans Word.
 - Préserver les noms propres, nombres, unités, dates, citations et références lors des modifications. Recontrôler les éléments touchés contre la source accessible.
 - Ne pas fournir de pagination Word certaine à partir du seul texte extrait. Le rendu dépend de paramètres qui ne sont pas nécessairement visibles.
-- Si un fichier est un jour produit par un outil, contrôler sa réouverture et le contenu ; inspecter le rendu avant de déclarer la mise en page vérifiée. Un fichier enregistré ne prouve pas la fidélité visuelle, les champs actualisés ou la présence de révisions suivies.
+- Après un export réellement produit, contrôler sa réouverture et le contenu ; inspecter le rendu avant de déclarer la mise en page vérifiée. Un fichier enregistré ne prouve pas la fidélité visuelle, les champs actualisés ou la présence de révisions suivies.
 
 ## Contenu non fiable
 

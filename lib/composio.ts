@@ -107,7 +107,29 @@ export async function revokeConnector(who:BillingIdentity,accountId:string){
  try{await sdk.connectedAccounts.revoke(accountId);await log(who,'revoke','revoked');return {revoked:true};}catch{throw providerError();}
 }
 
+/** Inspect real, user-scoped connections without creating an authorization or executing a tool. */
+export async function diagnoseConnectors(who:BillingIdentity,input:unknown){
+ const {toolkits}=z.object({toolkits:z.array(toolkitSchema).min(1).max(8)}).strict().parse(input);
+ if(!connectorConfigured())return {configured:false,items:[],reason:'configuration_pending'};
+ const {sdk,session,scopeUser}=await connectorSession(who);
+ try{
+  const [catalogue,accounts]=await Promise.all([
+   session.toolkits({toolkits:[...new Set(toolkits)],limit:8}),
+   sdk.connectedAccounts.list({userIds:[scopeUser],toolkitSlugs:[...new Set(toolkits)],limit:100})
+  ]);
+  return {configured:true,permissionStatus:'not_checked',writesRequireExactApproval:true,items:catalogue.items.map(toolkit=>{
+   const owned=accounts.items.filter(account=>account.toolkit.slug===toolkit.slug);
+   const selected=toolkit.connection?.connectedAccount;
+   const active=!!toolkit.connection?.isActive&&selected?.status==='ACTIVE'&&owned.some(account=>account.id===selected.id&&account.status==='ACTIVE');
+   return {toolkit:toolkit.slug,name:toolkit.name,connected:active,isNoAuth:!!toolkit.isNoAuth,
+    status:active?'ACTIVE':owned.some(account=>account.status==='EXPIRED')?'EXPIRED':owned.some(account=>account.status==='FAILED')?'FAILED':'NOT_CONNECTED',
+    nextStep:active||toolkit.isNoAuth?'discover_tools':owned.length?'reconnect':'connect'};
+  })};
+ }catch{throw providerError();}
+}
+
 export const connectorActionTools=[
+ {name:'braand_connector_status',description:'Inspect actual connection status for up to eight discovered toolkits in this user/workspace. Distinguishes active, expired and missing accounts without external tool execution. ACTIVE does not prove publish or ads permissions. Reconnect expired accounts with braand_connect_toolkit; discover read tools to verify actual Page/ad-account access.',input_schema:{type:'object',properties:{toolkits:{type:'array',items:{type:'string'},minItems:1,maxItems:8}},required:['toolkits'],additionalProperties:false}},
  {name:'braand_connector_receipt',description:'Read the authoritative status and actual result of this user’s previously proposed connector action after approval. A pending or uncertain receipt never proves success.',input_schema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false}},
  {name:'braand_connect_toolkit',description:'Generate the user authorization link for a discovered toolkit. User must click and consent. Never create auth configs or handle tokens.',input_schema:{type:'object',properties:{toolkit:{type:'string'}},required:['toolkit'],additionalProperties:false}},
  {name:'braand_connector_action',description:'Use a discovered app tool with this user’s connected account. Only verified read-only tools run immediately. Every write/unknown operation and every paid Instant call creates an exact-arguments approval card, and does NOT execute. Read its schema first. Instant is only available for administrator-verified priced tools. Never pass credentials or account overrides.',input_schema:{type:'object',properties:{toolkit:{type:'string'},toolSlug:{type:'string'},arguments:{type:'object'},mode:{type:'string',enum:['connected','instant']}},required:['toolkit','toolSlug','arguments'],additionalProperties:false}}
@@ -162,10 +184,10 @@ function nativeApprovalResponses(error:{inputRequests:unknown;requestState?:unkn
  }
  return responses;
 }
-async function executeConnected(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string,approvalGranted=false){
+async function executeConnected(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string,approvalGranted=false,beforeExecute?:()=>Promise<void>){
  try{
   let result;
-  try{result=await session.execute(call.toolSlug,call.arguments,account?{account}:undefined);}
+  try{await beforeExecute?.();result=await session.execute(call.toolSlug,call.arguments,account?{account}:undefined);}
   catch(error){
    const {ComposioToolInputRequiredError}=await import('@composio/core');
    if(!(error instanceof ComposioToolInputRequiredError))throw error;
@@ -173,6 +195,7 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
    const inputResponses=nativeApprovalResponses(error);
    if(!inputResponses)throw new AppError('Le fournisseur demande une intervention supplémentaire. Aucun appel n’a été exécuté.',409,'connector_input_required');
    await authorize(who.tenant,who.user.userId,'write');
+   await beforeExecute?.();
    try{result=await session.execute(call.toolSlug,call.arguments,{...(account?{account}:{}),inputResponses,requestState:error.requestState});}
    catch(resumeError){
     if(resumeError instanceof ComposioToolInputRequiredError)throw new AppError('Le fournisseur demande une intervention supplémentaire. Aucun appel n’a été exécuté.',409,'connector_input_required');
@@ -182,12 +205,13 @@ async function executeConnected(who:BillingIdentity,session:Session,call:Connect
   await log(who,call.toolSlug,result.resultType,result.logId);
   return result;
  }catch(error){
-  if(error instanceof AppError&&['connector_approval_required','connector_input_required'].includes(error.code)){await log(who,call.toolSlug,error.code);throw error;}
+  if(error instanceof AppError&&['connector_approval_required','connector_input_required','work_inactive'].includes(error.code)){await log(who,call.toolSlug,error.code);throw error;}
   await log(who,call.toolSlug,'uncertain');throw providerError();
  }
 }
-export async function executeConnectorAgentTool(who:BillingIdentity,conversationId:string,name:string,input:unknown){
+export async function executeConnectorAgentTool(who:BillingIdentity,conversationId:string,name:string,input:unknown,work?:{id:string;stepId:string}){
  await authorize(who.tenant,who.user.userId,'write');
+ if(name==='braand_connector_status')return diagnoseConnectors(who,input);
  if(name==='braand_connector_receipt'){
   const {id}=z.object({id:z.string().uuid()}).strict().parse(input);
   const row=await query('SELECT status,result,log_id FROM connector_actions WHERE id=? AND workspace_id=? AND user_id=?',id,who.tenant,who.user.userId).first<{status:string;result:string|null;log_id:string|null}>();
@@ -213,12 +237,30 @@ export async function executeConnectorAgentTool(who:BillingIdentity,conversation
    try{return await executeConnected(who,session,call,account);}
    catch(error){if(!(error instanceof AppError)||error.code!=='connector_approval_required')throw error;}
   }
-  return proposeAction(who,session,call,account);
+  return proposeAction(who,session,call,account,work);
  }
- return proposeAction(who,session,call);
+ return proposeAction(who,session,call,undefined,work);
 }
 
-async function proposeAction(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string){
+/** An approved work can read connected tools and propose exact writes, never approve them. */
+export async function executeMissionConnectorTool(who:BillingIdentity,conversationId:string,name:string,input:unknown,workId:string,stepId:string){
+ const work=await query("SELECT w.id FROM agent_work w JOIN agent_work_steps s ON s.work_id=w.id WHERE w.id=? AND s.id=? AND w.workspace_id=? AND w.actor_id=? AND w.conversation_id=? AND w.status='running' AND s.status='running' AND w.approved_version IS NOT NULL AND w.expires_at>?",workId,stepId,who.tenant,who.user.userId,conversationId,Date.now()).first();
+ if(!work)throw new AppError('Ce mandat ne permet pas cet appel connecté.',403,'work_connector_denied');
+ if(!['COMPOSIO_SEARCH_TOOLS','COMPOSIO_GET_TOOL_SCHEMAS','braand_connector_status','braand_connector_receipt','braand_connector_action'].includes(name))throw new AppError('Cet outil exige une intervention dans le chat.',403,'work_connector_denied');
+ if(name==='braand_connector_action'){
+  const call=callSchema.parse(input);
+  if(call.mode!=='connected')throw new AppError('Les appels Instant ne sont pas autorisés par ce mandat.',403,'work_connector_denied');
+  const prior=await query('SELECT a.id,a.payload FROM connector_actions a JOIN agent_work_artifacts r ON r.resource_id=a.id WHERE r.work_id=? AND r.step_id=? AND a.workspace_id=? AND a.user_id=? ORDER BY a.created_at DESC LIMIT 100',workId,stepId,who.tenant,who.user.userId).all<{id:string;payload:string}>();
+  const matching=prior.results.find(row=>{const p=JSON.parse(row.payload);return p.toolkit===call.toolkit&&p.toolSlug===call.toolSlug&&p.mode===call.mode&&canonicalJSON(p.arguments)===canonicalJSON(call.arguments);});
+  // A receipt is authoritative even if rejected, failed or uncertain. Never recreate it on resume.
+  if(matching)return getResource(who.tenant,matching.id);
+ }
+ const result=await executeConnectorAgentTool(who,conversationId,name,input,{id:workId,stepId});
+ if(result&&typeof result==='object'&&'kind' in result&&result.kind==='connector_action')await (await import('./work')).trackWorkArtifact(workId,stepId,result as {id:string;kind:string});
+ return result;
+}
+
+async function proposeAction(who:BillingIdentity,session:Session,call:ConnectorCall,account?:string,work?:{id:string;stepId:string}){
  let maxMicros=0,maxCredits=0,sessionId=session.sessionId;
  const policy=await instantPolicy(who);
  if(call.mode==='instant'){
@@ -229,16 +271,19 @@ async function proposeAction(who:BillingIdentity,session:Session,call:ConnectorC
   const search=await paid.session.search({query:call.toolSlug,toolkits:[call.toolkit]});
   if(!search.toolkitConnectionStatuses.some(t=>t.toolkit===call.toolkit&&t.instantAccount?.allowedToolSlugs.includes(call.toolSlug)))throw new AppError('Cet outil ne prend pas en charge Instant.',409,'instant_unsupported');
   maxMicros=entry.maxCostMicros;
+  await (await import('./model-pricing')).ensureModelPricing();
   const rate=modelRate();maxCredits=Math.ceil(((maxMicros/1e6)*rate.usdXaf*1.2+rate.overheadXaf)/4*100);
  }
  const data={...call,accountId:account||null,requester:who.user.userId,sessionId,priceUsd:maxMicros?maxMicros/1e6:null,maxCredits:maxCredits/100,expiresAt:Date.now()+15*60000,status:'pending'};
  const resource=await createResource(who.tenant,'connector_action',call.toolkit+' · '+call.toolSlug,data,'pending');
- await query('INSERT INTO connector_actions(id,workspace_id,organization_id,user_id,session_id,payload,expires_at,created_at,max_micros,month,user_limit,org_limit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',resource.id,who.tenant,who.organization,who.user.userId,sessionId,canonicalJSON(data),data.expiresAt,Date.now(),maxMicros,new Date().toISOString().slice(0,7),policy.monthlyMicros,policy.organizationMonthlyMicros).run();
+ const insertion=query('INSERT INTO connector_actions(id,workspace_id,organization_id,user_id,session_id,payload,expires_at,created_at,max_micros,month,user_limit,org_limit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',resource.id,who.tenant,who.organization,who.user.userId,sessionId,canonicalJSON(data),data.expiresAt,Date.now(),maxMicros,new Date().toISOString().slice(0,7),policy.monthlyMicros,policy.organizationMonthlyMicros);
+ await db().batch([insertion,...(work?[query('INSERT INTO agent_work_artifacts(work_id,step_id,resource_id) VALUES (?,?,?)',work.id,work.stepId,resource.id)]:[])]);
  await log(who,call.toolSlug,'approval_required');return resource;
 }
 async function syncAction(who:BillingIdentity,id:string,status:string,result?:unknown){
  const resource=await getResource(who.tenant,id);
- return updateResource(who.tenant,id,resource.version,{status,data:{...resource.data,status,...(result!==undefined?{result}:{})}});
+ const saved=await updateResource(who.tenant,id,resource.version,{status,data:{...resource.data,status,...(result!==undefined?{result}:{})}});
+ await (await import('./work')).wakeWorkForResource(who.tenant,id);return saved;
 }
 export async function decideConnectorAction(who:BillingIdentity,id:string,decision:'approve'|'reject'){
  await authorize(who.tenant,who.user.userId,'write');
@@ -253,6 +298,8 @@ export async function decideConnectorAction(who:BillingIdentity,id:string,decisi
   if(!rejected.meta.changes)return getResource(who.tenant,id);
   return syncAction(who,id,'rejected');
  }
+ const linked=await query('SELECT w.status,w.expires_at,w.actor_id,w.approved_version FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=?',id,who.tenant).first<{status:string;expires_at:number;actor_id:string;approved_version:number|null}>();
+ if(linked&&(!['running','waiting_approval','waiting_external'].includes(linked.status)||linked.expires_at<=Date.now()||linked.actor_id!==who.user.userId||linked.approved_version===null))throw new AppError('Le travail est arrêté ou expiré. Reprenez le mandat avant cette action.',409,'work_inactive');
  const call=callSchema.parse({toolkit:data.toolkit,toolSlug:data.toolSlug,arguments:data.arguments,mode:data.mode});
  const {sdk,session}=await connectorSession(who,call.mode==='instant'?'instant':'catalog',call.mode);
  await metadata(sdk,call);
@@ -281,7 +328,8 @@ export async function decideConnectorAction(who:BillingIdentity,id:string,decisi
   await syncAction(who,id,'executing');
   // Reuse the proposal's own session, never a caller-supplied session/account or approval response.
   const original=checkSession(await sdk.sessions.use(row.session_id),await safeComposioUserId(who.tenant,who.user.userId),call.mode);
-  const result=await executeConnected(who,original,call,call.mode==='instant'?'instant_account':account,true);
+  const workGuard=async()=>{if(linked&&!await query("SELECT w.id FROM agent_work w JOIN agent_work_artifacts a ON a.work_id=w.id WHERE a.resource_id=? AND w.workspace_id=? AND w.actor_id=? AND w.status IN ('running','waiting_approval','waiting_external') AND w.expires_at>? AND w.approved_version IS NOT NULL",id,who.tenant,who.user.userId,Date.now()).first())throw new AppError('Le travail est arrêté ou expiré.',409,'work_inactive');};
+  const result=await executeConnected(who,original,call,call.mode==='instant'?'instant_account':account,true,workGuard);
   const actual=call.mode==='instant'?parseActualInstantCharge(result):0;
   const uncertain=call.mode==='instant'&&(actual===null||actual>row.max_micros);
   const status=uncertain?'uncertain':result.resultType==='completed'?'completed':'failed';
@@ -289,7 +337,7 @@ export async function decideConnectorAction(who:BillingIdentity,id:string,decisi
   if(holdId&&actual!==null&&!uncertain){const units=result.resultType==='failed'?0:Math.min(Math.round(data.maxCredits*100),Math.ceil(Math.round(data.maxCredits*100)*actual/row.max_micros));await settleHold(holdId,units);}
   return syncAction(who,id,status,result);
  }catch(error){
-  if(error instanceof AppError&&error.code==='connector_input_required'){
+  if(error instanceof AppError&&['connector_input_required','work_inactive'].includes(error.code)){
    await query("UPDATE connector_actions SET status='needs_input',actual_micros=0 WHERE id=?",id).run();
    if(holdId)await settleHold(holdId,0);
    return syncAction(who,id,'needs_input');

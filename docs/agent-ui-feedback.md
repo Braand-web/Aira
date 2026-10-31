@@ -4,6 +4,7 @@
 
 - `components/ui/ai-status.tsx` : préparation, analyse, rédaction, fin confirmée, erreur et arrêt. L’horloge utilise le temps réellement écoulé. Un message historique ne reçoit pas une durée inventée.
 - `lib/agent-status.mjs` : traduction déterministe des événements de streaming en états d’interface. Un résultat d’outil ou du texte reçu ne valent jamais confirmation de fin. Une fin de flux sans événement `done` conserve le texte et signale l’interruption.
+- L’attente ordinaire du chat utilise uniquement le clover dans son état de travail. Aucun bandeau de préparation, de connexion au modèle ou de chronomètre n’est ajouté sous le compositeur, et l’état `thinking` n’affiche pas de libellé au-dessus de la réponse. Une annonce discrète réservée aux lecteurs d’écran conserve le retour accessible. Les étapes utiles provenant des outils, la rédaction, la fin, les erreurs et l’arrêt gardent leurs états existants.
 - `components/ui/grid-reveal.tsx` : grille décorative, puis image effectivement chargée, sans recadrage. La grille n’affiche aucun pourcentage fournisseur. Un échec de chargement propose de relire l’image, sans nouvelle génération.
 - `components/media-generation-preview.tsx` : observation d’une proposition déjà approuvée. Les lectures sont espacées, bornées et suspendues quand l’onglet est masqué. Les reprises relisent la même opération ; ce composant ne contient aucun appel de soumission.
 
@@ -28,7 +29,7 @@ Si Playwright est fourni par un runtime externe, définir `BRAAND_PLAYWRIGHT_MOD
 
 ## Test manuel
 
-1. Envoyer une demande, observer les libellés pendant les événements réels, puis la fin et sa durée.
+1. Envoyer une demande : le clover s’active sans texte technique sous le compositeur ni changement de sa hauteur. Observer ensuite les étapes utiles issues des événements réels, puis la fin et sa durée.
 2. Interrompre une réponse : le texte déjà reçu reste consultable.
 3. Ouvrir une proposition d’image et approuver une fois son plafond. La grille apparaît pendant le suivi, puis le résultat est révélé lorsqu’il est disponible.
 4. Revenir sur un visuel déjà consulté : il s’affiche directement.

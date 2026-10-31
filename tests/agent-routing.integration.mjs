@@ -18,7 +18,7 @@ await build({stdin:{contents:`export * as agent from ${JSON.stringify(path.join(
  b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:{
   './platform-runtime':`export async function executePlatformTool(){throw Error('Platform calls are covered by agent-platform.integration.mjs');}export async function trackArtifact(){throw Error('Unexpected durable artifact in legacy agent test');}`,
   './metering':`export async function meteredMessage(budget,role,body,signal,routing){const f=globalThis.__agentRoutingTest;f.requests.push({budget,role,body:structuredClone(body),routing:structuredClone(routing)});if(signal.aborted)throw Error('Aborted');const response=f.responses.shift();if(response===undefined)throw Error('Unexpected model request');return new Response(typeof response==='function'?response():response,{headers:{'content-type':'text/event-stream'}});}`,
-  './composio':`export async function connectorAgentTools(){return [];}export async function executeConnectorAgentTool(){globalThis.__agentRoutingTest.external.push('connector');throw Error('External connectors forbidden in routing tests');}`,
+  './composio':`export async function connectorAgentTools(){return globalThis.__agentRoutingTest.connectorAvailable?[{name:'braand_connector_status',description:'Fixture read-only connection diagnosis',input_schema:{type:'object',properties:{},additionalProperties:false}}]:[];}export async function executeMissionConnectorTool(){throw Error('Mission connector calls are covered by connector integration tests');}export async function executeConnectorAgentTool(){globalThis.__agentRoutingTest.external.push('connector');throw Error('External connectors forbidden in routing tests');}`,
   './providers':`export function falCatalog(){return [];}export function mediaRoute(){throw Error('Media generation forbidden in routing tests');}export async function metaGet(){globalThis.__agentRoutingTest.external.push('meta_read');return {data:[]};}`,
   './browser':`export const browserService={async create(){globalThis.__agentRoutingTest.external.push('browser');throw Error('Browser forbidden in routing tests');}};`,
   './browser-agent':`export async function runBrowserAgentTurn(){throw Error('Unexpected browser runner');}`,
@@ -29,7 +29,7 @@ globalThis.fetch=async()=>{throw Error('Network forbidden in orchestrator routin
 const emit=async(type,data)=>{fixture.events.push({type,data});},signal=()=>new AbortController().signal;
 function stream(blocks){return [{type:'message_start',message:{model:'fixture',usage:{}}},...blocks.flatMap((block,index)=>block.type==='tool_use'?[{type:'content_block_start',index,content_block:{...block,input:{}}},{type:'content_block_delta',index,delta:{type:'input_json_delta',partial_json:JSON.stringify(block.input)}},{type:'content_block_stop',index}]:[{type:'content_block_start',index,content_block:{...block,text:''}},{type:'content_block_delta',index,delta:{type:'text_delta',text:block.text||''}},{type:'content_block_stop',index}]),{type:'message_stop'}].map(event=>'event: '+event.type+'\ndata: '+JSON.stringify(event)+'\n\n').join('');}
 const text=value=>stream([{type:'text',text:value}]);
-async function setup(){sql.prepare("UPDATE runs SET status='partial' WHERE status='streaming'").run();fixture.requests=[];fixture.responses=[];fixture.external=[];fixture.events=[];fixture.beforeTools=0;const conversation=await server.createResource(who.tenant,'conversation','Chat local',{},'saved'),runId=crypto.randomUUID(),now=Date.now();sql.prepare("INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,'streaming',?,?)").run(runId,who.tenant,conversation.id,now,now);sql.prepare("INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'user',?,?)").run(crypto.randomUUID(),who.tenant,conversation.id,JSON.stringify([{type:'text',text:'Contexte privé de cet espace'}]),now);const budget={who,runId,holdId:'shared-'+runId,limit:5000,rate:{model:'fixture'},beforeTool:async()=>{fixture.beforeTools++;}};return {conversationId:conversation.id,runId,budget};}
+async function setup(){sql.prepare("UPDATE runs SET status='partial' WHERE status='streaming'").run();fixture.requests=[];fixture.responses=[];fixture.external=[];fixture.events=[];fixture.beforeTools=0;fixture.connectorAvailable=false;const conversation=await server.createResource(who.tenant,'conversation','Chat local',{},'saved'),runId=crypto.randomUUID(),now=Date.now();sql.prepare("INSERT INTO runs(id,workspace_id,conversation_id,status,created_at,updated_at) VALUES (?,?,?,'streaming',?,?)").run(runId,who.tenant,conversation.id,now,now);sql.prepare("INSERT INTO messages(id,workspace_id,conversation_id,role,content,created_at) VALUES (?,?,?,'user',?,?)").run(crypto.randomUUID(),who.tenant,conversation.id,JSON.stringify([{type:'text',text:'Contexte privé de cet espace'}]),now);const budget={who,runId,holdId:'shared-'+runId,limit:5000,rate:{model:'fixture'},beforeTool:async()=>{fixture.beforeTools++;}};return {conversationId:conversation.id,runId,budget};}
 const run=execution=>agent.runAgent(who.tenant,execution.conversationId,execution.runId,emit,signal(),execution.budget);
 const specialist=(execution,role)=>agent.runSpecialist(who.tenant,execution.runId,{role,task:'Travail encadré '+role,context:'Faits fournis par cet espace'},emit,signal(),execution.budget);
 let count=0;async function check(name,fn){await fn();count++;console.log('PASS '+name);}
@@ -67,6 +67,17 @@ await check('the global work contract preserves discussion and requires delivery
  const instructions=fixture.requests[0].body.system[0].text;
  for(const wording of ['Prise en charge globale','Une conversation peut rester un échange','information indispensable',"jusqu'au livrable",'get_workspace_resource','Ne répète pas une mutation','restent en attente','résultat partiel'])assert.ok(instructions.includes(wording),wording);
  assert.match(instructions,/Aucun outil brut, batch, sandbox ou proxy/);assert.match(instructions,/aucun plan n'active l'autonomie/);assert.equal(fixture.requests.length,1);
+});
+await check('publication guidance distinguishes connected execution, private campaign drafts and unavailable connectors',async()=>{
+ const execution=await setup();fixture.connectorAvailable=true;fixture.responses=[text('Vérifions le compte avant toute publication.')];await run(execution);
+ const system=fixture.requests[0].body.system.map(block=>block.text).join('\n');
+ for(const wording of ['braand_connector_status','connexion expirée','ne prouve pas les permissions','ne déclare pas une incapacité générale','budget, devise et durée ou plafond total explicites','ne relance jamais un résultat incertain'])assert.ok(system.includes(wording),wording);
+ assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='braand_connector_status'));
+ const draft=agent.toolDefinitions.find(tool=>tool.name==='save_campaign_plan');assert.match(draft.description,/no launch or spend/);assert.match(draft.description,/braand_connector_action/);assert.equal(fixture.external.length,0);
+});
+await check('unavailable connectors remain an explicit limitation without loading connected execution guidance',async()=>{
+ const execution=await setup();fixture.responses=[text('La connexion doit être vérifiée dans les paramètres.')];await run(execution);
+ const system=fixture.requests[0].body.system.map(block=>block.text).join('\n');assert.match(system,/Outils connectés indisponibles pendant cette réponse/);assert.ok(!system.includes(agent.connectorWorkPolicy));assert.ok(!fixture.requests[0].body.tools.some(tool=>tool.name==='braand_connector_status'));assert.equal(fixture.external.length,0);
 });
 await check('a request reads context, creates, verifies, revises and delivers one saved artifact with a shared budget',async()=>{
  const execution=await setup(),title='Page de livraison vérifiée';
@@ -272,6 +283,35 @@ await check('parallel independent reads preserve one ordered result per call eve
  const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'parallel-first',name:'search_workspace',input:{kind:'knowledge'}},{type:'tool_use',id:'parallel-second',name:'search_skills',input:{query:'copywriting'}}]),text('The available context has been read.')];
  let notifySecond;const secondNotified=new Promise(resolve=>{notifySecond=resolve;});const emitter=async(type,data)=>{await emit(type,data);if(type==='tool_result'&&data.id==='parallel-first'&&!data.error){await secondNotified;throw Error('Notification unavailable');}if(type==='tool_result'&&data.id==='parallel-second')notifySecond();};
  await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emitter,signal(),execution.budget);const results=fixture.requests[1].body.messages.at(-1).content;assert.deepEqual(results.map(result=>result.tool_use_id),['parallel-first','parallel-second']);assert.equal(results[0].is_error,true);assert.equal(results[1].is_error,undefined);assert.equal(fixture.requests.length,2);assert.equal(fixture.external.length,0);
+});
+
+await check('adaptive selection is model-led, silent, bounded and resets for each new response',async()=>{
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'choose-capacity',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('A carefully reasoned answer.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','advanced']);
+ assert.ok(fixture.requests.every(request=>request.budget===execution.budget));
+ assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='request_model_capacity'));
+ assert.equal(fixture.events.some(event=>['tool_start','tool_result'].includes(event.type)&&event.data.name==='request_model_capacity'),false);
+ assert.equal(fixture.external.length,0);assert.equal(fixture.beforeTools,1);
+ assert.equal(fixture.requests[1].body.messages[0].content[0].text,'Contexte privé de cet espace');
+ const next=await setup();fixture.responses=[text('Bonjour.')];await run(next);assert.equal(fixture.requests.length,1);assert.equal(fixture.requests[0].routing.tier,'light');
+ delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
+});
+await check('ordinary tool use does not itself force an expensive model and invalid escalation does not change capacity',async()=>{
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'read-simple',name:'search_workspace',input:{kind:'knowledge'}}]),stream([{type:'tool_use',id:'late-jump',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('Les informations disponibles sont conservées.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','light']);assert.equal(fixture.requests[2].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
+ delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
+});
+await check('video production preference stays silent, carries to creative specialists and resets on the next message',async()=>{
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
+ try{
+  const execution=await setup();const limit=execution.budget.limit;
+  fixture.responses=[stream([{type:'tool_use',id:'video-capacity',name:'request_model_capacity',input:{tier:'advanced',reason:'video_motion'}}]),stream([{type:'tool_use',id:'video-creative',name:'delegate_specialist',input:{role:'creative',task:'Préparer le découpage et les animations',context:'Brief vidéo fourni'}}]),text('Découpage et retouches à vérifier dans le moteur disponible.'),text('Voici le découpage préparé.')];await run(execution);
+  assert.deepEqual(fixture.requests.map(request=>request.routing.task),['conversation','video_motion','video_motion','video_motion']);assert.equal(execution.budget.limit,limit);assert.equal(execution.budget.videoMotionPreferred,true);assert.equal(fixture.external.length,0);
+  assert.equal(fixture.events.some(event=>['tool_start','tool_result'].includes(event.type)&&event.data.name==='request_model_capacity'),false);
+  const next=await setup();fixture.responses=[text('Une transition relie deux plans.')];await run(next);assert.equal(fixture.requests.length,1);assert.equal(fixture.requests[0].routing.tier,'light');assert.equal(fixture.requests[0].routing.task,'conversation');assert.equal(next.budget.videoMotionPreferred,false);
+ }finally{delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;}
 });
 
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');

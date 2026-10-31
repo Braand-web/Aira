@@ -158,6 +158,25 @@ html[data-design-system="muse"] .modal { width: 512px; padding: 0; border: 0; bo
 html[data-design-system="muse"] .modal::backdrop { background: #00000066; backdrop-filter: blur(4px); }
 html[data-design-system="muse"] .modal-heading { min-height: 64px; padding: 16px 24px; }
 html[data-design-system="muse"] .modal-heading h2 { font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -.02em; }
+html[data-design-system="muse"] .auth-content { gap: 0; padding: 20px 32px 36px; }
+html[data-design-system="muse"] .auth-content > .brand-mark { margin-bottom: 22px; }
+html[data-design-system="muse"] .auth-content > p { margin-bottom: 20px; }
+html[data-design-system="muse"] .auth-intents { display: grid; grid-template-columns: 1fr 1fr; width: min(100%,360px); gap: 4px; padding: 4px; margin: 0 0 18px; border-radius: var(--ds-radius-pill); background: var(--ds-bg); }
+html[data-design-system="muse"] .auth-intents > button { min-height: 40px; padding: 8px 12px; border: 0; border-radius: var(--ds-radius-pill); color: var(--ds-muted); background: transparent; font-size: 13px; }
+html[data-design-system="muse"] .auth-intents > button.selected { color: var(--ds-text); background: var(--ds-fill); font-weight: 600; }
+html[data-design-system="muse"] .auth-form { display: grid; width: min(100%,360px); gap: 10px; text-align: left; }
+html[data-design-system="muse"] .auth-form > label { color: var(--ds-text); font-size: 13px; font-weight: 500; }
+html[data-design-system="muse"] .auth-form > input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid var(--ds-line); border-radius: var(--ds-radius-sm); background: var(--ds-bg); color: var(--ds-text); font: inherit; }
+html[data-design-system="muse"] .auth-form > input::placeholder { color: var(--ds-muted); opacity: 1; }
+html[data-design-system="muse"] .auth-form > .button { width: 100%; min-height: 46px; margin-top: 3px; }
+html[data-design-system="muse"] .auth-form > .button:disabled { opacity: .55; cursor: wait; }
+html[data-design-system="muse"] .auth-error { margin: 2px 0 0; color: var(--ds-error); font-size: 12px; line-height: 18px; text-align: left; }
+html[data-design-system="muse"] .auth-feedback { display: flex; align-items: flex-start; gap: 12px; width: min(100%,360px); padding: 15px; border-radius: var(--ds-radius-md); background: var(--ds-fill); color: var(--ds-text); text-align: left; }
+html[data-design-system="muse"] .auth-feedback > svg { flex: 0 0 auto; margin-top: 2px; color: var(--ds-success); }
+html[data-design-system="muse"] .auth-feedback strong { font-size: 14px; font-weight: 600; }
+html[data-design-system="muse"] .auth-feedback p { max-width: none; margin: 5px 0 10px; color: var(--ds-muted); font-size: 12px; line-height: 19px; }
+html[data-design-system="muse"] .auth-change-email { padding: 0; color: var(--ds-action); font-size: 12px; text-align: left; }
+html[data-design-system="muse"] .auth-content > .fine-print { max-width: 360px; margin-top: 14px; font-size: 11px; }
 html[data-design-system="muse"] .modal[data-modal="settings"][open] { display: block; width: 880px; height: 680px; overflow: hidden; }
 html[data-design-system="muse"] .modal[data-modal="settings"] .modal-heading { grid-column: 1 / -1; }
 html[data-design-system="muse"] .settings-tabs { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 16px; border: 0; border-right: 1px solid var(--ds-line); }
@@ -302,6 +321,30 @@ html[data-design-system="muse"] .skills-marketplace-embedded .skill-card h2 { fo
 html[data-design-system="muse"] .skills-marketplace-embedded .skills-upload { min-height: 44px; }
 .settings-import-error { margin-top: 16px; color: var(--ds-error); }
 .settings-import-status { margin-top: 16px; color: var(--ds-muted); }
+html[data-design-system="muse"] .toast.toast-error {
+ position: fixed;
+ top: 76px;
+ right: 20px;
+ bottom: auto;
+ left: auto;
+ width: min(520px, calc(100vw - 40px));
+ transform: none;
+ align-items: flex-start;
+ background: #352a29;
+ border-color: #62413b;
+ color: #f0c5bc;
+}
+html[data-design-system="muse"] .toast.toast-error > svg { flex: 0 0 auto; margin-top: 2px; color: #f0a79a; }
+html[data-design-system="muse"] .toast.toast-error > span { flex: 1; line-height: 1.6; }
+html[data-design-system="muse"] .toast.toast-error .icon-button { flex: 0 0 auto; width: 28px; height: 28px; margin: -5px -8px 0 0; }
 @media (max-width: 640px) {
  html[data-design-system="muse"] .skills-marketplace-embedded .skills-grid { grid-template-columns: minmax(0,1fr); }
+ html[data-design-system="muse"] .auth-content { padding: 14px 22px 28px; }
+ html[data-design-system="muse"] .auth-content h3 { font-size: 23px; line-height: 30px; }
+ html[data-design-system="muse"] .auth-content > p { font-size: 13px; line-height: 20px; }
+ html[data-design-system="muse"] .toast.toast-error { top: 74px; right: 12px; width: calc(100vw - 24px); }
 }
+
+@media (max-width:700px){.chat-background-link span{display:none}.chat-background-link{min-width:44px;min-height:44px;justify-content:center}}
+
+html[data-design-system="muse"] .platform-quick-start button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }

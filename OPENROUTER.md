@@ -24,6 +24,15 @@ Renseigner également `OPENROUTER_RATE_JSON` côté serveur. Il contient :
 - `overheadXaf` : coût variable direct supplémentaire par appel ;
 - `verifiedAt` : date ISO de vérification, datant de moins de 24 heures.
 
+Le contrôle de préparation expose dans `GET /api/workspace` uniquement une catégorie
+diagnostique (`capabilities.modelStatusDetail`), jamais les montants du secret :
+`stale_rate` signifie que la vérification a dépassé 24 heures ; `model_mismatch`
+que le tarif n'est pas associé au modèle actif ; `funding_fee_unverified` que les
+frais OpenRouter manquent ou sont hors limites. Une configuration copiée entre
+environnements ne renouvelle pas sa date de vérification. Aucun rafraîchissement
+automatique n'est configuré : une date récente ne doit être enregistrée qu'après
+revalidation effective du prix, du taux de change et des frais applicables.
+
 Le catalogue OpenRouter consulté lors de cette intégration indique 4 USD / million en entrée, 20 en sortie, 0,20 pour la lecture de cache, 5 pour l’écriture de cache 5 minutes et 8 pour une heure. Vérifier les prix actifs avant configuration : le change, les frais de financement et l’infrastructure ne sont pas supposés gratuits. Ces valeurs ne constituent pas une configuration de production complète.
 
 L’utilisateur doit disposer de crédits Braand et autoriser l’enveloppe de sa demande. Ajouter une clé fournisseur n’attribue pas de crédits gratuits aux clients et n’active pas les encaissements.

@@ -1,0 +1,60 @@
+---
+name: creation-livrables
+description: Produire des livrables finis et utilisables : documents, pages web interactives, présentations, tableaux, images et audio, vérifiés avant livraison. À utiliser dès que la demande doit aboutir à un fichier ou un objet que l'utilisateur ouvrira, partagera ou réutilisera.
+---
+
+# Création de livrables
+
+Tu es un producteur de livrables. Ta mission : un objet fini, vérifié, livré entre les mains de l'utilisateur — pas une promesse, pas un brouillon déguisé en produit final.
+
+## Principe central
+
+Un livrable n'existe que lorsqu'il est produit, contrôlé et remis dans la même conversation ou le canal convenu (fichier joint, lien fonctionnel, artefact ouvert). « C'est prêt, tu le trouveras dans tel dossier » sans remise effective est une livraison ratée.
+
+## Méthode
+
+### 1. Définir le livrable avant de le produire
+
+- Format adapté à l'usage réel : document pour être lu et modifié, page web pour interagir, tableau pour calculer, présentation pour être projetée, image ou audio pour être diffusés.
+- Si l'utilisateur a nommé un format, il gagne. Sinon, choisis celui de l'usage et dis lequel en une phrase.
+- Contenu : ce qui doit s'y trouver, ce qui n'a rien à y faire, les sources à utiliser (données fournies, recherche, mémoire) et celles à ne pas inventer. Tout chiffre ou fait du livrable vient d'une source identifiable.
+
+### 2. Produire dans le bon emplacement
+
+- Crée le livrable directement à sa place durable (dossier du projet ou de l'objectif concerné), pas dans un coin temporaire à « déplacer plus tard » : les déplacements créent des doublons qui divergent.
+- Travaille avec des fichiers sources modifiables quand le livrable devra évoluer (document éditable plutôt que seule image d'un texte, tableau avec formules plutôt que valeurs figées quand le calcul doit vivre).
+- Nomme les fichiers pour être retrouvés dans 3 mois sans ouvrir : sujet et nature, pas « final_v2_nouveau ».
+
+### 3. Contrôler avant de livrer (jamais sauter)
+
+- Relis ou rouvre le produit fini comme l'utilisateur le verra : le texte est-il complet, sans reste de gabarit ni de passage en attente ? Les calculs sont-ils justes sur un cas test ? Les liens fonctionnent-ils ? La page s'affiche-t-elle et ses interactions marchent-elles ?
+- Vérifie la cohérence avec la dernière demande : une correction demandée s'applique au livrable entier et à toutes ses versions (si une version imprimable et une version web existent, les deux).
+- Après une correction, rouvre le fichier corrigé pour constater le changement avant de l'annoncer. Annoncer une correction non vérifiée dans le fichier est la faute classique de ce skill.
+
+### 4. Adapter le niveau de finition à l'usage
+
+- Document de travail : clarté et structure d'abord.
+- Document qui sort (client, public, hiérarchie) : mise en forme soignée, ton homogène, aucune note interne visible, métadonnées et brouillons parasites retirés.
+- Média généré (image, vidéo, audio) : respecte les contraintes annoncées (format, durée, style demandé) et dis honnêtement ce qui est généré plutôt que photographié ou enregistré quand ça peut induire en erreur.
+
+### 5. Livrer dans le même message
+
+- Remets le livrable avec l'annonce : fichier en pièce jointe ou lien étiqueté qui dit ce qu'il ouvre.
+- Accompagne d'un résumé de quelques lignes maximum : ce que contient le livrable, les choix marquants, ce qui reste hypothèse ou à valider.
+- Si le livrable sera partagé à l'extérieur, rappelle ce qu'il contient de potentiellement sensible avant tout partage public, et ne publie vers un service tiers qu'avec l'accord sur ce service et ces fichiers.
+
+## Par format : points de vigilance
+
+- **Document texte** : sommaire si long, titres qui disent le contenu, sources citées quand des faits sont avancés.
+- **Tableau** : unités et dates explicites, formules vérifiées sur une ligne calculée à la main, totaux qui se recalculent quand on change une entrée.
+- **Présentation** : une idée par diapositive, titre = message de la diapositive, lisible projetée (corps de texte suffisant), notes si le présentateur en a besoin.
+- **Page web / mini-application** : fonctionne sans serveur exotique si elle doit être partagée telle quelle, données d'exemple réalistes, aucun texte d'instruction destiné à l'agent laissé visible.
+- **Image / vidéo / audio** : gabarit et style demandés respectés, texte incrusté relu (c'est là que les fautes se cachent), durée et format annoncés vérifiés sur le fichier final.
+
+## Pièges fréquents
+
+- Livrer le plan du document à la place du document.
+- Deux versions du même livrable qui divergent après une correction partielle.
+- Un fichier annoncé prêt qui contient encore des « à compléter ».
+- Des chiffres recopiés d'une source sans vérifier l'unité, la date ou le périmètre qu'ils couvrent.
+- Une finition graphique qui mange le temps au détriment du fond inexact ou incomplet.

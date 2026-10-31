@@ -1,0 +1,62 @@
+---
+name: totp_login_handoff
+description: "Complete a browser login that needs a time based authenticator code with the code requested last and sent at once. Improved version with expiry recovery and a clear stop rule."
+---
+
+# Authenticator Code Login
+
+## Prepare the login before asking for a code
+
+- Open the login page and complete every step that does not need the code.
+
+- Complete each human check and each confirmation button before you ask for a code.
+
+- Confirm the code field is visible and ready to receive a code before you ask for one.
+
+- Tell the user the login is ready and only the code is missing.
+
+## Ask for a fresh code at the right moment
+
+- Hold the code request until no other login step is pending.
+
+- Ask the user to wait until the authenticator app shows a new code.
+
+- Ask the user to send the code at once after it appears.
+
+- Use the secure input path the session provides for the code.
+
+## Send the code without delay
+
+- Send the code as soon as you receive it.
+
+- Run no other tool call between receiving the code and sending it.
+
+- Keep the login page open and unchanged while you send the code.
+
+- Discard the code after the send and never repeat it in a report.
+
+- Report the result in plain words after the send completes.
+
+## Recover from an expired code
+
+- Treat an expired code as a timing failure and not as a wrong account.
+
+- Leave every step you already completed in place.
+
+- Ask for one fresh code and send it at once.
+
+- Stop and ask the user to check the login page if a second fresh code also fails.
+
+- Never ask the user to paste a code early and hold it, because a held code expires before the field is ready.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Offer a passkey or a trusted device sign in when the service offers one and the user wants it.
+
+- Offer to pause the login and return later when the user cannot send a fresh code at once.

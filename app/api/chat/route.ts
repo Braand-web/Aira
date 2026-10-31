@@ -1,5 +1,6 @@
 import {requireModel} from "@/lib/llm";
 import {routingEnabled,routedModel} from '@/lib/model-router';
+import {ensureModelPricing} from '@/lib/model-pricing';
 import {z} from "zod";
 import {identity,db,uid,getResource,createResource,failure,config} from "@/lib/server";
 import {runAgent} from "@/lib/agent";
@@ -14,6 +15,7 @@ export async function POST(request:Request){
  let tenant="",conversationId="",locked=false,budget:RunBudget|undefined;
  try{
   const who=await identity(request);tenant=who.tenant;
+  await ensureModelPricing();
   if(routingEnabled(config()))routedModel(config(),{task:'conversation'});else requireModel();
   const body=z.object({text:z.string().trim().min(1).max(16000),conversationId:z.string().optional(),attachments:z.array(z.string()).max(FILE_POLICY.maxFilesPerMessage).default([]),maxCredits:z.number().int().min(1).max(1000),workMode:z.enum(["accompanied","autonomous"]).default("accompanied")}).parse(await request.json());
   const conversation=body.conversationId?await getResource(tenant,body.conversationId):await createResource(tenant,"conversation",body.text.slice(0,70),{},"saved");if(conversation.kind!=="conversation"||conversation.status==="deleted")throw new AppError("Discussion invalide.");const sidebar=conversation.data.sidebar;if(sidebar&&typeof sidebar==="object"&&!Array.isArray(sidebar)&&(sidebar as Record<string,unknown>).archived===true)throw new AppError("Restaurez cette discussion avant de la continuer.",409);conversationId=conversation.id;

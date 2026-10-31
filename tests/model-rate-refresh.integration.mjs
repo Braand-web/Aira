@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..'),outfile=path.join(root,'.local-build/model-rate-refresh-test.mjs');
 mkdirSync(path.dirname(outfile),{recursive:true});
-await build({stdin:{contents:`export * from './lib/model-rate-refresh';export {routedModel} from './lib/model-router';`,resolveDir:root,loader:'ts'},outfile,bundle:true,platform:'node',format:'esm'});
+await build({stdin:{contents:`export * from './lib/model-rate-refresh';export {routedModel} from './lib/model-router';`,resolveDir:root,loader:'ts'},outfile,bundle:true,platform:'node',format:'esm',plugins:[{name:'isolated-worker-environment',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'workers',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const env={};'}));}}]});
 const url=pathToFileURL(outfile).href,refresh=await import(url);
 const now=Date.parse('2026-10-26T02:00:00Z'),hour=3600000,stored=new Map();let puts=0,fetches=0,reads=0,fail=false,missing=false,price='0.0000001';
 const bucket={async get(key){reads++;const text=stored.get(key);return text===undefined?null:{size:Buffer.byteLength(text),async text(){return text;}};},async put(key,value){puts++;stored.set(key,value);}};

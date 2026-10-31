@@ -37,11 +37,13 @@ export function requestCostUnits(row:ModelCostRow,rate:ModelRate,usageUnits:(usa
  }
  return usageUnits(JSON.parse(row.usage||'null'),rate).units;
 }
-export async function generationCost(id:string,rate:ModelRate){
+export async function generationCost(id:string,rate:ModelRate,options?:{requireFinal?:boolean}){
  const key=config().OPENROUTER_API_KEY;if(!key||!/^gen-[a-zA-Z0-9_-]+$/.test(id))throw new AppError('Identifiant OpenRouter manquant.',409,'usage_unknown');
  const response=await fetch('https://openrouter.ai/api/v1/generation?id='+encodeURIComponent(id),{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(8000)});
- if(!response.ok)throw new AppError('Coût OpenRouter temporairement indisponible.',409,'usage_unknown');
+ if(!response.ok){await response.body?.cancel().catch(()=>undefined);throw new AppError('Coût OpenRouter temporairement indisponible.',409,'usage_unknown');}
  const receipt=z.object({data:z.object({id:z.string(),total_cost:z.number().finite().nonnegative(),provider_name:z.string().nullable().optional()}).passthrough()}).safeParse(await response.json());
  if(!receipt.success||receipt.data.data.id!==id)throw new AppError('Coût OpenRouter non confirmé.',409,'usage_unknown');
- const {data}=receipt.data;return {usd:data.total_cost,xaf:data.total_cost*rate.usdXaf*(1+Number(rate.fundingFeeBps)/10000)+rate.overheadXaf,provider:data.provider_name||null};
+ const {data}=receipt.data;
+ if(options?.requireFinal&&(typeof data.finish_reason!=='string'||!data.finish_reason.trim()))throw new AppError('Le reçu fournisseur n’est pas encore final.',409,'usage_unknown');
+ return {usd:data.total_cost,xaf:data.total_cost*rate.usdXaf*(1+Number(rate.fundingFeeBps)/10000)+rate.overheadXaf,provider:data.provider_name||null};
 }

@@ -1,0 +1,99 @@
+---
+name: reels_viraux_motion_design
+description: "Produire des vidéos verticales courtes quotidiennes en motion design qui retiennent et se partagent dans n'importe quelle niche, coaching, sport, éducation, business, divertissement ou marque personnelle, avec accroche choc, voix fluide et mécanique d'interaction obligatoire."
+---
+
+# Reels et Vidéos Courtes Viraux en Motion Design
+
+## Adapter à n'importe quel projet
+
+- Commencer par fixer les variables du projet, depuis la demande ou en demandant seulement celles qui manquent et changent le résultat.
+
+- Variables à fixer : le domaine ou le secteur, le public visé, le marché (pays, langue et culture), la devise, la plateforme de vente ou de diffusion, l'offre et son prix, le budget disponible et l'objectif mesurable.
+
+- Ne jamais appliquer un chiffre d'un autre projet tel quel, toujours le recalculer dans la devise, le prix et le contexte du projet en cours.
+
+- Traiter les exemples chiffrés de ce skill comme des illustrations de la méthode, jamais comme des valeurs par défaut.
+
+
+## Choisir un sujet qui peut se partager
+
+- Choisir un sujet avec une personne, une situation ou une question que le public de la niche reconnaît en une seconde.
+
+- Noter chaque sujet sur 4 critères, fraîcheur, reconnaissance du sujet, potentiel de débat et de partage, et fenêtre de vie avant que le sujet refroidisse.
+
+- Produire un sujet seulement s'il remplit au moins 3 critères forts, et recycler les sujets non retenus en contenus intemporels avant qu'ils perdent leur valeur.
+
+- Alterner les registres qui partagent le plus dans la niche, décodage de ce qui est caché, ce que l'autre partie pense vraiment, erreurs fréquentes, classements contestables et règles simples à appliquer.
+
+- Tester une expérience créative nouvelle à chaque cycle et ne jamais répéter la même structure d'accroche deux fois de suite.
+
+## Écrire un script fait pour la rétention
+
+- Ouvrir par une accroche choc en 2 ou 3 lignes géantes dès la première seconde, sans introduction ni présentation.
+
+- Structurer le script en 7 temps, accroche, problème, retournement, phrase choc partageable, règle ou preuve en étapes numérotées, signature de la marque, puis fin avec question débat.
+
+- Placer une relance toutes les 10 à 15 secondes et garder le meilleur argument ou la révélation pour la fin.
+
+- Terminer par une mécanique d'interaction obligatoire, question à trancher en A ou B, valeur à deviner, phrase à compléter ou classement à contester.
+
+- Garder le script entre 25 et 50 secondes pour un format quotidien, avec une seule idée par vidéo.
+
+## Produire en motion design dense et vivant
+
+- Produire en vertical 1080 par 1920 ou dans le format natif de la plateforme visée, avec une vraie typographie rendue par le moteur graphique, jamais du texte généré dans une image.
+
+- Remplir chaque image, avec un événement visuel toutes les 1 à 2 secondes, un fond vivant et aucun écran vide.
+
+- Animer les éléments avec des entrées franches, des tampons, des étiquettes qui glissent, des stickers détourés et des micro secousses plus un flash à chaque coupe.
+
+- Utiliser tout personnage récurrent uniquement depuis une source visuelle unique et stable, pour garder une cohérence parfaite d'une vidéo à l'autre.
+
+- Ajouter une barre de progression, un en tête de marque et une phrase choc en plein écran au moment le plus partageable.
+
+## Réussir la voix et le son
+
+- Générer la voix en 1 à 3 longs segments maximum, jamais phrase par phrase, avec un débit fluide et énergétique adapté à la langue du projet.
+
+- Choisir une seule voix stable pour la marque et la garder sur toute la série.
+
+- Mixer une musique rythmée baissée sous la voix, avec des impacts aux coupes, et viser environ moins 14 LUFS avec des pics sous moins 3 dB sauf exigence contraire de la plateforme.
+
+- Transcrire le mix final et vérifier qu'aucune voix hors script n'est présente, surtout quand une bande son est réutilisée.
+
+- Afficher des sous-titres mot à mot en karaoké ou en bandeau lisible, découpés au prorata des mots réellement prononcés.
+
+## Contrôler avant de publier
+
+- Extraire des images de chaque scène et les vérifier une par une avant publication.
+
+- Refaire la vidéo si un texte est tronqué, si un élément couvre un mot clé, si un sous-titre est coupé ou si une scène reste statique.
+
+- Vérifier les faits cités avec 2 sources quand la vidéo donne un chiffre, une date, un score ou une citation.
+
+- Publier sans fausse preuve, sans promesse mensongère, sans achat d'abonnés ou de vues et sans spam en commentaires.
+
+## Mesurer et améliorer à chaque bilan
+
+- Juger chaque vidéo d'abord sur les partages et les commentaires, ensuite seulement sur les vues.
+
+- Republier les gagnants quelques jours plus tard avec une nouvelle accroche, et doubler le registre le plus partagé.
+
+- Changer l'accroche d'un créneau après 3 échecs et transformer un contenu faible en question débat.
+
+- Consigner chaque expérience créative dans un journal avec son verdict, garder ou rejeter.
+
+- Promouvoir une amélioration en standard officiel seulement après 2 preuves, et incrémenter la version du format à ce moment.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Utiliser une vraie vidéo parlée filmée ou générée quand le sujet exige un humain vivant, et garder le motion design pour les sujets éditoriaux rapides.
+
+- Produire deux accroches pour le même script les jours importants et garder la plus claire après relecture à voix haute.

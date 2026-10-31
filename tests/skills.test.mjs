@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult,skillCatalogMetadata} from '../lib/skills/registry.ts';
+import {createSkillSession,searchSkills,readSkill,skillDiscoveryContext,publicSkillResult,reviewedSkillMetadata} from '../lib/skills/registry.ts';
+import {reviewedSkillCatalogSchema} from '../lib/skill-metadata.ts';
 import {SKILL_POLICY} from '../lib/skills/policy.mjs';
 
 test('reviewed sources and generated lazy catalog reproduce the pinned local bytes',()=>{
@@ -33,7 +34,18 @@ test('browser events contain progress metadata, never imported prose or source i
  const result=await readSkill({id:'copywriting'},createSkillSession());const publicResult=publicSkillResult('read_skill',result);assert.equal(publicResult.id,result.id);assert.equal('content' in publicResult,false);assert.equal('provenance' in publicResult,false);assert.equal('references' in publicResult,false);assert.equal(JSON.stringify(publicResult).includes('coreyhaines31'),false);assert.deepEqual(publicSkillResult('search_skills',searchSkills({query:'conversion'})),{status:'methods_found',total:searchSkills({query:'conversion'}).total});
 });
 test('document originals are readable and declare content-only execution capabilities',async()=>{
- for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,'1.0.0');assert.ok(method.references.includes('references/controles.md'));}
+ for(const id of ['braand-docx','braand-pdf','braand-pptx','braand-xlsx']){const method=await readSkill({id},createSkillSession());assert.equal(method.capability,'document_content_only');assert.equal(method.provenance.origin,'Braand');assert.equal(method.version,id==='braand-xlsx'?'1.2.0':'1.1.0');assert.ok(method.references.includes('references/controles.md'));}
+});
+
+test('software methods are selected by the model across languages with bounded progressive evidence guidance',async()=>{
+ const id='braand-software-delivery';
+ for(const query of ['Fix the build and verify deployment','صحح التطبيق وتحقق من الاختبارات','Corriger et déployer mon application']){
+  const found=searchSkills({query,category:'operations',semanticIds:[id]});assert.equal(found.skills[0].id,id);assert.equal(found.strategy,'model_selected_and_lexical');assert.equal('content' in found.skills[0],false);assert.equal(found.skills[0].capability,'text_draft');
+ }
+ const session=createSkillSession();await assert.rejects(()=>readSkill({id,reference:'references/delivery-evidence.md'},session),e=>e.code==='skill_entry_required');
+ const method=await readSkill({id},session);assert.equal(method.provenance.origin,'Braand');assert.equal(method.provenance.license,'Braand-original');assert.equal(method.truncated,false);assert.ok(method.chars<4000);assert.equal(session.calls,1);
+ const reference=await readSkill({id,reference:'references/delivery-evidence.md'},session);assert.equal(reference.truncated,false);assert.equal(reference.provenance.digest,method.provenance.digest);assert.equal(session.calls,2);assert.ok(session.chars<10000);
+ await assert.rejects(()=>readSkill({id,reference:'scripts/deploy.sh'},session),e=>e.code==='skill_not_found');assert.equal(Object.hasOwn(publicSkillResult('read_skill',method),'content'),false);
 });
 
 test('growth and community requests discover focused methods without granting execution capabilities',async()=>{
@@ -58,10 +70,59 @@ test('growth and community requests discover focused methods without granting ex
  }
 });
 
+test('adapted methods support model-led multilingual selection and progressive references within existing budgets',async()=>{
+ const ids=['braand-campaign-operations','braand-business-research','braand-decision-prioritization','braand-project-delivery','braand-professional-writing','braand-meeting-actions'];
+ for(const [index,id]of ids.entries()){
+  const query=['Publicité','بحث موثق','優先順位を決める','Organize dependencies','Rédiger une lettre','总结会议'][index];
+  const result=searchSkills({query,semanticIds:[id]});
+  assert.equal(result.skills[0].id,id);assert.equal(result.strategy,'model_selected_and_lexical');
+  const loaded=await readSkill({id},createSkillSession());
+  assert.equal(loaded.provenance.license,'User-provided-adapted');
+  assert.equal(loaded.provenance.origin,'user-provided://braand/2026-10-25');
+  assert.equal(loaded.version,'1.0.0');assert.equal(loaded.truncated,false);
+  assert.ok(loaded.chars<4000,'Focused entry should not load the original long guide');
+ }
+ const session=createSkillSession();
+ await assert.rejects(()=>readSkill({id:ids[0],reference:'references/live-actions.md'},session),error=>error.code==='skill_entry_required');
+ const entry=await readSkill({id:ids[0]},session);assert.equal(entry.references.length,3);
+ const reference=await readSkill({id:ids[0],reference:'references/live-actions.md'},session);
+ assert.equal(reference.reference,'references/live-actions.md');assert.equal(session.calls,2);
+ assert.equal(reference.budget.remainingChars,SKILL_POLICY.maxRunChars-entry.chars-reference.chars);
+ assert.equal(searchSkills({category:'operations',semanticIds:[ids[0],ids[1]]}).skills.some(skill=>skill.id===ids[0]),false);
+});
+
+test('settings metadata matches the reviewed registry and rejects private prose or extra executable fields',()=>{
+ const skills=reviewedSkillMetadata();const dto=reviewedSkillCatalogSchema.parse({skills});
+ assert.equal(dto.skills.length,166);assert.equal(new Set(dto.skills.map(skill=>skill.id)).size,166);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],content:'private instructions'}]}).success,false);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],tools:['shell']}]}).success,false);
+ assert.equal(reviewedSkillCatalogSchema.safeParse({skills:[{...skills[0],id:'../unreviewed'}]}).success,false);
+ assert.ok(dto.skills.every(skill=>Object.keys(skill).sort().join(',')==='capability,category,description,id,title,version'));
+});
+
+test('growth pack adds focused sales and retention methods without a second router or assumed tools',async()=>{
+ const cases=[
+  ['braand-sales-conversion','Preparar una conversación de ventas'],
+  ['braand-lead-magnets','リード向けの役立つ資料'],
+  ['braand-outbound-referrals','Prospecter et préparer un parrainage'],
+  ['braand-revenue-models','Compare revenue and cash collection'],
+  ['braand-retention-economics','تحليل الاحتفاظ بالعملاء'],
+ ];
+ for(const [id,query]of cases){
+  const discovered=searchSkills({query,semanticIds:[id],category:'marketing'});
+  assert.equal(discovered.skills[0].id,id);assert.equal(discovered.skills[0].version,'1.0.0');
+  const session=createSkillSession(),method=await readSkill({id},session);
+  assert.equal(method.truncated,false);assert.ok(method.chars<4000);assert.equal(session.calls,1);
+  for(const reference of method.references){const detail=await readSkill({id,reference},session);assert.ok(detail.content.length>100);assert.ok(detail.budget.remainingChars>0);}
+  assert.ok(['text_draft','text_and_page_draft','provided_data_analysis'].includes(method.capability));
+ }
+ assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-growth-router'),false);
+ assert.equal(reviewedSkillMetadata().some(item=>item.id==='hormozi-paid-ads-lab'),false);
+});
 test('video methods expose reviewed references and templates, with no executable archive entries',async()=>{
  const discovery=searchSkills({query:'montage anime AMV typographie',category:'creative'});
  assert.equal(discovery.skills[0]?.id,'video-motion-studio');
- assert.equal(skillCatalogMetadata().find(skill=>skill.id==='video-motion-studio')?.origin,'workspace');
+ assert.equal(reviewedSkillMetadata().find(skill=>skill.id==='video-motion-studio')?.category,'creative');
  const session=createSkillSession(),entry=await readSkill({id:'video-motion-studio'},session);
  assert.equal(entry.capability,'media_proposal');
  assert.equal(entry.provenance.revision,'43e8544a2b894204e715dc75ff399e009bc627fa39c31fb0041324b7e9d18e7a');

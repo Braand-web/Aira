@@ -1,6 +1,8 @@
 ---
 name: braand-xlsx
 description: "Accompagne la lecture, le nettoyage, la création, la modification et l'analyse de classeurs Excel .xlsx, y compris les formules, en distinguant données observées, calculs proposés et opérations de fichier réellement exécutées."
+metadata:
+  version: "1.2.0"
 ---
 
 # Classeurs Excel pour Braand
@@ -9,13 +11,11 @@ Utiliser ce skill lorsqu'une demande porte sur un `.xlsx`, ses feuilles, ses cel
 
 ## Capacité d'exécution
 
-Braand dispose actuellement de `search_workspace`, `save_knowledge`, `create_page`, `prepare_media` et `read_meta`. Des extractions ou aperçus peuvent être disponibles dans l'application. Le modèle n'a ni shell, ni moteur de classeur, ni moteur de recalcul connecté.
+Découvrir les exports documentaires avec `capabilities` (`area: "documents"`). Lire les données accessibles et leur couverture. Enregistrer le contenu dans `save_deliverable` ou réviser sa version courante, puis appeler `export_deliverable` avec `format: "xlsx"` ou `format: "csv"`.
 
-- Vérifier ce qui est réellement accessible : feuilles, plages, en-têtes, lignes, formules ou seulement valeurs affichées. `search_workspace` peut fournir un échantillon ; `read_meta` ne garantit pas l'accès aux cellules.
-- `create_page` peut présenter une analyse ou un tableau dans Braand, pas produire un XLSX. `save_knowledge` et `prepare_media` ne créent, ne nettoient ni ne recalculent un classeur.
-- Ne jamais annoncer un XLSX créé, modifié, nettoyé, recalculé ou vérifié sans outil adapté, fichier obtenu et contrôles proportionnés. Une formule rédigée dans le chat n'est pas une formule insérée dans Excel. Ne pas inventer de lien de téléchargement.
-- Si un fichier est demandé, signaler brièvement l'absence d'export ou d'édition et préparer le schéma, les données accessibles, les règles de nettoyage, les formules ou les modifications à appliquer. Ne pas fabriquer un fichier d'exemple pour masquer cette limite.
-- Si un outil de classeur est réellement exposé plus tard, respecter son contrat et vérifier séparément lecture, écriture, rendu et recalcul. Ce skill ne l'installe pas et ne lui accorde aucune autorisation supplémentaire.
+XLSX transforme les tableaux Markdown en cellules textuelles et conserve le contexte et les sources. Sans tableau, il écrit des lignes de texte. Toutes les valeurs sont textuelles : il ne crée ni formules exécutables, calcul, graphiques, styles complexes ou modification fidèle d'un classeur fourni. Un identifiant avec zéros initiaux peut rester du texte ; ne pas présenter un nombre textuel comme une cellule numérique calculable.
+
+Les chaînes ressemblant à des formules restent inertes dans XLSX ; le CSV est neutralisé à l'export sans autoriser leur exécution. Ne pas certifier le comportement de tous les lecteurs. Ne livrer que le fichier retourné et séparer contrôle des données, paquet créé, recalcul absent et rendu non inspecté. Une formule préparée ou une valeur mise en cache n'est pas un résultat recalculé. Pour une édition binaire non disponible, préparer les changements localisés et leur limite.
 
 ## Modes de travail
 
@@ -45,3 +45,5 @@ Une ambiguïté bloque seulement les opérations qui en dépendent : une date am
 Recontrôler les nombres, unités et plages utilisés contre la source accessible. Lorsqu'un outil de calcul est absent, le dire si cela affecte la fiabilité du résultat ; ne pas qualifier le classeur de recalculé ou validé par Excel. Avec un futur moteur, vérifier la réouverture, les cellules modifiées, les formules et résultats concernés ainsi que les effets de bord utiles ; le simple enregistrement du fichier ne suffit pas.
 
 Livrer le tableau, la règle, la formule, l'analyse ou les changements réellement préparés, avec leur couverture et leurs limites. Pour les cas de dates, formules et contrôles d'évaluation, consulter [les contrôles et scénarios Excel](references/controles.md).
+
+Pour des calculs réels sur un tableau CSV/JSON ou une analyse enregistrée, lire [le moteur d’analyse borné](references/analyse-native.md). Ce moteur est distinct de l’édition et du recalcul d’un classeur XLSX.

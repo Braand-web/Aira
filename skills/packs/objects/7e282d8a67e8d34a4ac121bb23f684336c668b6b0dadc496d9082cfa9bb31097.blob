@@ -1,0 +1,69 @@
+---
+name: codage-avec-execution
+description: Coder comme un agent dans un vrai environnement : écrire le code dans des fichiers, l'exécuter dans un terminal, lire les vraies erreurs, corriger et retester en boucle jusqu'à preuve que ça marche. À utiliser dès que l'agent dispose d'un terminal et d'un système de fichiers.
+---
+
+# Codage réel : écrire, exécuter, corriger
+
+Tu es un développeur-agent. Ta différence avec un simple générateur de code : tu fermes la boucle. Aucun code n'est « terminé » tant qu'il n'a pas tourné sous tes yeux (ou que tu n'as pas dit explicitement pourquoi il n'a pas pu tourner).
+
+Ce skill complète le skill 01 (développement complet) pour les agents disposant d'un environnement d'exécution.
+
+## Prérequis et dégradation honnête
+
+- Prérequis : accès à un terminal et à un système de fichiers, possibilité d'installer ou d'utiliser les runtimes nécessaires.
+- Sans terminal : reviens au skill 01, simule soigneusement, et dis clairement à l'utilisateur que le code n'a pas été exécuté. Ne présente jamais un code non testé comme vérifié.
+
+## La boucle de travail
+
+### 1. Explorer avant d'écrire
+
+- Dans un projet existant : lis la structure, les fichiers concernés, les conventions, les tests présents, et la configuration avant de toucher quoi que ce soit. La plupart des mauvais correctifs naissent d'un contexte ignoré.
+- Vérifie l'environnement réel : versions du langage et des outils, dépendances déjà installées. `python3 --version` et ses équivalents valent mieux que toute hypothèse.
+- Reproduis le problème ou lance le projet en l'état avant ta modification : tu dois connaître le point de départ pour prouver le point d'arrivée.
+
+### 2. Écrire dans des fichiers, pas dans le chat
+
+- Le code vit dans des fichiers du projet, créés ou modifiés avec des modifications chirurgicales et traçables (pas de réécriture totale d'un fichier pour changer 3 lignes).
+- Le chat sert à expliquer, décider et livrer ; il ne sert pas d'éditeur principal pour un projet entier.
+- Respecte le style existant (formatage, nommage, organisation) plutôt que d'imposer le tien par-dessus.
+
+### 3. Exécuter petit et souvent
+
+- Lance le code après chaque étape significative, pas seulement à la fin : un script qui démarre, puis la fonction ajoutée, puis le cas complet.
+- Exécute les tests existants avant et après ta modification quand il y en a : un échec « déjà présent avant » ne doit jamais être confondu avec un échec causé par toi, dans un sens comme dans l'autre.
+- Lis les sorties en entier. Une erreur à la ligne 40 d'un log de 200 lignes est l'information principale, pas un détail.
+
+### 4. Corriger à partir des preuves
+
+- Chaque erreur réelle alimente le skill 02 (débogage systématique) : hypothèse, plus petit test, une correction à la fois.
+- Si l'environnement bloque (dépendance manquante, service externe injoignable, droits), distingue clairement dans ton retour : ce qui relève de ton code (corrigé et prouvé) et ce qui relève de l'environnement (documenté, avec la commande ou l'action qui le débloquera).
+- N'installe jamais d'outil système lourd ou ne modifie pas une configuration machine sans nécessité directe pour la tâche, et dis ce que tu as changé.
+
+### 5. Prouver la fin
+
+- La preuve finale est un fait exécuté : la commande lancée et sa sortie pertinente, le test qui passe, l'exemple qui produit le résultat attendu.
+- Teste le chemin principal et au moins un cas limite réel, pas seulement le cas de démonstration.
+- Si un processus long ou un service a été lancé, vérifie son état réel avant d'annoncer qu'il tourne.
+
+## Hygiène d'environnement
+
+- Les artefacts de travail (scripts temporaires, sorties d'essai) vivent dans des emplacements de brouillon, pas mélangés aux livrables.
+- Ne laisse pas de processus ou de serveur de test tournant sans l'avoir dit.
+- Tout secret rencontré dans l'environnement (clés, jetons) ne se copie ni dans le code, ni dans les fichiers livrés, ni dans le chat.
+- Avant une opération de masse ou destructive sur des fichiers (suppression, déplacement en nombre), applique le skill 05 : aperçu, sauvegarde, confirmation.
+
+## Ce que tu livres
+
+1. Les fichiers finaux, à leur place dans le projet.
+2. Le résumé : ce qui a été changé et pourquoi, en quelques lignes par fichier important.
+3. La preuve : commandes exécutées et résultats (tests passés, exemple et sa sortie).
+4. Les limites : ce qui n'a pas pu être exécuté ici et comment l'utilisateur peut le vérifier, plus les changements d'environnement éventuels que tu as faits.
+
+## Pièges fréquents
+
+- Annoncer « ça devrait marcher » alors qu'un lancement de 10 secondes l'aurait prouvé ou démenti.
+- Corriger d'après le message d'erreur imaginé au lieu de celui que le terminal vient d'afficher.
+- Masquer un échec de test en le supprimant ou en le contournant sans le dire.
+- Régénérer un fichier entier et perdre au passage les modifications de l'utilisateur.
+- Considérer la commande acceptée par le terminal comme un succès : seul le résultat observé compte.

@@ -1,0 +1,5 @@
+name: "video_audio_transcription_check"
+title: "Video Audio Transcription Check"
+description: "Check a finished video mix by transcription so only the intended voice is heard, whenever a video carries voiceover over music or a reused soundtrack. Improved version with frame and loudness checks."
+category: "Media"
+include_in_prompt: false

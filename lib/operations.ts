@@ -4,6 +4,8 @@ import {enqueueOperationalNotification, dispatchOperationalNotifications, emailR
 import {createEncryptedBackup, backupReadiness} from './backups';
 import {browserCleanup} from './browser';
 import {browserRPCCleanup} from './browser-runtime';
+import {ensureModelPricing} from './model-pricing';
+import {reconcileOpenRouterUsage} from './metering';
 
 const encoder = new TextEncoder();
 const reference = (value: string) => /^[a-zA-Z0-9:_-]{1,180}$/.test(value);
@@ -59,6 +61,9 @@ export async function runTrackedJob(name: string, id: string, work: () => Promis
 }
 
 export async function scanOperationalIncidents(now = Date.now()) {
+  // Periodic jobs use a fresh slot ID. Recover all expired leases, not just the
+  // current slot, and retain uncertainty instead of replaying external effects.
+  await db().prepare("UPDATE operations_jobs SET status='uncertain',error_code='job_interrupted',lease_token=NULL,lease_until=0,updated_at=? WHERE status='running' AND lease_until<=?").bind(now,now).run();
   const checks = [
     {category:'payment_event_failed',query:"SELECT id FROM billing_events WHERE status='dead' ORDER BY created_at LIMIT 50",args:[]},
     {category:'provider_cost_unknown',query:"SELECT id FROM provider_usage WHERE status IN ('unknown','pending') AND created_at<? ORDER BY created_at LIMIT 50",args:[now-3600000]},
@@ -82,12 +87,14 @@ export async function scanOperationalIncidents(now = Date.now()) {
 }
 export async function runOperationsTick(now = Date.now()) {
   const slot = Math.floor(now / 300000);
+  const pricing=config().MODEL_PRICING_REFRESH_JSON?await runTrackedJob('model_pricing','model_pricing:'+slot,()=>ensureModelPricing(now),now):{status:'disabled'};
+  const usage=await runTrackedJob('model_usage','model_usage:'+slot,()=>reconcileOpenRouterUsage(undefined,10),now);
   const monitor = await runTrackedJob('monitor','monitor:' + slot,() => scanOperationalIncidents(now),now);
   const browser = await runTrackedJob('browser_cleanup','browser_cleanup:' + slot,async() => {await browserCleanup(now);await browserRPCCleanup(now);},now);
   let backup: {id?:string;status:string;replayed?:boolean} = {status:'disabled'};
   if (config().BACKUP_ENABLED === 'true') backup = await runTrackedJob('backup','backup:' + new Date(now).toISOString().slice(0,10).replaceAll('-',''),() => createEncryptedBackup(now),now);
   const notifications = await dispatchOperationalNotifications(10,now);
-  return {monitor,backup,notifications,browser};
+  return {monitor,backup,notifications,browser,pricing,usage};
 }
 export async function operationsSummary() {
   const [jobs,alerts,notifications,backups] = await Promise.all([

@@ -8,7 +8,7 @@ mkdirSync(path.dirname(scriptPath),{recursive:true});
 await build({stdin:{contents:`
  import {ensureModelRates} from './lib/model-rate-refresh';import {routedModel} from './lib/model-router';
  export default {async fetch(request,env){const now=Date.parse('2026-10-26T02:00:00Z');const pricing=await ensureModelRates(env,now);try{const model=routedModel(env,{task:'conversation'},now);return Response.json({ready:true,input:model.rate.input,pricing:pricing.status});}catch{return Response.json({ready:false,pricing:pricing.status},{status:503});}}};
-`,resolveDir:root,loader:'ts'},outfile:scriptPath,bundle:true,platform:'browser',format:'esm'});
+`,resolveDir:root,loader:'ts'},outfile:scriptPath,bundle:true,platform:'browser',format:'esm',external:['cloudflare:workers']});
 const model='anthropic/claude-haiku-5.5',catalog={haiku:{enabled:true,transport:'openrouter',maxInputTokens:90000,maxOutputTokens:8192,rate:{model,provider:'openrouter',input:1,output:5,cacheRead:.1,cacheWrite:1.25,cacheWriteHour:2,usdXaf:600,fundingFeeBps:0,overheadXaf:0,verifiedAt:'2026-10-24T00:00:00Z'}}};
 let redirect=false,calls=0;
 const options={modules:true,scriptPath,compatibilityDate:'2026-05-15',cf:false,r2Buckets:['BUCKET'],bindings:{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive',MODEL_ROUTING_CATALOG_JSON:JSON.stringify(catalog),OPENROUTER_API_KEY:'fixture-only'},outboundService:async request=>{

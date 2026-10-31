@@ -1,4 +1,5 @@
 import {ensureModelRates} from "../lib/model-rate-refresh";
+import {ensureFalRates} from '../lib/fal-rate-refresh';
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import { raiseOperationalAlert } from "../lib/operations";
@@ -19,6 +20,7 @@ async function runScheduledTasks(
   cron?: string,
 ) {
   await ensureModelRates(env);
+  await ensureFalRates(env as unknown as Record<string,unknown> & {BUCKET?:R2Bucket});
   const secret = env.SCHEDULER_SECRET;
   if (!secret || secret.length < 32) {
     console.error("Braand scheduled tasks are not configured.");
@@ -79,7 +81,7 @@ export default {
         return Response.json({error:"Connexion temporairement indisponible.",code:"authentication_unavailable"}, {status:503,headers:{"Cache-Control":"no-store"}});
       }
     }
-    if (new URL(request.url).pathname.startsWith("/api/") && request.headers.has("x-braand-identity-id")) await ensureModelRates(env);
+    if (new URL(request.url).pathname.startsWith("/api/") && request.headers.has("x-braand-identity-id")) {await ensureModelRates(env);await ensureFalRates(env as unknown as Record<string,unknown> & {BUCKET?:R2Bucket});}
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.
@@ -110,6 +112,7 @@ export default {
   },
   async queue(batch:MessageBatch<{workId:string}>,env:Cloudflare.Env,ctx:ExecutionContext<{CONNECTORS?:ConnectorBinding}>){
     await ensureModelRates(env);
+    await ensureFalRates(env as unknown as Record<string,unknown> & {BUCKET?:R2Bucket});
     if(env.WORK_ENABLED!=='true'||env.WORK_STAGING_VERIFIED!=='true'){batch.retryAll({delaySeconds:60});return;}
     for(const message of batch.messages){if(!message.body||typeof message.body.workId!=='string'||message.body.workId.length>160){message.ack();continue;}
       try{const secret=env.SCHEDULER_SECRET;if(!secret||secret.length<32)throw Error('scheduler_configuration_missing');const response=await runWithConnectorBinding(undefined,()=>handler.fetch(new Request('https://aira.internal/api/internal/work-tick?workId='+encodeURIComponent(message.body.workId),{method:'POST',headers:{authorization:'Bearer '+secret}}),env,ctx));if(response.ok)message.ack();else message.retry({delaySeconds:60});}

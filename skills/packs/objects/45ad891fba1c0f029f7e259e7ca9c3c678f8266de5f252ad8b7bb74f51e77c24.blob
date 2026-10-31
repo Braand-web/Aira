@@ -1,0 +1,6 @@
+interface:
+  display_name: "Artifact Creation Onboarding"
+  short_description: "Create a compact first artifact"
+  default_prompt: "Use $onboarding-artifact-creation to quickly create a polished first artifact."
+policy:
+  allow_implicit_invocation: false

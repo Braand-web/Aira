@@ -23,7 +23,7 @@ Si un moteur d'édition devient disponible, un contrôle adapté porte sur les �
 
 ## Cas de test comportementaux
 
-1. **Rapport à rédiger.** L'utilisateur demande un rapport Word à partir de trois notes complètes. Avec les outils actuels, produire le rapport structuré, signaler l'absence d'export Word et ne proposer aucun faux téléchargement.
+1. **Rapport à rédiger.** L'utilisateur demande un rapport Word à partir de trois notes complètes. Enregistrer le rapport, exporter sa version courante en DOCX et donner uniquement le fichier effectivement créé. Ne pas promettre le modèle ou le rendu Word sans contrôle.
 2. **Correction localisée.** Une clause est intégralement disponible et l'utilisateur demande de simplifier sa formulation. Fournir le remplacement localisé ; ne pas annoncer que le fichier source a été modifié.
 3. **Révisions suivies.** L'utilisateur demande de corriger un DOCX en gardant les changements visibles. Produire des propositions traçables et expliquer que leur insertion comme révisions Word exige un outil documentaire absent.
 4. **Recherche partielle.** La recherche ne retourne que l'introduction et une section financière. Résumer ces passages en indiquant cette couverture ; ne pas conclure sur les annexes absentes.

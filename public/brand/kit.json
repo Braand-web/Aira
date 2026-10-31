@@ -1,0 +1,18 @@
+{
+  "name": "Braand Relais",
+  "version": "1.0.0",
+  "updated": "2026-10-30",
+  "archive": {
+    "file": "braand-relais-kit-v1.zip",
+    "bytes": 1620467,
+    "sha256": "c1e5c44d3c0bbd619ee25517f332d85bd8cde9a6dd67813c5b4b23a80583eb64",
+    "entries": 118
+  },
+  "guide": {
+    "file": "braand-charte-design-system-v1.pdf",
+    "pages": 24,
+    "bytes": 1163341,
+    "sha256": "690ac5e167da0d594066c995c744ea89cef767f4898642d423940e19aa5ddf89"
+  },
+  "primitives": 65
+}

@@ -1,0 +1,87 @@
+---
+name: publicite_meta_rentable
+description: "Lancer et piloter un test publicitaire Meta rentable pour n'importe quel produit ou service, dans n'importe quel pays et devise, avec un seul pixel par boutique, une structure simple, des règles de coupe chiffrées et une cohérence prix vérifiée entre publicité et page de destination."
+---
+
+# Publicité Meta Rentable, Test et Coupe
+
+## Adapter à n'importe quel projet
+
+- Commencer par fixer les variables du projet, depuis la demande ou en demandant seulement celles qui manquent et changent le résultat.
+
+- Variables à fixer : le domaine ou le secteur, le public visé, le marché (pays, langue et culture), la devise, la plateforme de vente ou de diffusion, l'offre et son prix, le budget disponible et l'objectif mesurable.
+
+- Ne jamais appliquer un chiffre d'un autre projet tel quel, toujours le recalculer dans la devise, le prix et le contexte du projet en cours.
+
+- Traiter les exemples chiffrés de ce skill comme des illustrations de la méthode, jamais comme des valeurs par défaut.
+
+
+## Vérifier les fondations avant de créer une campagne
+
+- Vérifier que le prix et la promesse sont exactement les mêmes sur la page de destination, dans le texte de la publicité et dans le visuel.
+
+- Vérifier que la page s'ouvre vite, que le paiement ou la prise de contact fonctionne et que le produit livré correspond à la promesse.
+
+- Utiliser un seul pixel ou une seule source de conversion par boutique ou par projet et optimiser sur l'événement final réel, achat, inscription validée ou demande qualifiée.
+
+- Vérifier que le compte publicitaire n'a aucune erreur de paiement ni restriction avant de publier, et traiter une erreur de facturation avant tout jugement sur les résultats.
+
+- Nettoyer la page de destination avant d'envoyer du trafic payant, titres provisoires, anciens prix, avis négatifs non traités et incohérences visibles.
+
+## Structurer un test simple et lisible
+
+- Créer une seule campagne de test avec un seul ensemble par groupe de marchés proches, pour concentrer un petit budget au lieu de le disperser.
+
+- Commencer par le marché le plus prometteur quand le budget est petit, puis élargir seulement après des résultats prouvés.
+
+- Mettre 3 à 4 publicités maximum dans le test, avec des angles vraiment différents, démonstration, preuve, scène du quotidien, objection principale ou public précis.
+
+- Écrire le prix et l'appel à l'action en vraie typographie sur les visuels et préférer des photos ou des vidéos réelles aux images générées brutes.
+
+- Garder actives en priorité les publicités qui ont déjà converti et mettre en pause les variantes sans résultat quand le test avance.
+
+## Fixer les règles de coupe avant de dépenser
+
+- Calculer le point mort par conversion à partir du net réel après commissions, coûts et taxes du projet.
+
+- Fixer un coût par conversion cible inférieur à ce point mort et l'écrire avant le lancement.
+
+- Ne juger aucune publicité avant un volume minimal d'impressions ou l'équivalent de son budget journalier dépensé.
+
+- Couper une publicité après une dépense égale à environ 2 à 3 fois le coût cible sans conversion, et couper un marché sur la même règle dans ce marché.
+
+- Arrêter tout le test après une enveloppe fixée à l'avance sans aucune conversion, puis corriger le produit, la page ou le prix avant de relancer.
+
+## Lire les résultats par marché et par publicité
+
+- Comparer les marchés sur le coût par clic, le taux de clic et surtout le coût par conversion, jamais sur les seules impressions bon marché.
+
+- Garder en priorité le marché qui convertit, même si un autre marché clique moins cher sans convertir.
+
+- Faire un bilan par marché à mi test et un bilan complet à la fin de l'enveloppe.
+
+- Noter à chaque bilan les dépenses, les clics, les conversions et le coût par conversion par publicité, dans un suivi daté.
+
+- Expliquer chaque pause par les chiffres, par exemple un coût par conversion supérieur à la marge, et jamais par une impression.
+
+## Relancer proprement après un test
+
+- Dupliquer la meilleure structure en une campagne de relance propre plutôt que modifier une vieille campagne dans tous les sens.
+
+- Changer une seule variable à la relance, le prix, la page, l'angle ou le marché, pour savoir ce qui a amélioré le résultat.
+
+- Revalider le prix et la promesse sur la page publique après chaque changement.
+
+- Ne jamais augmenter le budget d'une offre dont le coût par conversion dépasse durablement sa marge sans d'abord corriger le prix ou l'offre.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Tester d'abord en organique quand le budget publicitaire est inférieur à la valeur de 3 conversions.
+
+- Réduire le test à un seul angle fort plutôt que disperser le budget sur beaucoup de variantes faibles.

@@ -1,6 +1,6 @@
 import {userFacingError} from './user-facing-errors';
 import {readBraandStorage} from "./client-storage";
-export function workspaceHeaders(initial?:HeadersInit){const h=new Headers(initial);if(typeof window!=='undefined'){const space=readBraandStorage('braand.workspace');if(space){h.set('x-braand-workspace',space);document.cookie='braand_workspace='+encodeURIComponent(space)+'; Path=/; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');}}return h;}
+export function workspaceHeaders(initial?:HeadersInit){const h=new Headers(initial);if(typeof window!=='undefined'){const space=readBraandStorage('braand.workspace');if(space&&!h.has('x-braand-workspace')){h.set('x-braand-workspace',space);document.cookie='braand_workspace='+encodeURIComponent(space)+'; Path=/; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');}}return h;}
 export async function api<T=unknown>(path:string,options?:RequestInit):Promise<T>{
  const response=await fetch(path,{...options,headers:workspaceHeaders(options?.headers)});
  const data:unknown=await response.json();

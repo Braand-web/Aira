@@ -1,0 +1,65 @@
+# Inventaire des skills
+
+Instantané du 2026-10-31.
+
+| Catégorie | Skill | Fichiers | Dossier |
+| --- | --- | ---: | --- |
+| execution | `Presentations` | 36 | `execution/presentations` |
+| execution | `Spreadsheets` | 19 | `execution/spreadsheets` |
+| execution | `documents` | 78 | `execution/documents` |
+| execution | `pdf` | 4 | `execution/pdf` |
+| execution | `answers-charts:answers-charts` | 1 | `execution/answers-charts/answers-charts` |
+| execution | `answers-images:answers-images` | 1 | `execution/answers-images/answers-images` |
+| execution | `static-app-previews:static-app-previews` | 1 | `execution/static-app-previews/static-app-previews` |
+| execution | `answers-ask-user-input:answers-ask-user-input` | 1 | `execution/answers-ask-user-input/answers-ask-user-input` |
+| execution | `demos:answers-ask-user-input` | 1 | `execution/demos/answers-ask-user-input` |
+| execution | `demos:onboarding-setup-pet` | 6 | `execution/demos/onboarding-setup-pet` |
+| execution | `answers-image-picker:answers-image-picker` | 1 | `execution/answers-image-picker/answers-image-picker` |
+| execution | `answers-learning:answers-learning` | 1 | `execution/answers-learning/answers-learning` |
+| execution | `openai-library:library` | 10 | `execution/openai-library/library` |
+| execution | `personal-context:personal-context` | 1 | `execution/personal-context/personal-context` |
+| execution | `work-pets:create-pet` | 21 | `execution/work-pets/create-pet` |
+| execution | `work-pets:pets` | 2 | `execution/work-pets/pets` |
+| execution | `work-pets:update-pet` | 2 | `execution/work-pets/update-pet` |
+| execution | `plugin-management:plugin-management` | 1 | `execution/plugin-management/plugin-management` |
+| execution | `resolve-recipients:resolve-recipients` | 2 | `execution/resolve-recipients/resolve-recipients` |
+| execution | `sites:sites` | 133 | `execution/sites/sites` |
+| execution | `sites:sites-remix` | 1 | `execution/sites/sites-remix` |
+| execution | `supabase:supabase` | 4 | `execution/supabase/supabase` |
+| execution | `supabase:supabase-postgres-best-practices` | 36 | `execution/supabase/supabase-postgres-best-practices` |
+| execution | `template-creator:template-creator` | 8 | `execution/template-creator/template-creator` |
+| execution | `work-skill-creator:skill-creator` | 7 | `execution/work-skill-creator/skill-creator` |
+| execution | `work-visualize:visualize` | 12 | `execution/work-visualize/visualize` |
+| execution | `writing-blocks:writing-blocks` | 2 | `execution/writing-blocks/writing-blocks` |
+
+Les occurrences locale et cloud sont conservées séparément. Choisis une version par skill pour une installation.
+
+## Rôle de chaque skill
+
+- **Presentations** : Read, create or edit PowerPoint or Google Slides decks. Use for presentation, slide deck, PowerPoint, PPT, PPTX, or Google Slides requests.
+- **Spreadsheets** : Use skill when user requests to create, modify, analyze, visualize, or work with spreadsheet files (`.xlsx`, `.xls`, `.csv`, `.tsv`) or Google Sheets with formulas, formatting, charts, tables, and recalculation.
+- **answers-ask-user-input:answers-ask-user-input** : Use when a small amount of missing context would materially improve the answer and tappable options plus a free-text answer can gather it efficiently.
+- **answers-charts:answers-charts** : Use when a chart would communicate a categorical comparison, trend, composition, or numeric relationship more clearly than prose.
+- **answers-image-picker:answers-image-picker** : Use to generate three comparable imagegen previews in the background and present them as a three-card visual choice, with no user-visible commentary before the picker, when that choice should materially change what you build next.
+- **answers-images:answers-images** : Use when retrieved images would visually ground or meaningfully improve an answer.
+- **answers-learning:answers-learning** : Use when the user explicitly requests an objective multiple-choice knowledge quiz or pronunciation help. Always use this skill for a short request of the form how do you say &lt;source&gt; in &lt;target language&gt;; render the pronunciation widget even when a prose answer would otherwise suffice.
+- **demos:answers-ask-user-input** : Use when a small amount of missing context would materially improve the answer and tappable options plus a free-text answer can gather it efficiently.
+- **demos:onboarding-setup-pet** : Run a short, visual onboarding flow to choose a built-in ChatGPT Work pet or create a personalized custom pet. Use when helping someone set up a pet. Start with the labeled built-in lineup in a raw-HTML @visualize surface, defer pet management to the canonical `$pets` skill in `openai/oai-maintained-plugins/plugins/pets`, and finish with a one-at-a-time GIF carousel instead of a sprite sheet. Adapt the conversation to what the user has already shared.
+- **documents** : Create, edit, redline, and comment on `.docx`, Word, and Google Docs-targeted document artifacts inside the container, with a strict render-and-verify workflow. Use `render_docx.py` to generate page PNGs (and optional PDF) for visual QA, then iterate until layout is flawless before delivering the final document.
+- **openai-library:library** : Use ChatGPT Library when the user mentions their Library, asks to find or work with a Library-backed file, Site, or named file that may be in the Library, or wants to organize Library folders, restore a previous version, or share a native Library file or folder. Also use it when the user wants a user-facing file or reusable artifact created or updated, even if they do not mention the Library. It can search and read Library content, bring files into local workflows, save new deliverables, and update existing Library files while preserving their identity and version history.
+- **pdf** : Read, create, inspect, render, and verify PDF files where visual layout matters, including fillable AcroForms. Use Poppler rendering plus Python tools such as reportlab, pdfplumber, and pypdf for generation and extraction.
+- **personal-context:personal-context** : Use this skill when either of the following situations are true. Continuity related: the user explicitly or implicitly refers to prior conversation state, shared work, an earlier artifact, decision, preference, constraint, attempt, or progress item, including elliptical phrases like continue, next, again, still, update it, compare it, same as before, my axes, or our plan. Decision related: a specific unseen prior preference, constraint, history item, or attempt would materially change a concrete choice, and not be a marginal improvement. Reading and tool discovery are only a check; after loading, discover and load Personal Context's full instructions, and call personal_context.search only if they apply. Use it before another tool when the prior state changes retrieval or judgment. Skip first-turn generic facts, generic personal-domain advice, visible-context-complete work, and current-source-only tasks.
+- **plugin-management:plugin-management** : Discover and suggest relevant plugins, inspect app permissions and dependencies, and manage plugin connections or removal. Use when the user asks about plugins or when a task would materially benefit from an external app, account, service, or data source that available tools cannot access.
+- **resolve-recipients:resolve-recipients** : Resolve and verify the correct people before sending Slack messages, emails, invitations, meeting requests, calendar events, or other person-directed actions. Use whenever a request names, implies, or describes one or more recipients, especially with first names, duplicate names, nicknames, project groups, phrases such as “everyone,” or ambiguous references such as “the one I work with.” Search relevant communication and calendar history, compare candidate identities, and ask for clarification instead of silently guessing.
+- **sites:sites** : Use Sites when the user wants a website built for them (including a landing page, portfolio, dashboard, portal, tracker, hub, game, event registration, or tool), requests changes to a website already built with Sites, wants to publish a website with Sites, or wants to manage Sites hosting.
+- **sites:sites-remix** : Remix a Site built with the Sites plugin into a new Site. Use when the user has identified the source Site and asks to remix it.
+- **static-app-previews:static-app-previews** : Deliver self-contained static web app previews for requests asking for a custom game, app, website, interactive demo, UI prototype, or widget that can be rendered from one complete HTML, JSX, or TSX file. Defer website and web app requests to the Sites skills when they are available. Do not use if the user is requesting programming help, file edits, external deployment, or a multi-file project.
+- **supabase:supabase** : Use when doing ANY task involving Supabase. Triggers: Supabase products (Database, Auth, Edge Functions, Realtime, Storage, Vectors, Cron, Queues); client libraries and SSR integrations (supabase-js, @supabase/ssr) in Next.js, React, SvelteKit, Astro, Remix; auth issues (login, logout, sessions, JWT, cookies, getSession, getUser, getClaims, RLS); Supabase CLI or MCP server; schema changes, migrations, security audits, Postgres extensions (pg_graphql, pg_cron, pg_vector).
+- **supabase:supabase-postgres-best-practices** : Postgres performance optimization and best practices from Supabase. Use this skill when writing, reviewing, or optimizing Postgres queries, schema designs, or database configurations.
+- **template-creator:template-creator** : Create or update an installable personal ChatGPT artifact-template skill from a reference document, presentation, spreadsheet, Google Docs, Slides, or Sheets link, ImageGen or Product Design image, email, Slack message, or Site project. Use when the user selects Template Creator, asks to create a reusable template, or explicitly asks to update one exact personal template. Do not use for one-off creation from an existing template.
+- **work-pets:create-pet** : Create, repair, validate, preview, upload, or activate an animated v2 pet in ChatGPT Work mode from a character idea, brand cue, or reference image. Use for new ChatGPT Pets, custom mascots, non-pixel styles, and unattached sprite sheets requiring nine animation states plus sixteen look directions. Preserve Library artifacts and Pets MCP lifecycle behavior. Exclude real pets, standalone images, and other-app pets; clarify before invoking.
+- **work-pets:pets** : List, inspect, select, download, or delete animated pets in ChatGPT Work mode. Use for an explicit pet in ChatGPT or established ChatGPT Pets context. Exclude real-world and other-app pets; clarify before invoking.
+- **work-pets:update-pet** : Inspect, validate, preview, repair, or update a custom pet in ChatGPT Work mode, including its name, description, or sprite sheet. Use for a pet in ChatGPT or established ChatGPT Pets context. Exclude real-world and other-app pets; clarify before invoking.
+- **work-skill-creator:skill-creator** : Guide for creating, installing, updating, uninstalling, and deleting effective skills. This skill should be used when users want to create a new skill (or install, add, update, uninstall, or permanently delete an existing one) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations. Always use this skill for any general questions about skills in ChatGPT (e.g., what skills are or how they work).
+- **work-visualize:visualize** : Create visualizations and interactive tools directly in conversation. Proactively use to show how something works; explore 'what happens when', 'what changes', or 'help me understand'; compare or inspect; create simulations, maps, charts, graphs, and mockups. Use standard tools for static scientific figures.
+- **writing-blocks:writing-blocks** : Present complete drafts of requested text in a writing block, including emails, messages, social posts, bios, blurbs, statements, and individual paragraphs. Prefer creating or editing a file for standalone documents or long-form content instead of a writing block.

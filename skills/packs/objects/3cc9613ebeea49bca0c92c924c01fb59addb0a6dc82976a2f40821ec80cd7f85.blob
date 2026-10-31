@@ -1,0 +1,1814 @@
+{
+  "snapshot_date": "2026-10-31",
+  "total": 338,
+  "counting_method": "327 opérations du registre et 11 outils directs. Les sous-commandes Web et méthodes du navigateur ne sont pas comptées séparément.",
+  "availability": "Outils exposés dans cette session. Leur utilisation dépend de la connexion, des autorisations et du contexte de la demande.",
+  "groups": [
+    {
+      "id": "runtime",
+      "label": "Exécution, fichiers et orchestration",
+      "count": 10,
+      "capabilities": "Terminal, processus, édition de fichiers, images locales, ressources MCP et questions utilisateur."
+    },
+    {
+      "id": "skills",
+      "label": "Gestion des skills",
+      "count": 2,
+      "capabilities": "Découvrir et lire les skills disponibles."
+    },
+    {
+      "id": "collaboration",
+      "label": "Coordination des agents",
+      "count": 6,
+      "capabilities": "Créer, coordonner, interrompre et suivre des agents."
+    },
+    {
+      "id": "browser",
+      "label": "Navigateur",
+      "count": 2,
+      "capabilities": "Automatisation du navigateur et gestion de la session JavaScript."
+    },
+    {
+      "id": "image_gen",
+      "label": "Génération d’images",
+      "count": 1,
+      "capabilities": "Créer et retoucher des images."
+    },
+    {
+      "id": "search_service",
+      "label": "Recherche Internet",
+      "count": 1,
+      "capabilities": "Recherche Web et images, lecture de pages et PDF, données météo, finance, sport et heure via une interface."
+    },
+    {
+      "id": "automations",
+      "label": "Automatisations",
+      "count": 7,
+      "capabilities": "Créer, modifier, lister et exécuter des tâches planifiées ou conditionnelles."
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "count": 89,
+      "capabilities": "Dépôts, code, branches, commits, issues, pull requests, revues et exécutions de workflows."
+    },
+    {
+      "id": "gmail",
+      "label": "Gmail",
+      "count": 21,
+      "capabilities": "Rechercher et lire les emails, gérer les brouillons, labels et messages."
+    },
+    {
+      "id": "library",
+      "label": "Fichiers",
+      "count": 11,
+      "capabilities": "Rechercher, lire, créer, remplacer, organiser, transférer et partager des fichiers."
+    },
+    {
+      "id": "personal_context",
+      "label": "Contexte personnel",
+      "count": 1,
+      "capabilities": "Rechercher le contexte personnel pertinent."
+    },
+    {
+      "id": "pets",
+      "label": "Compagnons animés",
+      "count": 11,
+      "capabilities": "Créer, choisir, partager et gérer des compagnons animés."
+    },
+    {
+      "id": "plugin_management",
+      "label": "Plugins",
+      "count": 6,
+      "capabilities": "Découvrir les plugins et gérer leurs permissions et dépendances."
+    },
+    {
+      "id": "railway",
+      "label": "Railway",
+      "count": 84,
+      "capabilities": "Projets, services, déploiements, domaines, variables, stockage, métriques et automatisations."
+    },
+    {
+      "id": "sites",
+      "label": "Sites",
+      "count": 25,
+      "capabilities": "Créer et publier des sites, gérer les versions, domaines, accès et variables."
+    },
+    {
+      "id": "supabase",
+      "label": "Supabase",
+      "count": 31,
+      "capabilities": "Projets, bases SQL, migrations, branches, fonctions, journaux et documentation."
+    },
+    {
+      "id": "tinyfish",
+      "label": "TinyFish",
+      "count": 24,
+      "capabilities": "Tâches Web, recherches approfondies, profils et surveillance."
+    },
+    {
+      "id": "safety_settings",
+      "label": "Paramètres familiaux",
+      "count": 5,
+      "capabilities": "Lire et gérer les contrôles parentaux et informations de contact de confiance."
+    },
+    {
+      "id": "hotline",
+      "label": "Aide locale",
+      "count": 1,
+      "capabilities": "Rechercher les coordonnées locales de services d’aide."
+    }
+  ],
+  "tools": [
+    {
+      "name": "mcp__codex_apps__automations_create",
+      "group": "automations",
+      "description": "Create a task automation."
+    },
+    {
+      "name": "mcp__codex_apps__automations_discover_webhook_schema",
+      "group": "automations",
+      "description": "Discover supported webhook events, trigger schemas, connector identifiers, filters, and execution guidance for a connected, authorized app."
+    },
+    {
+      "name": "mcp__codex_apps__automations_list",
+      "group": "automations",
+      "description": "Display task automations only when the user asks to view them."
+    },
+    {
+      "name": "mcp__codex_apps__automations_list_event_sources",
+      "group": "automations",
+      "description": "List connected apps with supported automation events."
+    },
+    {
+      "name": "mcp__codex_apps__automations_peek",
+      "group": "automations",
+      "description": "Privately look up task automations without displaying the list to the user."
+    },
+    {
+      "name": "mcp__codex_apps__automations_run_now",
+      "group": "automations",
+      "description": "Run an existing enabled task automation once now by jawbone_id, using its saved prompt and delivery settings without changing its schedule."
+    },
+    {
+      "name": "mcp__codex_apps__automations_update",
+      "group": "automations",
+      "description": "Update an existing task automation by `jawbone_id`."
+    },
+    {
+      "name": "mcp__cua_repl.js",
+      "group": "browser",
+      "description": "Interact with a browser through the initialized computer-use API."
+    },
+    {
+      "name": "mcp__cua_repl.js_reset",
+      "group": "browser",
+      "description": "Reset the persistent browser automation JavaScript session."
+    },
+    {
+      "name": "collaboration.followup_task",
+      "group": "collaboration",
+      "description": "Give an existing sub-agent a follow-up task."
+    },
+    {
+      "name": "collaboration.interrupt_agent",
+      "group": "collaboration",
+      "description": "Interrupt a sub-agent's current task."
+    },
+    {
+      "name": "collaboration.list_agents",
+      "group": "collaboration",
+      "description": "List live agents in the task tree."
+    },
+    {
+      "name": "collaboration.send_message",
+      "group": "collaboration",
+      "description": "Send a coordination message to an existing agent."
+    },
+    {
+      "name": "collaboration.spawn_agent",
+      "group": "collaboration",
+      "description": "Create a sub-agent for an explicitly delegated task."
+    },
+    {
+      "name": "collaboration.wait_agent",
+      "group": "collaboration",
+      "description": "Wait for an agent update."
+    },
+    {
+      "name": "mcp__codex_apps__github_add_comment_to_issue",
+      "group": "github",
+      "description": "Create a top-level PR Conversation comment (Issue comment)"
+    },
+    {
+      "name": "mcp__codex_apps__github_add_issue_assignees",
+      "group": "github",
+      "description": "Add assignees to an issue or pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_add_issue_labels",
+      "group": "github",
+      "description": "Add labels to an issue or pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_add_reaction_to_issue_comment",
+      "group": "github",
+      "description": "Add a reaction to an issue comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_add_reaction_to_pr",
+      "group": "github",
+      "description": "Add a reaction to a GitHub pull request"
+    },
+    {
+      "name": "mcp__codex_apps__github_add_reaction_to_pr_review_comment",
+      "group": "github",
+      "description": "Add a reaction to a pull request review comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_add_review_to_pr",
+      "group": "github",
+      "description": "Add a review to a GitHub pull request. review is required for REQUEST_CHANGES and COMMENT events"
+    },
+    {
+      "name": "mcp__codex_apps__github_compare_commits",
+      "group": "github",
+      "description": "Compare two commits/refs and return per-file stats plus compare metadata."
+    },
+    {
+      "name": "mcp__codex_apps__github_convert_pull_request_to_draft",
+      "group": "github",
+      "description": "Convert an open pull request back to draft state."
+    },
+    {
+      "name": "mcp__codex_apps__github_create_blob",
+      "group": "github",
+      "description": "Create a blob in the repository and return its SHA"
+    },
+    {
+      "name": "mcp__codex_apps__github_create_branch",
+      "group": "github",
+      "description": "Create a new branch from exactly one existing commit SHA or base ref"
+    },
+    {
+      "name": "mcp__codex_apps__github_create_commit",
+      "group": "github",
+      "description": "Create a commit pointing to tree_sha with one or more parents"
+    },
+    {
+      "name": "mcp__codex_apps__github_create_file",
+      "group": "github",
+      "description": "Create a new UTF-8 text file through GitHub's contents API."
+    },
+    {
+      "name": "mcp__codex_apps__github_create_issue",
+      "group": "github",
+      "description": "Create a GitHub issue."
+    },
+    {
+      "name": "mcp__codex_apps__github_create_pull_request",
+      "group": "github",
+      "description": "Open a pull request in the repository."
+    },
+    {
+      "name": "mcp__codex_apps__github_create_tree",
+      "group": "github",
+      "description": "Create a tree object in the repository from the given elements"
+    },
+    {
+      "name": "mcp__codex_apps__github_delete_file",
+      "group": "github",
+      "description": "Delete a file through GitHub's contents API."
+    },
+    {
+      "name": "mcp__codex_apps__github_dismiss_pull_request_review",
+      "group": "github",
+      "description": "Dismiss a submitted pull request review."
+    },
+    {
+      "name": "mcp__codex_apps__github_download_user_content",
+      "group": "github",
+      "description": "Download a GitHub private user image attachment URL."
+    },
+    {
+      "name": "mcp__codex_apps__github_download_workflow_artifact",
+      "group": "github",
+      "description": "Download a GitHub Actions workflow artifact ZIP archive."
+    },
+    {
+      "name": "mcp__codex_apps__github_enable_auto_merge",
+      "group": "github",
+      "description": "Enable auto-merge for a pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch",
+      "group": "github",
+      "description": "Fetch approved public GitHub repository resources and repository files."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_blob",
+      "group": "github",
+      "description": "Fetch blob content by SHA from the given repository"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_commit",
+      "group": "github",
+      "description": "Fetch a commit with its metadata, diff, and canonical URL"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_commit_workflow_runs",
+      "group": "github",
+      "description": "Fetch GitHub Actions workflow runs associated with a commit SHA."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_file",
+      "group": "github",
+      "description": "Fetch file content by repository path, using the default branch when ref is omitted"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_issue",
+      "group": "github",
+      "description": "Fetch a GitHub issue."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_issue_comments",
+      "group": "github",
+      "description": "Fetch comments for a GitHub issue across all pages"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_pr",
+      "group": "github",
+      "description": "Fetch a pull request with its diff, metadata, and optionally comments"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_pr_comments",
+      "group": "github",
+      "description": "Fetch a merged PR discussion timeline."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_pr_file_patch",
+      "group": "github",
+      "description": "Fetch the patch for one validated changed file in an accessible pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_pr_patch",
+      "group": "github",
+      "description": "Fetch the patch for a GitHub pull request across all changed-file pages"
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_workflow_job_logs",
+      "group": "github",
+      "description": "Fetch decoded logs for a GitHub Actions workflow job."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_workflow_job_steps",
+      "group": "github",
+      "description": "Fetch steps for a GitHub Actions workflow job."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_workflow_run_artifacts",
+      "group": "github",
+      "description": "Fetch artifacts for a GitHub Actions workflow run."
+    },
+    {
+      "name": "mcp__codex_apps__github_fetch_workflow_run_jobs",
+      "group": "github",
+      "description": "Fetch jobs for a GitHub Actions workflow run."
+    },
+    {
+      "name": "mcp__codex_apps__github_get_commit_combined_status",
+      "group": "github",
+      "description": "Fetch the combined CI status and individual status checks for a commit"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_issue_comment_reactions",
+      "group": "github",
+      "description": "Fetch reactions for an issue comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_pr_diff",
+      "group": "github",
+      "description": "Fetch just the diff or patch text for a pull request"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_pr_info",
+      "group": "github",
+      "description": "Get metadata (title, description, refs, and status) for a pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_get_pr_reactions",
+      "group": "github",
+      "description": "Fetch reactions for a GitHub pull request"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_pr_review_comment_reactions",
+      "group": "github",
+      "description": "Fetch reactions for a pull request review comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_profile",
+      "group": "github",
+      "description": "Retrieve the GitHub profile for the authenticated user"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_repo",
+      "group": "github",
+      "description": "Retrieve metadata for a GitHub repository."
+    },
+    {
+      "name": "mcp__codex_apps__github_get_repo_collaborator_permission",
+      "group": "github",
+      "description": "Return the collaborator permission level for a user on a repository"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_user_login",
+      "group": "github",
+      "description": "Return the GitHub login for the authenticated user"
+    },
+    {
+      "name": "mcp__codex_apps__github_get_users_recent_prs_in_repo",
+      "group": "github",
+      "description": "List the user's recent GitHub pull requests in a repository. `limit` is the final number of PRs returned."
+    },
+    {
+      "name": "mcp__codex_apps__github_label_pr",
+      "group": "github",
+      "description": "Label a pull request"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_installations",
+      "group": "github",
+      "description": "List accessible installations, optionally filtering to managed setup accounts"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_installed_accounts",
+      "group": "github",
+      "description": "List all accounts that the user has installed our GitHub app on"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_pr_changed_filenames",
+      "group": "github",
+      "description": "List changed filenames for a PR across all paginated file-list pages"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_pull_request_review_threads",
+      "group": "github",
+      "description": "List inline review threads on a pull request, including resolved state."
+    },
+    {
+      "name": "mcp__codex_apps__github_list_pull_request_reviews",
+      "group": "github",
+      "description": "List review submissions on a pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_list_recent_issues",
+      "group": "github",
+      "description": "Return the most recent GitHub issues the user can access. `top_k` is the final result limit."
+    },
+    {
+      "name": "mcp__codex_apps__github_list_repositories",
+      "group": "github",
+      "description": "List repositories accessible to the authenticated user"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_repositories_by_affiliation",
+      "group": "github",
+      "description": "List repositories accessible to the authenticated user filtered by affiliation"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_repositories_by_installation",
+      "group": "github",
+      "description": "List repositories accessible to the authenticated user"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_user_org_memberships",
+      "group": "github",
+      "description": "List the authenticated user's organization memberships"
+    },
+    {
+      "name": "mcp__codex_apps__github_list_user_orgs",
+      "group": "github",
+      "description": "List organizations the authenticated user is a member of"
+    },
+    {
+      "name": "mcp__codex_apps__github_lock_issue_conversation",
+      "group": "github",
+      "description": "Lock an issue or pull request conversation."
+    },
+    {
+      "name": "mcp__codex_apps__github_mark_pull_request_ready_for_review",
+      "group": "github",
+      "description": "Mark a draft pull request as ready for review."
+    },
+    {
+      "name": "mcp__codex_apps__github_merge_pull_request",
+      "group": "github",
+      "description": "Merge a pull request immediately."
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_issue_assignees",
+      "group": "github",
+      "description": "Remove assignees from an issue or pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_issue_label",
+      "group": "github",
+      "description": "Remove one label from an issue or pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_pull_request_reviewers",
+      "group": "github",
+      "description": "Remove individual or team reviewer requests from a pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_reaction_from_issue_comment",
+      "group": "github",
+      "description": "Remove a reaction from an issue comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_reaction_from_pr",
+      "group": "github",
+      "description": "Remove a reaction from a GitHub pull request"
+    },
+    {
+      "name": "mcp__codex_apps__github_remove_reaction_from_pr_review_comment",
+      "group": "github",
+      "description": "Remove a reaction from a pull request review comment"
+    },
+    {
+      "name": "mcp__codex_apps__github_reply_to_review_comment",
+      "group": "github",
+      "description": "Reply to an inline review comment on a PR (Files changed thread). comment_id must be the ID of the thread’s top-level inline review comment (replies-to-replies are not supported by the API)"
+    },
+    {
+      "name": "mcp__codex_apps__github_request_pull_request_reviewers",
+      "group": "github",
+      "description": "Request individual or team reviewers on a pull request."
+    },
+    {
+      "name": "mcp__codex_apps__github_rerun_failed_workflow_run_jobs",
+      "group": "github",
+      "description": "Re-run all failed jobs in a GitHub Actions workflow run."
+    },
+    {
+      "name": "mcp__codex_apps__github_rerun_workflow_job",
+      "group": "github",
+      "description": "Re-run one GitHub Actions workflow job."
+    },
+    {
+      "name": "mcp__codex_apps__github_resolve_review_thread",
+      "group": "github",
+      "description": "Resolve an inline pull request review thread."
+    },
+    {
+      "name": "mcp__codex_apps__github_search",
+      "group": "github",
+      "description": "Search GitHub files and return matching excerpts when available."
+    },
+    {
+      "name": "mcp__codex_apps__github_search_branches",
+      "group": "github",
+      "description": "Search GitHub branches within a repository"
+    },
+    {
+      "name": "mcp__codex_apps__github_search_commits",
+      "group": "github",
+      "description": "Search GitHub commits globally, by organization, or optionally by repository."
+    },
+    {
+      "name": "mcp__codex_apps__github_search_installed_repositories_streaming",
+      "group": "github",
+      "description": "Search for a repository (not a file) by name or description."
+    },
+    {
+      "name": "mcp__codex_apps__github_search_installed_repositories_v2",
+      "group": "github",
+      "description": "Search repositories within the user's installations using GitHub search"
+    },
+    {
+      "name": "mcp__codex_apps__github_search_issues",
+      "group": "github",
+      "description": "Search one repository or every repository the linked account can access."
+    },
+    {
+      "name": "mcp__codex_apps__github_search_prs",
+      "group": "github",
+      "description": "Search GitHub pull requests globally, by organization, or optionally by repository"
+    },
+    {
+      "name": "mcp__codex_apps__github_search_repositories",
+      "group": "github",
+      "description": "Search for a repository (not a file) by name or description."
+    },
+    {
+      "name": "mcp__codex_apps__github_unlock_issue_conversation",
+      "group": "github",
+      "description": "Unlock an issue or pull request conversation."
+    },
+    {
+      "name": "mcp__codex_apps__github_unresolve_review_thread",
+      "group": "github",
+      "description": "Mark an inline pull request review thread as unresolved."
+    },
+    {
+      "name": "mcp__codex_apps__github_update_file",
+      "group": "github",
+      "description": "Replace a UTF-8 text file through GitHub's contents API."
+    },
+    {
+      "name": "mcp__codex_apps__github_update_issue",
+      "group": "github",
+      "description": "Update a GitHub issue, including title/body, state, labels, assignees, or milestone."
+    },
+    {
+      "name": "mcp__codex_apps__github_update_issue_comment",
+      "group": "github",
+      "description": "Update a top-level PR Conversation comment (Issue comment)"
+    },
+    {
+      "name": "mcp__codex_apps__github_update_pull_request",
+      "group": "github",
+      "description": "Update PR metadata, base branch, or open/closed state."
+    },
+    {
+      "name": "mcp__codex_apps__github_update_ref",
+      "group": "github",
+      "description": "Move a branch ref to a commit, rejecting a mismatched expected_sha."
+    },
+    {
+      "name": "mcp__codex_apps__github_update_review_comment",
+      "group": "github",
+      "description": "Update an inline review comment (or a reply) on a PR"
+    },
+    {
+      "name": "mcp__codex_apps__gmail_apply_labels_to_emails",
+      "group": "gmail",
+      "description": "Apply labels to Gmail messages using label names rather than Gmail label IDs."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_archive_emails",
+      "group": "gmail",
+      "description": "Archive Gmail threads while keeping their messages available in Gmail."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_batch_modify_email",
+      "group": "gmail",
+      "description": "Add or remove Gmail labels on a batch of individual messages."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_batch_read_email",
+      "group": "gmail",
+      "description": "Read up to 100 Gmail messages as MIME trees, preserving request order."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_batch_read_email_threads",
+      "group": "gmail",
+      "description": "Read recent messages from threads identified by message IDs or thread IDs."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_bulk_label_matching_emails",
+      "group": "gmail",
+      "description": "Apply a label to every Gmail message matching a Gmail search query."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_create_draft",
+      "group": "gmail",
+      "description": "Create an unsent Gmail draft from message headers and a MIME tree."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_create_label",
+      "group": "gmail",
+      "description": "Create a Gmail label."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_delete_emails",
+      "group": "gmail",
+      "description": "Move one or more existing Gmail messages to Trash."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_forward_emails",
+      "group": "gmail",
+      "description": "Forward Gmail messages with structured MIME content."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_get_profile",
+      "group": "gmail",
+      "description": "Return the current Gmail user's profile information"
+    },
+    {
+      "name": "mcp__codex_apps__gmail_list_drafts",
+      "group": "gmail",
+      "description": "List Gmail drafts with summarized metadata so they can be reviewed or selected."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_list_labels",
+      "group": "gmail",
+      "description": "List Gmail labels with per-label counts."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_read_attachment",
+      "group": "gmail",
+      "description": "Read one attachment from a Gmail message."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_read_email",
+      "group": "gmail",
+      "description": "Read one Gmail message in the requested Gmail API representation."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_read_email_thread",
+      "group": "gmail",
+      "description": "Read the most recent messages in a Gmail thread as headers and MIME parts."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_search_email_ids",
+      "group": "gmail",
+      "description": "Retrieve Gmail message IDs that match a search."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_search_emails",
+      "group": "gmail",
+      "description": "Search Gmail for emails matching a query or exact label IDs."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_send_draft",
+      "group": "gmail",
+      "description": "Send an existing Gmail draft as currently stored."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_send_email",
+      "group": "gmail",
+      "description": "Send a Gmail message now from the authenticated account."
+    },
+    {
+      "name": "mcp__codex_apps__gmail_update_draft",
+      "group": "gmail",
+      "description": "Patch selected fields in an existing Gmail draft."
+    },
+    {
+      "name": "mcp__codex_apps__hotline_get_local_hotline",
+      "group": "hotline",
+      "description": "Look up local helpline information for the user based on country inferred from the conversation."
+    },
+    {
+      "name": "image_gen__imagegen",
+      "group": "image_gen",
+      "description": "The `image_gen.imagegen` tool enables image generation from descriptions and editing of existing images based on specific instructions."
+    },
+    {
+      "name": "mcp__codex_apps__library_create_library_file",
+      "group": "library",
+      "description": "Create persistent ChatGPT Library files from local Codex files."
+    },
+    {
+      "name": "mcp__codex_apps__library_finalize_uploads",
+      "group": "library",
+      "description": "Finalize a batch of completed upload sessions into ChatGPT Library create or replace writes."
+    },
+    {
+      "name": "mcp__codex_apps__library_find",
+      "group": "library",
+      "description": "Find Library text."
+    },
+    {
+      "name": "mcp__codex_apps__library_list",
+      "group": "library",
+      "description": "List persistent ChatGPT Library file and folder metadata."
+    },
+    {
+      "name": "mcp__codex_apps__library_manage_library",
+      "group": "library",
+      "description": "Mutate persistent ChatGPT Library state. files-tool-compatible operations are create_folder, move, rename, and delete."
+    },
+    {
+      "name": "mcp__codex_apps__library_prepare_materialize",
+      "group": "library",
+      "description": "Copy known Library files into the model workspace for programmatic use."
+    },
+    {
+      "name": "mcp__codex_apps__library_prepare_uploads",
+      "group": "library",
+      "description": "Prepare local files that will become new Library items or versions of existing items."
+    },
+    {
+      "name": "mcp__codex_apps__library_read",
+      "group": "library",
+      "description": "Read Library."
+    },
+    {
+      "name": "mcp__codex_apps__library_replace_library_file",
+      "group": "library",
+      "description": "Replace an existing ChatGPT Library file with a local Codex file."
+    },
+    {
+      "name": "mcp__codex_apps__library_search",
+      "group": "library",
+      "description": "Search Library."
+    },
+    {
+      "name": "mcp__codex_apps__library_share",
+      "group": "library",
+      "description": "Share one native ChatGPT Library file or folder you own or can edit with one eligible recipient by email or everyone in the current workspace, or set revoke=true to remove an existing share."
+    },
+    {
+      "name": "mcp__codex_apps__personal_context_search",
+      "group": "personal_context",
+      "description": "The personal_context tool retrieves user-specific personal context gathered from multiple underlying sources (e.g., linked accounts, prior interactions, and other personal context streams)."
+    },
+    {
+      "name": "mcp__codex_apps__pets_adopt",
+      "group": "pets",
+      "description": "Adopt a shared ChatGPT pet from its opaque sharepet_ ID."
+    },
+    {
+      "name": "mcp__codex_apps__pets_create_pet",
+      "group": "pets",
+      "description": "Consume a completed prepare_pet_upload session by its upload_session_id, validate the sprite sheet with the same deterministic preflight, run image scanning and pet moderation, and create a ChatGPT pet for Work mode."
+    },
+    {
+      "name": "mcp__codex_apps__pets_delete_pet",
+      "group": "pets",
+      "description": "Permanently delete one owned custom ChatGPT pet and its stored sprite sheet."
+    },
+    {
+      "name": "mcp__codex_apps__pets_get_pet_download_link",
+      "group": "pets",
+      "description": "Get a download URL for one built-in or owned custom ChatGPT pet sprite sheet."
+    },
+    {
+      "name": "mcp__codex_apps__pets_list_pets",
+      "group": "pets",
+      "description": "List one page of built-in and custom ChatGPT pet metadata plus the active pet ID."
+    },
+    {
+      "name": "mcp__codex_apps__pets_prepare_pet_upload",
+      "group": "pets",
+      "description": "Prepare a user-scoped ChatGPT pet sprite-sheet upload."
+    },
+    {
+      "name": "mcp__codex_apps__pets_select_pet",
+      "group": "pets",
+      "description": "Persist a built-in or owned custom ChatGPT pet as active by its stable pet ID."
+    },
+    {
+      "name": "mcp__codex_apps__pets_share_pet",
+      "group": "pets",
+      "description": "Create a share link for one owned custom ChatGPT pet."
+    },
+    {
+      "name": "mcp__codex_apps__pets_unshare_pet",
+      "group": "pets",
+      "description": "Stop sharing one owned custom ChatGPT pet and invalidate its current share URL."
+    },
+    {
+      "name": "mcp__codex_apps__pets_update_pet",
+      "group": "pets",
+      "description": "Update the name, description, sprite sheet, or any combination for one owned custom ChatGPT pet."
+    },
+    {
+      "name": "mcp__codex_apps__pets_validate_pet_spritesheet",
+      "group": "pets",
+      "description": "Validate a ChatGPT pet PNG or WebP before creating an upload session."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_get_app_permissions",
+      "group": "plugin_management",
+      "description": "Inspect one named ChatGPT plugin's global/default and plugin-specific permission settings."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_get_plugin_dependencies",
+      "group": "plugin_management",
+      "description": "Resolve the canonical public plugins declared by one plugin's app manifest."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_search_plugins",
+      "group": "plugin_management",
+      "description": "Search available plugins when the user explicitly requests a plugin or provider, or when their task would benefit from an external app, account, service, data source, or capability not available through existing tools."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_suggest_plugins",
+      "group": "plugin_management",
+      "description": "Suggest plugins when an external integration would help the user."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_uninstall_app",
+      "group": "plugin_management",
+      "description": "Uninstall ChatGPT plugins only for explicit uninstall, remove, or disconnect intent."
+    },
+    {
+      "name": "mcp__codex_apps__plugin_management_update_app_permissions",
+      "group": "plugin_management",
+      "description": "Update global ChatGPT plugin permissions or a plugin-specific override."
+    },
+    {
+      "name": "mcp__codex_apps__railway_accept_deploy",
+      "group": "railway",
+      "description": "DESTRUCTIVE: Commits all staged changes in a Railway environment and triggers a deploy."
+    },
+    {
+      "name": "mcp__codex_apps__railway_cancel_cloud_agent_task",
+      "group": "railway",
+      "description": "Stop a cloud-agent task."
+    },
+    {
+      "name": "mcp__codex_apps__railway_connect_service_source",
+      "group": "railway",
+      "description": "Attach a source to an existing service: a GitHub repository (deploys on push, builds immediately) or a Docker image."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_automation",
+      "group": "railway",
+      "description": "Turn a repeatable task into an automation using the requested instructions and UTC schedules."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_automation_trigger",
+      "group": "railway",
+      "description": "Add a UTC cron schedule to an automation owned by the caller."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_bucket",
+      "group": "railway",
+      "description": "Create an S3-compatible object storage bucket in a project and provision it in an environment."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_deployment",
+      "group": "railway",
+      "description": "Create a new service from a GitHub repository and trigger its first deployment."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_function",
+      "group": "railway",
+      "description": "Create a Railway Function: a service that runs one file of TypeScript on the Bun runtime, with no repository, Dockerfile or build step."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_project",
+      "group": "railway",
+      "description": "Create a new Railway project"
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_service",
+      "group": "railway",
+      "description": "Create a new service in a project from a Docker image, or an empty service to configure later (e.g. before setting variables and attaching a source)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_tcp_proxy",
+      "group": "railway",
+      "description": "Expose a service on the public internet over a raw TCP port (e.g. make a database reachable externally)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_volume",
+      "group": "railway",
+      "description": "Create a persistent volume in a project and optionally attach it to a service at a mount path."
+    },
+    {
+      "name": "mcp__codex_apps__railway_create_webhook",
+      "group": "railway",
+      "description": "Create a project webhook: Railway POSTs a JSON payload to the URL whenever one of the chosen deployment, monitor or volume-alert events happens in the project."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_automation",
+      "group": "railway",
+      "description": "Delete an automation owned by the caller and stop future scheduled invocations."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_automation_trigger",
+      "group": "railway",
+      "description": "Remove one automation schedule, preserving its runs."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_bucket",
+      "group": "railway",
+      "description": "Permanently delete an object storage bucket and its contents."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_domain",
+      "group": "railway",
+      "description": "Remove a domain from a service: a Railway-generated *.up.railway.app service domain or a custom domain."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_feature_flag",
+      "group": "railway",
+      "description": "Delete a project-scoped feature flag."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_service",
+      "group": "railway",
+      "description": "Permanently delete a service: its deployments stop and are removed, along with its domains, variables and deployment triggers."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_tcp_proxy",
+      "group": "railway",
+      "description": "Remove a service's TCP proxy, taking its public endpoint offline."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_volume",
+      "group": "railway",
+      "description": "Permanently delete a volume and its data."
+    },
+    {
+      "name": "mcp__codex_apps__railway_delete_webhook",
+      "group": "railway",
+      "description": "Delete a project webhook so Railway stops POSTing to its URL."
+    },
+    {
+      "name": "mcp__codex_apps__railway_deploy_template",
+      "group": "railway",
+      "description": "Deploy a Railway template into a project — a database (postgres, mysql, redis, mongo), a clustered high-availability database, or an application template."
+    },
+    {
+      "name": "mcp__codex_apps__railway_describe_environment",
+      "group": "railway",
+      "description": "Inventory of everything in a Railway environment — services, volumes, buckets, shared variable names — with staged changes applied."
+    },
+    {
+      "name": "mcp__codex_apps__railway_describe_service",
+      "group": "railway",
+      "description": "Everything about one service in an environment: its config with staged changes applied (source, build, deploy, networking, volume mounts), the per-field staged changes pending on it, mounted volumes, live domains and TCP proxies, the latest deployment, and its tracing state. `state` says whether the service is live, staged-create, staged-delete, or"
+    },
+    {
+      "name": "mcp__codex_apps__railway_describe_template",
+      "group": "railway",
+      "description": "Read one Railway template: its name, description, README, the services it creates, every env-var input it takes (which are required and which are optional), and — for clustered database templates like postgres-ha — the HA topology counts deploy-template can size."
+    },
+    {
+      "name": "mcp__codex_apps__railway_domain_status",
+      "group": "railway",
+      "description": "Get detailed status for one domain on a service, by hostname, URL, or domain ID: required DNS records and whether they currently match, ownership verification, certificate status, and any certificate error."
+    },
+    {
+      "name": "mcp__codex_apps__railway_environment_status",
+      "group": "railway",
+      "description": "Health overview of every service in an environment in one call: current LIVE (settled) deployment state, replica status, recent failures, unresolved warnings/criticals, and cron execution results."
+    },
+    {
+      "name": "mcp__codex_apps__railway_fetch_docs",
+      "group": "railway",
+      "description": "Fetch the full markdown content of a Railway documentation page by URL or slug (e.g. 'https://docs.railway.com/quick-start' or 'reference/variables')."
+    },
+    {
+      "name": "mcp__codex_apps__railway_generate_domain",
+      "group": "railway",
+      "description": "Expose a service publicly."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_automation",
+      "group": "railway",
+      "description": "Read an automation's instructions, owner, enabled state, and bootstrap selection."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_automation_run",
+      "group": "railway",
+      "description": "Read one automation run's saved inputs, bootstrap version, result or failure, and linked agent/session IDs."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_bucket_credentials",
+      "group": "railway",
+      "description": "Get the S3-compatible connection details for a bucket in an environment: endpoint, bucket name, region, URL style, access key and secret."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_cloud_agent_transcript",
+      "group": "railway",
+      "description": "Read what a cloud agent session is doing: its messages, tool calls and short tool results, oldest first, including the turn in flight."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_deployment_diagnosis",
+      "group": "railway",
+      "description": "Get the AI-generated diagnosis for a failed deployment: root cause category, analysis, and suggested fixes, along with deployment context (service config, source repo, branch, commit, PR, failure stage and error)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_feature_flag",
+      "group": "railway",
+      "description": "Get a Railway feature flag (Signal) by name for a project or its parent workspace scope"
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_function_source_code",
+      "group": "railway",
+      "description": "Get a Railway Function's source code and runtime in an environment."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_logs",
+      "group": "railway",
+      "description": "Get logs from Railway — deploy (runtime), build, http (proxy request), network-flow (per-connection egress/ingress) and dns (name lookups) streams."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_service_config",
+      "group": "railway",
+      "description": "Prefer describe-service: it applies the staged changes onto the live config for you and adds mounted volumes, domains, TCP proxies and the latest deployment."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_service_metrics",
+      "group": "railway",
+      "description": "Get resource usage metrics (CPU, memory, disk, network) for a service, summarized as current/average/min/max over a time window."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_staged_changes",
+      "group": "railway",
+      "description": "Show the changes staged in a Railway environment that accept-deploy would commit: per resource (service, volume, bucket, group) the action — create, delete, update — and each changed field with its live and staged value."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_status",
+      "group": "railway",
+      "description": "Prefer describe-environment: it also lists services that exist only in the staged patch, unattached volumes, and each resource's staged state."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_trace",
+      "group": "railway",
+      "description": "Get the spans of one distributed trace, as a tree from the edge down through every service that handled the request."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_tracing",
+      "group": "railway",
+      "description": "Read the tracing settings of an environment's services: whether each is traced and its auto-instrumentation switch."
+    },
+    {
+      "name": "mcp__codex_apps__railway_get_tracing_coverage",
+      "group": "railway",
+      "description": "Report what one service's own instrumentation covers: the spans its app exported in the window, by span kind, by the remote system they name (database, cache, queue, RPC or HTTP client) and by the instrumentation library that emitted them."
+    },
+    {
+      "name": "mcp__codex_apps__railway_http_error_rate",
+      "group": "railway",
+      "description": "Get the HTTP error rate for a service over time — the share of requests answered with a 5xx."
+    },
+    {
+      "name": "mcp__codex_apps__railway_http_requests",
+      "group": "railway",
+      "description": "Get HTTP request counts for a service, bucketed over time and split by response status class (2xx/3xx/4xx/5xx)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_http_response_time",
+      "group": "railway",
+      "description": "Get HTTP latency percentiles (p50, p90, p95, p99) for a service, bucketed over time, in milliseconds."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_automation_runs",
+      "group": "railway",
+      "description": "List automation runs, newest first, with manual/scheduled origin, task status, timestamps, failures, and agent/session IDs."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_automation_triggers",
+      "group": "railway",
+      "description": "List an automation's UTC schedule triggers, oldest first."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_automations",
+      "group": "railway",
+      "description": "List automations in a project/environment, newest first."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_beta_features",
+      "group": "railway",
+      "description": "List the account's beta features: whether the user is in Priority Boarding (Railway's beta programme, which auto-enables new beta features) and every beta feature they may turn on or off, with its current state."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_cloud_agent_models",
+      "group": "railway",
+      "description": "List the models a cloud-agent task in this environment can run on, with each model's reasoning efforts and the default a new conversation starts on."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_cloud_agent_tasks",
+      "group": "railway",
+      "description": "List cloud-agent task lifecycle records in an environment, newest first."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_connector_tunnels",
+      "group": "railway",
+      "description": "List this workspace's connector tunnels: status, running copies, where they run and their targets."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_deployments",
+      "group": "railway",
+      "description": "List recent deployments for a Railway project, optionally filtered by environment, service, or status."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_domains",
+      "group": "railway",
+      "description": "List all domains (Railway-generated service domains and custom domains) for a service in an environment."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_feature_flags",
+      "group": "railway",
+      "description": "List Railway feature flags (Signals) for a project and optionally the parent workspace."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_projects",
+      "group": "railway",
+      "description": "List all Railway projects accessible to the authenticated user"
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_services",
+      "group": "railway",
+      "description": "List the ids and names of all services and environments in a Railway project."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_tcp_proxies",
+      "group": "railway",
+      "description": "List the TCP proxies exposing a service over the public internet on a raw TCP port (e.g. a database's public endpoint)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_traces",
+      "group": "railway",
+      "description": "List distributed traces of an environment, newest first — one row per request that has at least one span matching the filter."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_variables",
+      "group": "railway",
+      "description": "List all environment variables for a service, fully rendered (reference variables like ${{Postgres.DATABASE_URL}} are resolved)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_webhooks",
+      "group": "railway",
+      "description": "List a project's webhooks: for each, the URL Railway POSTs to, the deployment, monitor and volume-alert events that trigger it, whether it covers preview (PR) environments, the names of its custom headers (values are write-only), and its ID for update-webhook and delete-webhook"
+    },
+    {
+      "name": "mcp__codex_apps__railway_list_workspaces",
+      "group": "railway",
+      "description": "List the Railway workspaces the current user belongs to."
+    },
+    {
+      "name": "mcp__codex_apps__railway_redeploy",
+      "group": "railway",
+      "description": "Re-run the most recent deployment of a service in a given environment, reusing that deployment's existing build."
+    },
+    {
+      "name": "mcp__codex_apps__railway_reset_bucket_credentials",
+      "group": "railway",
+      "description": "Regenerate the S3-compatible credentials for a bucket in an environment and return the new ones."
+    },
+    {
+      "name": "mcp__codex_apps__railway_restart_service",
+      "group": "railway",
+      "description": "Restart a service's running deployment in place — the containers restart without rebuilding the image, and no new deployment is created (use redeploy for a fresh build copy)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_retry_domain_certificate",
+      "group": "railway",
+      "description": "Request a new TLS certificate for a custom domain whose issuance failed."
+    },
+    {
+      "name": "mcp__codex_apps__railway_run_automation",
+      "group": "railway",
+      "description": "Run an automation now as its stored owner, even if its schedules are disabled."
+    },
+    {
+      "name": "mcp__codex_apps__railway_search_docs",
+      "group": "railway",
+      "description": "Search the Railway documentation (docs.railway.com) for features, configuration, guides, and tutorials."
+    },
+    {
+      "name": "mcp__codex_apps__railway_search_templates",
+      "group": "railway",
+      "description": "Search the Railway template marketplace by name, description or keyword — databases (postgres, mysql, mongo, redis, clickhouse), their high-availability variants, and application templates."
+    },
+    {
+      "name": "mcp__codex_apps__railway_set_beta_feature",
+      "group": "railway",
+      "description": "Turn an account beta feature on or off for the current user."
+    },
+    {
+      "name": "mcp__codex_apps__railway_set_feature_flag",
+      "group": "railway",
+      "description": "Create a project-scoped feature flag or update its default value, optionally replacing its targeting rules."
+    },
+    {
+      "name": "mcp__codex_apps__railway_set_service_tracing",
+      "group": "railway",
+      "description": "Enable or disable tracing and auto-instrumentation for one service in one environment, each independently. tracingEnabled switches whether the edge traces requests to the service; changing it redeploys the service so the OpenTelemetry exporter variables follow. autoInstrumentationEnabled switches eBPF (OBI) instrumentation of the service's processe"
+    },
+    {
+      "name": "mcp__codex_apps__railway_set_variables",
+      "group": "railway",
+      "description": "Set one or more environment variables on a service (or environment-wide shared variables when serviceId is omitted)."
+    },
+    {
+      "name": "mcp__codex_apps__railway_test_webhook",
+      "group": "railway",
+      "description": "POST a sample event payload to a URL and report the HTTP status it answered with, to check a webhook endpoint before creating or after updating a webhook."
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_bucket",
+      "group": "railway",
+      "description": "Rename a bucket."
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_domain",
+      "group": "railway",
+      "description": "Repoint or rename an existing domain on a service. targetPort changes which container port the domain routes to (for a service listening on several ports). subdomain renames a Railway-generated service domain to <subdomain>.up.railway.app; custom domains cannot be renamed — delete the old one and add the new one with generate-domain."
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_function_source_code",
+      "group": "railway",
+      "description": "Replace a Railway Function's source code."
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_service",
+      "group": "railway",
+      "description": "Update a service's configuration: build/start/pre-deploy commands and pre-deploy timeout, builder, healthcheck, sleep mode, root directory, cron schedule, Dockerfile path, restart policy, config file path, watch patterns, replicas per region, resource limits, deployment overlap/draining, outbound IPv6, the private network endpoint name, tracing (ed"
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_volume",
+      "group": "railway",
+      "description": "Update a volume's name, mount path, or which service it is attached to."
+    },
+    {
+      "name": "mcp__codex_apps__railway_update_webhook",
+      "group": "railway",
+      "description": "Change a project webhook's URL, the events that trigger it, or whether it covers preview (PR) environments."
+    },
+    {
+      "name": "mcp__codex_apps__railway_whoami",
+      "group": "railway",
+      "description": "Get the current authenticated Railway user's profile information"
+    },
+    {
+      "name": "apply_patch",
+      "group": "runtime",
+      "description": "The `apply_patch` tool can be used to edit files."
+    },
+    {
+      "name": "exec_command",
+      "group": "runtime",
+      "description": "Runs a command in a PTY, returning output or a session ID for ongoing interaction."
+    },
+    {
+      "name": "functions.exec",
+      "group": "runtime",
+      "description": "Orchestrate tool calls with JavaScript, including independent calls in parallel."
+    },
+    {
+      "name": "functions.request_user_input",
+      "group": "runtime",
+      "description": "Ask one to three short questions with selectable answers."
+    },
+    {
+      "name": "functions.wait",
+      "group": "runtime",
+      "description": "Resume or terminate a yielded JavaScript execution cell."
+    },
+    {
+      "name": "list_mcp_resource_templates",
+      "group": "runtime",
+      "description": "Lists resource templates provided by MCP servers."
+    },
+    {
+      "name": "list_mcp_resources",
+      "group": "runtime",
+      "description": "Lists resources provided by MCP servers."
+    },
+    {
+      "name": "read_mcp_resource",
+      "group": "runtime",
+      "description": "Read a specific resource from an MCP server given the server name and resource URI."
+    },
+    {
+      "name": "view_image",
+      "group": "runtime",
+      "description": "View a local image file from the filesystem when visual inspection is needed."
+    },
+    {
+      "name": "write_stdin",
+      "group": "runtime",
+      "description": "Writes characters to an existing unified exec session and returns recent output."
+    },
+    {
+      "name": "mcp__codex_apps__safety_settings_get_family_info",
+      "group": "safety_settings",
+      "description": "Call first for any Parental Controls question or action, including unnamed children."
+    },
+    {
+      "name": "mcp__codex_apps__safety_settings_get_parental_controls",
+      "group": "safety_settings",
+      "description": "Read one family member's controls."
+    },
+    {
+      "name": "mcp__codex_apps__safety_settings_get_trusted_contact",
+      "group": "safety_settings",
+      "description": "Call first for any Trusted Contact setup, status, privacy, or notification question."
+    },
+    {
+      "name": "mcp__codex_apps__safety_settings_prepare_parental_control_update",
+      "group": "safety_settings",
+      "description": "Validate one authorized parental-control change and return the exact approval summary and operation ID."
+    },
+    {
+      "name": "mcp__codex_apps__safety_settings_update_parental_control",
+      "group": "safety_settings",
+      "description": "Apply a prepared parental-control change only after the parent explicitly approves its exact confirmation summary."
+    },
+    {
+      "name": "mcp__codex_apps__search_service_web_run",
+      "group": "search_service",
+      "description": "Run the web commands documented in this namespace."
+    },
+    {
+      "name": "mcp__codex_apps__sites_add_custom_domain",
+      "group": "sites",
+      "description": "Add a custom domain to a published site."
+    },
+    {
+      "name": "mcp__codex_apps__sites_change_site_slug",
+      "group": "sites",
+      "description": "Change a site's public URL label."
+    },
+    {
+      "name": "mcp__codex_apps__sites_create_schedule",
+      "group": "sites",
+      "description": "Create and link a cloud task for a published Site when the user has requested scheduling."
+    },
+    {
+      "name": "mcp__codex_apps__sites_create_site",
+      "group": "sites",
+      "description": "Create a site only when .openai/hosting.json has no project_id."
+    },
+    {
+      "name": "mcp__codex_apps__sites_create_source_repository_write_credential",
+      "group": "sites",
+      "description": "Create a short-lived source repository write credential when the credential returned by create_site is missing or no longer usable."
+    },
+    {
+      "name": "mcp__codex_apps__sites_deploy_private_site_version",
+      "group": "sites",
+      "description": "Deploy a saved site version to production for a site created in the current flow whose owner-only access has not changed, or an existing site already known to be owner-private for the selected account."
+    },
+    {
+      "name": "mcp__codex_apps__sites_deploy_site_version",
+      "group": "sites",
+      "description": "Deploy a saved site version to production when the site is shared, public, cannot be verified as owner-only, or private deployment is unavailable."
+    },
+    {
+      "name": "mcp__codex_apps__sites_generate_siwc_bypass_token",
+      "group": "sites",
+      "description": "Generate a bearer token for identity-less API requests that bypasses a site's Sign in with ChatGPT gate."
+    },
+    {
+      "name": "mcp__codex_apps__sites_get_deployment_status",
+      "group": "sites",
+      "description": "Get the current status of a production deployment."
+    },
+    {
+      "name": "mcp__codex_apps__sites_get_environment_variables",
+      "group": "sites",
+      "description": "Get the production runtime environment variables for a site."
+    },
+    {
+      "name": "mcp__codex_apps__sites_get_site",
+      "group": "sites",
+      "description": "Get a site and its current access configuration, including external visitors."
+    },
+    {
+      "name": "mcp__codex_apps__sites_get_site_version",
+      "group": "sites",
+      "description": "Get a saved site version and its source provenance."
+    },
+    {
+      "name": "mcp__codex_apps__sites_get_site_worker_logs",
+      "group": "sites",
+      "description": "Read recent production Cloudflare Worker logs for a Site when diagnosing why a deployed website is crashing, returning an error, or failing after a click or tap."
+    },
+    {
+      "name": "mcp__codex_apps__sites_list_custom_domains",
+      "group": "sites",
+      "description": "List custom domains attached to a site"
+    },
+    {
+      "name": "mcp__codex_apps__sites_list_site_versions",
+      "group": "sites",
+      "description": "List saved site versions in newest-first order for history, deployment, or rollback selection."
+    },
+    {
+      "name": "mcp__codex_apps__sites_list_sites",
+      "group": "sites",
+      "description": "List Sites you own in the selected account, including personal accounts."
+    },
+    {
+      "name": "mcp__codex_apps__sites_read_database_overview",
+      "group": "sites",
+      "description": "Inspect the user tables in a deployed site's live Cloudflare D1 database before reading rows."
+    },
+    {
+      "name": "mcp__codex_apps__sites_read_database_table_rows",
+      "group": "sites",
+      "description": "Read one bounded page of rows from a user table in a deployed site's live Cloudflare D1 database."
+    },
+    {
+      "name": "mcp__codex_apps__sites_refresh_custom_domain_status",
+      "group": "sites",
+      "description": "Refresh custom domain validation status for a site"
+    },
+    {
+      "name": "mcp__codex_apps__sites_remove_custom_domain",
+      "group": "sites",
+      "description": "Remove a custom domain from a site"
+    },
+    {
+      "name": "mcp__codex_apps__sites_save_site_version",
+      "group": "sites",
+      "description": "Save a version of the site's pushed source without deploying it."
+    },
+    {
+      "name": "mcp__codex_apps__sites_save_version_and_deploy_private",
+      "group": "sites",
+      "description": "For a site created in the current flow whose owner-only access has not changed, or an existing site already known to be owner-private for the selected account, use this instead of save_site_version followed by deploy_private_site_version."
+    },
+    {
+      "name": "mcp__codex_apps__sites_update_environment_variables",
+      "group": "sites",
+      "description": "Update production runtime environment variables for a site."
+    },
+    {
+      "name": "mcp__codex_apps__sites_update_site_access",
+      "group": "sites",
+      "description": "Update who can visit a site only when the user asks to change access."
+    },
+    {
+      "name": "mcp__codex_apps__sites_update_site_metadata",
+      "group": "sites",
+      "description": "Update a site's display title."
+    },
+    {
+      "name": "skills__list",
+      "group": "skills",
+      "description": "List skills owned by the requested authority."
+    },
+    {
+      "name": "skills__read",
+      "group": "skills",
+      "description": "Read one page from a skill."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_apply_migration",
+      "group": "supabase",
+      "description": "Applies a migration to the database."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_confirm_cost",
+      "group": "supabase",
+      "description": "Returns a confirmation ID for the cost of a new project or branch returned by `get_cost`."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_create_branch",
+      "group": "supabase",
+      "description": "Creates a development branch on a Supabase project, which can incur hourly compute and other usage charges."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_create_project",
+      "group": "supabase",
+      "description": "Creates a new Supabase project, which can add to the organization's bill."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_delete_branch",
+      "group": "supabase",
+      "description": "Deletes a development branch"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_delete_feedback",
+      "group": "supabase",
+      "description": "Deletes feedback sent with submit_feedback."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_deploy_edge_function",
+      "group": "supabase",
+      "description": "Deploys an Edge Function to a Supabase project."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_execute_sql",
+      "group": "supabase",
+      "description": "Executes raw SQL in the Postgres database."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_generate_typescript_types",
+      "group": "supabase",
+      "description": "Generates TypeScript types for a project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_advisors",
+      "group": "supabase",
+      "description": "Gets a list of advisory notices for the Supabase project."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_cost",
+      "group": "supabase",
+      "description": "Gets the cost of creating a new project or branch."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_edge_function",
+      "group": "supabase",
+      "description": "Retrieves file contents for an Edge Function in a Supabase project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_organization",
+      "group": "supabase",
+      "description": "Gets details for an organization."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_project",
+      "group": "supabase",
+      "description": "Gets details for a Supabase project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_project_url",
+      "group": "supabase",
+      "description": "Gets the API URL for a project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_get_publishable_keys",
+      "group": "supabase",
+      "description": "Gets all publishable API keys for a project, including legacy anon keys (JWT-based) and modern publishable keys (format: sb_publishable_...)."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_branches",
+      "group": "supabase",
+      "description": "Lists all development branches of a Supabase project."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_edge_functions",
+      "group": "supabase",
+      "description": "Lists all Edge Functions in a Supabase project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_extensions",
+      "group": "supabase",
+      "description": "Lists all extensions in the database"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_migrations",
+      "group": "supabase",
+      "description": "Lists all migrations in the database"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_organizations",
+      "group": "supabase",
+      "description": "Lists all organizations that the user is a member of"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_projects",
+      "group": "supabase",
+      "description": "Lists all Supabase projects for the user."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_list_tables",
+      "group": "supabase",
+      "description": "Lists all tables in one or more schemas."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_merge_branch",
+      "group": "supabase",
+      "description": "Merges migrations and edge functions from a development branch to production"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_pause_project",
+      "group": "supabase",
+      "description": "Pauses a Supabase project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_query_logs",
+      "group": "supabase",
+      "description": "Runs a custom read-only ClickHouse SQL query against a Supabase project's unified logs stream, for filtering, aggregating, or joining across log fields more precisely than a simple per-service log dump."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_rebase_branch",
+      "group": "supabase",
+      "description": "Rebases a development branch on production."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_reset_branch",
+      "group": "supabase",
+      "description": "Resets migrations of a development branch."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_restore_project",
+      "group": "supabase",
+      "description": "Restores a Supabase project"
+    },
+    {
+      "name": "mcp__codex_apps__supabase_search_docs",
+      "group": "supabase",
+      "description": "Search the Supabase documentation using GraphQL."
+    },
+    {
+      "name": "mcp__codex_apps__supabase_submit_feedback",
+      "group": "supabase",
+      "description": "Sends feedback about Supabase tools to the Supabase team."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_cancel_deep_research",
+      "group": "tinyfish",
+      "description": "Cancels a TinyFish deep research run by ID when the user requests it."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_cancel_monitor",
+      "group": "tinyfish",
+      "description": "Only use when the user explicitly asks to delete or cancel a Monitor."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_cancel_profile_setup_session",
+      "group": "tinyfish",
+      "description": "Closes a setup session and discards anything not yet saved."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_cancel_run",
+      "group": "tinyfish",
+      "description": "Only use when the user explicitly asks to stop a running or pending automation."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_create_monitor",
+      "group": "tinyfish",
+      "description": "Use when the user asks to monitor a webpage for changes or subscribe to updates about a web topic."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_create_profile",
+      "group": "tinyfish",
+      "description": "Creates a Browser Context Profile and returns setup_url."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_fetch_content",
+      "group": "tinyfish",
+      "description": "Fetches and extracts structured content from up to 10 URLs in parallel, including JavaScript-rendered pages."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_get_deep_research",
+      "group": "tinyfish",
+      "description": "Returns the status of a TinyFish deep research run, waiting up to about 25 seconds for it to finish."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_get_monitor",
+      "group": "tinyfish",
+      "description": "Only use when the user asks for one Monitor."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_get_run",
+      "group": "tinyfish",
+      "description": "Only use after run_web_automation errors, times out, or returns a run_id that needs polling."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_get_wallet",
+      "group": "tinyfish",
+      "description": "Read-only."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_list_deep_research",
+      "group": "tinyfish",
+      "description": "Lists the user's most recent TinyFish deep research runs with their status and a link to each report, for finding an earlier report"
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_list_monitors",
+      "group": "tinyfish",
+      "description": "Only use when the user asks which Monitors they have."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_list_profiles",
+      "group": "tinyfish",
+      "description": "Lists Browser Context Profiles, including which one is the default. signed_in_sites are sites where a TinyFish setup saw the user sign in, or the user said they signed in when saving, and whose cookies are still saved; a sign-in may have expired since its claimed_at."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_list_runs",
+      "group": "tinyfish",
+      "description": "Only use when you need to find a run_id for a recently created automation, usually after run_web_automation timed out before returning one."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_pause_monitor",
+      "group": "tinyfish",
+      "description": "Only use when the user asks to pause a Monitor."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_resume_monitor",
+      "group": "tinyfish",
+      "description": "Only use when the user asks to resume a paused Monitor and start its schedule again"
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_run_monitor",
+      "group": "tinyfish",
+      "description": "Only use when the user asks to check a Monitor immediately."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_run_web_automation",
+      "group": "tinyfish",
+      "description": "Metered web automation is available through your wallet — use it for clicking, forms, login, or dynamic pages."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_save_profile_setup_session",
+      "group": "tinyfish",
+      "description": "Saves cookies and browser storage from a setup session onto the profile, then closes the browser."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_search",
+      "group": "tinyfish",
+      "description": "Searches the public web and returns compact, structured results."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_start_deep_research",
+      "group": "tinyfish",
+      "description": "Starts an asynchronous TinyFish deep research run that searches, reads, and synthesizes many web sources into a comprehensive cited report."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_start_profile_setup_session",
+      "group": "tinyfish",
+      "description": "Returns setup_url for signing in to an EXISTING Browser Context Profile."
+    },
+    {
+      "name": "mcp__codex_apps__tinyfish_wait_for_run",
+      "group": "tinyfish",
+      "description": "Wait for a run started by run_web_automation."
+    }
+  ]
+}

@@ -8,6 +8,12 @@ declare namespace Cloudflare {
     WORK_QUEUE?: Queue<{workId:string}>;
     WORK_SCHEDULER_VERIFIED?: string;
     WORK_ENABLED?: string;
+    ROUTINES_ENABLED?: string;
+    ROUTINES_STAGING_VERIFIED?: string;
+    FAL_CONFIG_JSON?:string;
+    FAL_PRICING_POLICY_JSON?:string;
+    FAL_GENERATION_ENABLED?:string;
+    FAL_ACCOUNT_STATUS?:string;
     WORK_STAGING_VERIFIED?: string;
     SOCIAL_ENABLED?: string;
     SOCIAL_STAGING_VERIFIED?: string;
@@ -40,6 +46,8 @@ declare namespace Cloudflare {
     ANTHROPIC_RATE_JSON?: string;
     OPENAI_API_KEY?: string;
     MODEL_ROUTING_ENABLED?: string;
+    MODEL_ROUTING_POLICY?: string;
+    MODEL_PRICING_REFRESH_JSON?: string;
     MODEL_ROUTING_CATALOG_JSON?: string;
     LLM_PROVIDER?: string;
     OPENROUTER_API_KEY?: string;

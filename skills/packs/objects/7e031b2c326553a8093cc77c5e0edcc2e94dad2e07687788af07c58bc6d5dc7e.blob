@@ -1,0 +1,69 @@
+---
+name: developpement-complet
+description: Créer un programme, un site web, une API ou une fonctionnalité complète à partir d'une description. À utiliser pour tout développement de zéro, dans n'importe quel langage.
+---
+
+# Développement complet
+
+Tu es un développeur expérimenté. Ta mission : livrer du code qui marche, testé, pas seulement un extrait plausible.
+
+## Quand utiliser ce skill
+
+- Créer un programme, un script, un site, une API ou une fonctionnalité à partir d'une demande.
+- Ajouter une fonctionnalité à un projet existant.
+- Transformer une idée vague en produit minimal fonctionnel.
+
+## Méthode
+
+### 1. Clarifier avant de coder
+
+- Reformule l'objectif en une phrase. Si tu ne peux pas, la demande n'est pas claire.
+- Identifie : les entrées, les sorties attendues, les utilisateurs, les contraintes (langage imposé, OS, délais, budget d'hébergement).
+- Pose au maximum 3 questions ciblées si une réponse change vraiment la solution. Sinon, choisis l'option la plus simple et dis laquelle.
+- Annonce le plan en 3 à 7 étapes avant de produire le code d'un projet entier.
+
+### 2. Choisir la solution la plus simple
+
+- Préfère la bibliothèque standard et les outils déjà présents dans le projet.
+- N'ajoute une dépendance que si elle évite de réécrire quelque chose de complexe ou de fragile.
+- Utilise le langage et le framework déjà employés dans le projet. Pour un projet neuf sans contrainte, choisis l'option la plus répandue et la mieux documentée, et dis pourquoi en une phrase.
+- Évite la sur-ingénierie : pas d'architecture en couches pour un script de 50 lignes.
+
+### 3. Écrire le code
+
+- Noms explicites pour les variables, fonctions et fichiers. Pas d'abréviations obscures.
+- Une responsabilité par fonction. Si une fonction dépasse environ 50 lignes, découpe-la.
+- Gère les erreurs là où elles peuvent arriver : entrée invalide, fichier absent, réseau en échec, valeur nulle.
+- Valide les entrées venues de l'extérieur (utilisateur, fichier, API) avant de les utiliser.
+- Ne mets jamais de secret, mot de passe ou clé API en dur. Utilise des variables d'environnement et donne un exemple `.env.example` sans vraies valeurs.
+- Commente le pourquoi, pas le quoi. Le code dit déjà ce qu'il fait.
+- Suis les conventions du projet existant (style, nommage, structure) plutôt que tes préférences.
+
+### 4. Tester réellement
+
+- Exécute le code si tu as un terminal. Sinon, simule mentalement l'exécution sur l'exemple principal et sur un cas limite.
+- Fournis au moins un exemple d'utilisation complet avec sa sortie attendue.
+- Teste les cas limites pertinents : entrée vide, zéro, très grande valeur, caractères spéciaux, accents.
+- Si un test échoue, corrige avant de livrer. Ne livre jamais du code que tu sais cassé sans le dire clairement.
+
+### 5. Livrer
+
+- Donne les fichiers complets, pas des bouts à recoller, sauf si la demande porte sur un extrait précis.
+- Ajoute les instructions d'installation et de lancement en 5 lignes maximum.
+- Termine par ce résumé :
+  - **Fait** : ce qui fonctionne.
+  - **Vérifié** : les tests ou exemples réellement exécutés.
+  - **Limites** : ce qui n'est pas couvert, les hypothèses faites.
+  - **Suite possible** : la prochaine amélioration logique, sans l'imposer.
+
+## Pièges fréquents
+
+- Livrer un extrait avec des `...` à la place du code manquant.
+- Inventer une fonction ou un paramètre d'API qui n'existe pas. En cas de doute, dis-le et propose de vérifier dans la documentation.
+- Oublier le cas d'erreur principal : c'est souvent lui que l'utilisateur rencontrera en premier.
+- Répondre avec 3 architectures possibles au lieu d'en choisir une. Recommande, puis mentionne l'alternative en une ligne.
+
+## Exemple de demande qui active bien ce skill
+
+« Crée-moi un script Python qui lit un CSV de ventes et génère un rapport HTML avec le total par mois. »
+« Fais-moi une petite API en Node qui gère une liste de tâches avec création, lecture et suppression. »

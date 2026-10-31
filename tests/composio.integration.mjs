@@ -18,6 +18,7 @@ const metadata=new Map([
  ['METAADS_GET_AD_ACCOUNTS',{slug:'METAADS_GET_AD_ACCOUNTS',toolkit:{slug:'metaads'},tags:['readOnlyHint']}],
  ['METAADS_GET_INSIGHTS',{slug:'METAADS_GET_INSIGHTS',toolkit:{slug:'metaads'},tags:['readOnlyHint']}],
  ['METAADS_CREATE_CAMPAIGN',{slug:'METAADS_CREATE_CAMPAIGN',toolkit:{slug:'metaads'},tags:['createHint']}],
+ ['FACEBOOK_CREATE_POST',{slug:'FACEBOOK_CREATE_POST',toolkit:{slug:'facebook'},tags:['createHint']}],
  ['EXA_SEARCH',{slug:'EXA_SEARCH',toolkit:{slug:'exa'},tags:['readOnlyHint']}],
 ]);
 const searchResult={resultType:'completed',logId:'log_search_fixture',data:{results:[{primary_tool_slugs:['METAADS_GET_AD_ACCOUNTS'],related_tool_slugs:['METAADS_GET_INSIGHTS'],difficulty:'medium',recommended_plan_steps:['Read accounts first','Read campaign insights'],known_pitfalls:['Do not use a page ID as an ad account ID.'],extra_guidance:'Verified skill context '.repeat(1500)}],tool_schemas:{METAADS_GET_AD_ACCOUNTS:{input_schema:{type:'object'}}}}};
@@ -80,7 +81,7 @@ await check('Sessions are tenant-scoped, persist across turns, and explicitly di
 });
 await check('Agent receives dynamic discovery and guarded adapters, never raw writes, batch, sandbox or proxy',async()=>{
  const tools=await c.connectorAgentTools(who,'chat-fixture');
- assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','braand_connect_toolkit','braand_connector_action','braand_connector_receipt'].sort());
+ assert.deepEqual(tools.map(tool=>tool.name).sort(),['COMPOSIO_GET_TOOL_SCHEMAS','COMPOSIO_SEARCH_TOOLS','braand_connect_toolkit','braand_connector_action','braand_connector_receipt','braand_connector_status'].sort());
  for(const name of ['COMPOSIO_MULTI_EXECUTE_TOOL','COMPOSIO_REMOTE_WORKBENCH','COMPOSIO_REMOTE_BASH_TOOL','COMPOSIO_PROXY_EXECUTE','METAADS_CREATE_CAMPAIGN'])await assert.rejects(()=>c.executeConnectorAgentTool(who,'chat-fixture',name,{}));
 });
 await check('SEARCH result including long skill, plan, pitfalls and schemas reaches agent intact',async()=>{
@@ -136,6 +137,39 @@ await check('Catalogue HTTP query accepts only connected=true and validates filt
 });
 await check('Authorization returns only a hosted Connect Link without creating accounts or accepting consent',async()=>{
  const before=accounts.size,result=await c.authorizeConnector(who,'metaads');assert.equal(result.redirectUrl,'https://connect.composio.dev/link/fixture');assert.equal(accounts.size,before);assert.equal(authorized.at(-1).toolkit,'metaads');
+});
+await check('Connection diagnosis reports active, expired and missing accounts without execution or authorization',async()=>{
+ const before=countExecutions(),authorizations=authorized.length;
+ const active=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_status',{toolkits:['metaads','github']});
+ assert.equal(active.items[0].connected,true);assert.equal(active.items[0].status,'ACTIVE');assert.equal(active.items[1].status,'NOT_CONNECTED');assert.equal(active.items[1].nextStep,'connect');
+ assert.equal(active.permissionStatus,'not_checked');assert.equal(active.writesRequireExactApproval,true);
+ accounts.get('account_owner').status='EXPIRED';
+ try{const expired=await c.diagnoseConnectors(who,{toolkits:['metaads']});assert.equal(expired.items[0].connected,false);assert.equal(expired.items[0].status,'EXPIRED');assert.equal(expired.items[0].nextStep,'reconnect');}finally{accounts.get('account_owner').status='ACTIVE';}
+ const other=await secondUser();accounts.get('account_other').status='EXPIRED';
+ try{const foreign=await c.diagnoseConnectors(other,{toolkits:['metaads']});assert.equal(foreign.items[0].status,'EXPIRED');assert.equal(JSON.stringify(foreign).includes('account_owner'),false);}finally{accounts.get('account_other').status='ACTIVE';}
+ assert.equal(countExecutions(),before);assert.equal(authorized.length,authorizations);
+});
+await check('Connection diagnosis cannot mistake another user account for an active own connection or bypass schema limits',async()=>{
+ forceForeignAccount=true;
+ try{const result=await c.diagnoseConnectors(who,{toolkits:['metaads']});assert.equal(result.items[0].connected,false);assert.equal(JSON.stringify(result).includes('account_other'),false);}finally{forceForeignAccount=false;}
+ const before=calls.length;
+ for(const input of [{toolkits:[]},{toolkits:Array(9).fill('metaads')},{toolkits:['metaads'],accountId:'account_other'},{toolkits:['METAADS']}])await assert.rejects(()=>c.diagnoseConnectors(who,input));
+ assert.equal(calls.length,before);
+ const key=env.COMPOSIO_API_KEY;delete env.COMPOSIO_API_KEY;
+ try{assert.deepEqual(await c.diagnoseConnectors(who,{toolkits:['metaads']}),{configured:false,items:[],reason:'configuration_pending'});}finally{env.COMPOSIO_API_KEY=key;}
+ assert.equal(calls.length,before);
+});
+await check('Facebook publication remains pending until exact approval, executes once and exposes an authoritative receipt',async()=>{
+ const {scopeUser}=await c.connectorSession(who);accounts.set('account_facebook',{id:'account_facebook',userId:scopeUser,toolkit:{slug:'facebook'},status:'ACTIVE'});
+ try{
+  const args={page_id:'123456789',message:'Fictional publication for an isolated test',published:true},before=countExecutions();
+  const pending=await proposal({toolkit:'facebook',toolSlug:'FACEBOOK_CREATE_POST',arguments:args});
+  assert.equal(pending.status,'pending');assert.equal(countExecutions(),before);assert.deepEqual(pending.data.arguments,args);
+  await Promise.all([c.decideConnectorAction(who,pending.id,'approve'),c.decideConnectorAction(who,pending.id,'approve')]);
+  const receipt=await c.executeConnectorAgentTool(who,'chat-fixture','braand_connector_receipt',{id:pending.id});
+  assert.equal(receipt.status,'completed');assert.equal(receipt.logId,'log_execution_fixture');assert.equal(countExecutions(),before+1);
+  const sent=calls.filter(item=>item.kind==='execute').at(-1);assert.deepEqual(sent.input,args);assert.equal(sent.options.account,'account_facebook');
+ }finally{accounts.delete('account_facebook');}
 });
 await check('Active own-account read-only tool executes with exact arguments and account',async()=>{
  const input={fields:['id','name']},before=countExecutions();await proposal(call('METAADS_GET_AD_ACCOUNTS',input));assert.equal(countExecutions(),before+1);
@@ -282,6 +316,24 @@ await check('Monthly Instant budget remains atomic when two approvals compete fo
 await check('Audit records tool status without arguments, account data or provider credentials',async()=>{
  const rows=sql.prepare("SELECT detail FROM audit WHERE action LIKE 'connector.%'").all();assert.ok(rows.length>0);
  for(const row of rows){const detail=JSON.parse(row.detail);assert.ok(Object.keys(detail).every(key=>['status','logId'].includes(key)));assert.equal(row.detail.includes(env.COMPOSIO_API_KEY),false);assert.equal(row.detail.includes('Fictional test account'),false);}
+});
+await check('approved durable work proposes a linked exact action once and preserves its receipt on resume',async()=>{
+ const conversation=await s.createResource(who.tenant,'conversation','Mission fixture',{},'saved'),resource=await s.createResource(who.tenant,'work','Mandat fixture',{},'draft'),now=Date.now();
+ sql.prepare("INSERT INTO agent_work(id,workspace_id,organization_id,actor_id,conversation_id,objective,status,approved_version,budget_units,expires_at,next_at,created_at,updated_at) VALUES (?,?,?,?,?,?,'running',1,1000,?,?,?,?)").run(resource.id,who.tenant,who.organization,who.user.userId,conversation.id,'Test',now+600000,now,now,now);
+ const step=resource.id+':step';sql.prepare("INSERT INTO agent_work_steps(id,work_id,ordinal,title,instruction,criteria,depends_on,status,max_units) VALUES (?,?,0,'Test','Test','[]','[]','running',500)").run(step,resource.id);
+ const invoke=(name,args)=>c.executeMissionConnectorTool(who,conversation.id,name,args,resource.id,step),before=countExecutions();
+ for(const name of ['COMPOSIO_REMOTE_BASH_TOOL','braand_connect_toolkit','COMPOSIO_MULTI_EXECUTE_TOOL'])await assert.rejects(()=>invoke(name,{}),e=>e.code==='work_connector_denied');
+ await assert.rejects(()=>invoke('braand_connector_action',{...call(),mode:'instant'}),e=>e.code==='work_connector_denied');
+ const pending=await invoke('braand_connector_action',call());assert.equal(pending.kind,'connector_action');assert.equal(countExecutions(),before);
+ assert.equal(sql.prepare('SELECT work_id FROM agent_work_artifacts WHERE resource_id=?').get(pending.id).work_id,resource.id);
+ assert.equal((await invoke('braand_connector_action',call())).id,pending.id);
+ sql.prepare("UPDATE agent_work SET status='paused' WHERE id=?").run(resource.id);await assert.rejects(()=>c.decideConnectorAction(who,pending.id,'approve'),e=>e.code==='work_inactive');assert.equal(countExecutions(),before);
+ sql.prepare("UPDATE agent_work SET status='running' WHERE id=?").run(resource.id);const completed=await c.decideConnectorAction(who,pending.id,'approve');assert.equal(completed.status,'completed');assert.equal(countExecutions(),before+1);
+ assert.equal((await invoke('braand_connector_action',call())).id,pending.id);assert.equal(countExecutions(),before+1);
+ const gated=await invoke('braand_connector_action',call('METAADS_CREATE_CAMPAIGN',{name:'Native pause fixture',status:'PAUSED'})),beforeEffects=effects.length;
+ nativeChallenge={requests:{fixture:approvalQuestion},state:'fixture-request-state',onChallenge:()=>sql.prepare("UPDATE agent_work SET status='paused' WHERE id=?").run(resource.id)};
+ try{const stopped=await c.decideConnectorAction(who,gated.id,'approve');assert.equal(stopped.status,'needs_input');assert.equal(effects.length,beforeEffects);}finally{nativeChallenge=null;}
+ sql.prepare("UPDATE agent_work SET status='cancelled' WHERE id=?").run(resource.id);await assert.rejects(()=>invoke('braand_connector_status',{}),e=>e.code==='work_connector_denied');
 });
 // Touch real billing projections too: all holds remain visible in the organization's ledger.
 assert.ok((await b.summary(who.organization)).wallet.reserved>0);

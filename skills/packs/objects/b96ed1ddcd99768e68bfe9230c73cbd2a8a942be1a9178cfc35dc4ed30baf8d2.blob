@@ -1,0 +1,6 @@
+interface:
+  display_name: "Fast Parallel Research"
+  short_description: "Quickly research and visualize one topic"
+  default_prompt: "Use $onboarding-parallel-research to quickly research my topic from three angles in parallel and create one clear visual synthesis."
+policy:
+  allow_implicit_invocation: false

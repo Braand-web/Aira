@@ -6,6 +6,13 @@ import type { RunBudget } from './metering';
 export async function executePlatformTool(name: string, input: unknown, scope: AgentScope, budget: RunBudget): Promise<unknown> {
     const parseId = () => z.object({ id: z.string().min(1).max(160) }).strict().parse(input).id;
     switch (name) {
+        case 'analyze_data': return (await import('./data-analysis')).analyzeData(budget.who,input);
+        case 'get_analysis_result': return (await import('./data-analysis')).getAnalysisResult(budget.who,input);
+        case 'save_source_project': return (await import('./source-projects')).saveSourceProject(budget.who,input);
+        case 'get_source_project': return (await import('./source-projects')).getSourceProject(budget.who,input);
+        case 'prepare_routine': return (await import('./routines')).prepareRoutine(budget.who,input);
+        case 'get_routine': return (await import('./routines')).getRoutine(scope.tenant,parseId());
+        case 'export_deliverable': return (await import('./document-delivery')).exportDeliverable(budget.who,input);
         case 'capabilities': return (await import('./capabilities')).workspaceCapabilities(budget.who);
         case 'prepare_brief': return (await import('./brief')).prepareBrief(budget.who, input);
         case 'prepare_work': {const parsed=z.object({id:z.string().max(160).optional(),version:z.number().int().positive().optional()}).passthrough().parse(input),{id,version,...mandate}=parsed;if(id||version){if(!id||!version)throw new AppError('Identifiant et version du brouillon requis.');return (await import('./work')).reviseWork(budget.who,id,version,mandate);}return (await import('./work')).prepareWork(budget.who,scope.conversationId,mandate);}

@@ -1,0 +1,79 @@
+---
+name: analyses_predictions_fiables
+description: "Produire des analyses et des prédictions traçables dans n'importe quel domaine, sport, marchés, tendances, concours ou business, avec données réelles croisées, grille de notation explicite, journal d'apprentissage et bilan public, sans promesse de résultat garanti."
+---
+
+# Analyses et Prédictions Fiables Basées sur les Données
+
+## Adapter à n'importe quel projet
+
+- Commencer par fixer les variables du projet, depuis la demande ou en demandant seulement celles qui manquent et changent le résultat.
+
+- Variables à fixer : le domaine ou le secteur, le public visé, le marché (pays, langue et culture), la devise, la plateforme de vente ou de diffusion, l'offre et son prix, le budget disponible et l'objectif mesurable.
+
+- Ne jamais appliquer un chiffre d'un autre projet tel quel, toujours le recalculer dans la devise, le prix et le contexte du projet en cours.
+
+- Traiter les exemples chiffrés de ce skill comme des illustrations de la méthode, jamais comme des valeurs par défaut.
+
+
+## Définir ce qui peut être prédit proprement
+
+- Définir l'événement à analyser, son échéance et le délai minimal entre la publication et l'événement.
+
+- Retenir seulement les événements assez documentés pour être analysés avec des données réelles.
+
+- Fixer un quota de publication réaliste et le tenir chaque cycle, en durcissant la prudence plutôt qu'en sautant un cycle.
+
+- Traiter les sujets tendance en premier, puis les écarter de la prédiction officielle s'ils sont trop incertains et les publier comme débat ou analyse sans prédiction.
+
+## Croiser des données réelles
+
+- Recueillir les indicateurs pertinents du domaine, historique, forme récente, contexte, contraintes, absents ou facteurs externes selon le sujet.
+
+- Croiser chaque donnée importante par 2 sources indépendantes avant de l'utiliser.
+
+- Ajouter les indicateurs avancés du domaine quand ils sont disponibles, statistiques attendues, écarts domicile et extérieur ou équivalent, fatigue ou enchaînement, et signaux de marché utilisés comme un indicateur parmi d'autres.
+
+- Ne jamais transformer un sponsor, un vendeur de prédictions ou un intérêt commercial en argument d'analyse.
+
+## Noter chaque prédiction avec une grille
+
+- Noter chaque prédiction sur 10 avec des indicateurs écrits et pondérés, définis avant de voir les résultats.
+
+- Retenir une prédiction standard seulement au dessus d'un seuil fixé à l'avance, avec au moins 3 indicateurs qui convergent dans le même sens.
+
+- Publier une prédiction sous le seuil seulement comme prédiction prudente, avec une confiance réduite affichée telle quelle et jamais gonflée.
+
+- Privilégier les conclusions prudentes et probabilistes et éviter les affirmations extrêmes ou spectaculaires en prédiction officielle.
+
+- Afficher une confiance justifiée par les indicateurs, présentée comme une analyse et jamais comme une certitude.
+
+## Publier et tenir le journal
+
+- Consigner chaque prédiction dans un journal avec la date, le sujet, la conclusion, la confiance et les indicateurs utilisés.
+
+- Donner le verdict de chaque prédiction après l'événement, juste ou faux, sans effacer les échecs.
+
+- Publier un bilan régulier avec le taux réel, tel quel, et suivre séparément le taux global et le taux des prédictions mises en avant.
+
+## Apprendre à chaque cycle
+
+- Auditer le journal à intervalle fixe pour identifier quels indicateurs prédisent le mieux les résultats réels.
+
+- Ajuster les pondérations de la grille seulement sur des preuves tirées du journal, jamais sur une intuition après un seul événement.
+
+- Durcir automatiquement la sélection quand le taux passe sous un seuil fixé à l'avance sur la période de référence.
+
+- Garder les mêmes définitions d'un cycle à l'autre pour que les taux restent comparables.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Publier un débat ou une analyse sans prédiction quand aucun événement ne passe le seuil.
+
+- Réduire temporairement la prise de risque après une série d'erreurs et le dire publiquement.

@@ -1,0 +1,68 @@
+---
+name: video_pub_monolithe
+description: "Adapter le format Monolithe à n'importe quel produit ou marque, un motion design éditorial monochrome prestige en 8 temps, à partir de 4 variables seulement, avec un contrôle audio strict avant livraison."
+---
+
+# Vidéo Publicitaire Monolithe
+
+## Recueillir les 4 variables seulement
+
+- Demander uniquement la marque ou le produit, le chiffre preuve, les 2 bénéfices et la signature finale quand ils manquent.
+
+- Verrouiller tout le reste du format sans le rediscuter à chaque nouvelle vidéo.
+
+- Refuser un chiffre preuve inventé et demander un chiffre réel ou remplacer le temps du chiffre par un bénéfice démontrable.
+
+## Respecter l'identité du format
+
+- Produire un vertical 9 par 16 en 1080 par 1920, autour de 24 secondes, avec des coupes sèches sur les temps de 1 à 3 secondes.
+
+- Garder un fond gris clair uni et une palette uniquement en noir, blanc et gris.
+
+- Utiliser une typographie sans empattement grasse et très serrée pour les titres et un serif italique pour les accents, avec une ombre portée douce.
+
+- Garder les éléments signatures, code barres, cercle pointillé rotatif, cadres pointillés de sélection avec points de coin, étoiles noires aux coins et grande forme sombre traversante.
+
+- Révéler les titres par balayage horizontal et remplir le chiffre géant avec la photo du produit.
+
+## Dérouler les 8 temps
+
+- Temps 1, symbole dans un disque noir avec l'accroche en deux lignes, ce produit n'est pas créé, il est conçu.
+
+- Temps 2, le chiffre preuve en géant rempli par la photo, avec son unité affichée à côté.
+
+- Temps 3, carte photo verticale qui glisse avec la marque, son domaine et le mot excellence ou son équivalent honnête.
+
+- Temps 4, deux cadres pointillés qui présentent le bénéfice 1 puis le bénéfice 2.
+
+- Temps 5, produit de face sur un ovale blanc avec son trait distinctif.
+
+- Temps 6, triptyque de photos et produit en profil qui glisse, construit pour un verbe fort et conçu pour une émotion.
+
+- Temps 7, produit vu de dessus avec la phrase de rupture, ce n'est pas juste une catégorie, c'est une déclaration.
+
+- Temps 8, signature finale avec la marque et sa phrase de clôture sur la grande forme grise.
+
+## Contrôler le son et l'image avant livraison
+
+- Utiliser une bande son purement instrumentale sous une voix, et transcrire la bande son seule avant le mixage.
+
+- Rejeter toute bande son qui contient des mots, même à bas volume, car baisser le volume ne supprime pas une voix cachée.
+
+- Transcrire le mix final en entier et le comparer au script pour livrer seulement si aucune phrase hors script n'apparaît.
+
+- Extraire des images clés et vérifier qu'aucun texte n'est tronqué et que le produit reste reconnaissable dans le chiffre géant.
+
+- Livrer le fichier final avec une version légère pour l'upload quand la plateforme recompresse la vidéo.
+
+## Available connectors
+
+- Use `muse.connector_search` to find other connectors and `muse.skill_search` to find related skills.
+
+- If nothing here fits, look on the web for a maintained API or MCP server and set it up with Custom Connectors and MCPs, or build a custom connector.
+
+## Alternatives for better results
+
+- Décliner le format en couleurs seulement après un premier test du monochrome d'origine, en gardant les 8 temps inchangés.
+
+- Créer une version courte de 12 secondes avec les temps 1, 2, 4 et 8 pour un test publicitaire rapide.

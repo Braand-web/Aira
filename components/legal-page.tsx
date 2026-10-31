@@ -1,12 +1,13 @@
 import {notFound} from 'next/navigation';
 import Link from 'next/link';
+import {BrandLogo} from './brand';
 import {CONTENT_UPDATED,LEGAL_CONTENT,publicPage} from '@/lib/legal-content';
 import {jsonLd,organization,legalPageMetadata as pageMetadata} from '@/lib/legal-metadata';
 import {SITE_ORIGIN} from '@/lib/legal-policy.mjs';
 import styles from './legal-page.module.css';
 
 export function legalPageMetadata(path:string){const page=publicPage(path);if(!page)notFound();return pageMetadata(page.path,page.title,page.description);}
-function Brand(){return <Link prefetch={false} className={styles.brand} href="/" aria-label="Retour à Braand"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v32M4 20h32M8.7 8.7l22.6 22.6M8.7 31.3 31.3 8.7" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round"/></svg><span>Braand</span></Link>;}
+function Brand(){return <Link prefetch={false} className={styles.brand} href="/" aria-label="Retour à Braand"><BrandLogo height={32}/></Link>;}
 export default function LegalPage({path}:{path:string}){
   const page=publicPage(path);if(!page)notFound();
   const url=SITE_ORIGIN+page.path;

@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {identity,getResource,db,updateResource,failure,auditLog,config,authorize} from '@/lib/server';
 import {AppError,assertVersion,validateMediaInput} from '@/lib/core.mjs';
-import {falCatalog,submitFal} from '@/lib/providers';
+import {falCatalog,submitFal,assertFalReady} from '@/lib/providers';
 import {reserve,settleHold} from '@/lib/billing';
 import {hasCurrentMediaPrice} from '@/lib/execution-policy.mjs';
 import {proposalSchema} from '@/lib/contracts';
@@ -19,6 +19,7 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
  if(resource.kind==='proposal'&&resource.data.kind==='assembly')return Response.json(await approveAssembly(who,id,version));
  if(resource.kind!=='proposal'||resource.data.kind!=='media'||resource.status!=='awaiting_approval')throw new AppError('Proposition média à valider requise.',409);
  if(!config().FAL_KEY)throw new AppError('La génération de médias n’est pas encore configurée.',503);
+ assertFalReady();
  const proposal=proposalSchema.parse(resource.data),payload=z.object({model:z.string(),input:z.record(z.unknown()),quoteFingerprint:z.string().regex(/^[a-f0-9]{64}$/).optional()}).parse(proposal.payload);
  const model=falCatalog().find(m=>m.id===payload.model),amount=proposal.maxCredits;
  if(!model||model.credits!==amount)throw new AppError('Le tarif a changé. Une nouvelle proposition est nécessaire.',409);

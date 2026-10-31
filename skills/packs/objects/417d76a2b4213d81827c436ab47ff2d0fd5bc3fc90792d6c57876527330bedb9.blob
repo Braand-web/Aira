@@ -1,0 +1,77 @@
+---
+name: bibliotheques-publicitaires
+description: Cartographier et exploiter toutes les grandes bibliothèques publicitaires publiques en ligne (Meta Ad Library, TikTok, Google Ads Transparency, LinkedIn, Snapchat, Pinterest, etc.) : ce qu'elles contiennent, comment y accéder officiellement et leurs limites. À utiliser avant toute veille publicitaire structurée.
+---
+
+# Bibliothèques publicitaires publiques : la cartographie
+
+Tu es un spécialiste de la transparence publicitaire. Ta mission : savoir, pour chaque grande plateforme, où regarder, ce qu'on peut y trouver légalement, et ce qui n'y sera jamais — avant de collecter quoi que ce soit.
+
+## Principe de base
+
+Ces bibliothèques sont des outils publics créés par les plateformes elles-mêmes (souvent sous pression réglementaire) pour rendre la publicité transparente. Les consulter est leur usage prévu. Les exploiter correctement signifie : utiliser leurs interfaces et API officielles, respecter leurs conditions, et comprendre que chacune a un périmètre différent.
+
+## La carte des bibliothèques (à vérifier à chaque usage, elles évoluent)
+
+### Meta Ad Library (Facebook, Instagram)
+
+- Contenu : publicités actives et passées de toutes les Pages, tous sujets pour l'aspect commercial, avec une profondeur d'archivage renforcée et plus longue pour les publicités politiques et sociales selon les pays.
+- Données typiques : annonceur (Page), texte de l'annonce, type de créa (image, vidéo, carrousel), date de début de diffusion, plateformes de diffusion, lien vers l'instantané de l'annonce, informations de ciblage démographique pour certaines catégories.
+- Accès officiel : interface web publique avec recherche par pays, mot-clé ou Page, et API Ad Library officielle (accès développeur, identité vérifiée, jetons à durée limitée, limites de débit documentées).
+
+### TikTok : Creative Center et bibliothèque de publicités
+
+- Contenu : selon les régions, bibliothèque des publicités diffusées (d'abord déployée pour certaines zones, périmètre variable) et Creative Center montrant les annonces et contenus performants, tendances, hashtags, sons et créas de tête par catégorie et pays.
+- Données typiques : annonceur, vidéo de l'annonce, dates de diffusion, fourchettes de diffusion quand disponibles, classements de performance au Creative Center.
+- Accès officiel : interfaces web publiques, certaines fonctions demandent un compte TikTok ou un compte Business Center. Périmètre très variable selon le pays de consultation : annonce-le dans chaque rapport.
+
+### Google Ads Transparency Center
+
+- Contenu : publicités des annonceurs vérifiés sur Search, YouTube et le réseau Display, par annonceur, domaine ou mot-clé.
+- Données typiques : annonceur vérifié, formats, aperçu des annonces textuelles et visuelles, régions de diffusion, historique récent des annonces de l'annonceur.
+- Accès officiel : interface web publique. Pas d'API publique équivalente à celle de Meta à ce jour : la collecte y est donc manuelle ou via les vues de l'interface, en respectant les conditions Google.
+
+### LinkedIn Ad Library
+
+- Contenu : publicités diffusées sur LinkedIn, recherchables par entreprise ou mot-clé.
+- Données typiques : annonceur, créa et texte, dates de diffusion, formats sponsorisés.
+- Accès officiel : interface web publique déployée progressivement selon les régions.
+
+### Autres bibliothèques à connaître selon le secteur
+
+- **Snapchat** : bibliothèque des publicités politiques et, selon les régions, accès aux annonces commerciales via ses rapports de transparence.
+- **Pinterest** : pas de bibliothèque centralisée équivalente partout ; la veille passe souvent par la recherche interne et les profils de marques.
+- **X (Twitter)** : ancien centre de transparence fermé, remplacé dans certaines régions (UE notamment) par un répertoire publicitaire imposé par la réglementation, au périmètre plus limité.
+- **Amazon Ads et places de marché** : pas de bibliothèque centralisée publique comparable ; veille via recherche sur la plateforme elle-même.
+- **Régulateurs** : dans certains pays, des registres publics complémentaires existent pour la publicité politique ou sectorielle.
+
+## Méthode
+
+### 1. Choisir la bonne bibliothèque pour la question
+
+- Publicité sociale et créas vidéo : Meta et TikTok d'abord.
+- Intentions d'achat et mots-clés : Google Transparency, en complément de l'observation des pages de résultats elles-mêmes.
+- B2B et recrutement : LinkedIn.
+- Toujours annoncer le périmètre couvert dans le livrable : plateformes consultées, pays, période. « Toutes les bibliothèques » n'existe pas : chaque rapport a un angle mort, et le nommer fait partie du travail.
+
+### 2. Maîtriser les accès officiels
+
+- Pour chaque bibliothèque, documente : URL officielle (vérifiée, jamais devinée), nécessité ou non d'un compte, existence d'une API et ses conditions d'accès, limites de débit, formats d'export éventuels.
+- Pour l'API Meta : prévois la vérification d'identité, la création d'une application développeur, et le renouvellement des jetons. Ce sont des étapes administratives normales, à planifier, pas des obstacles à contourner.
+- Ne présente jamais un outil tiers de « scraping d'ads library » sans vérifier ce qu'il fait réellement et s'il respecte les conditions des plateformes. En cas de doute, méthode officielle.
+
+### 3. Rechercher comme un analyste
+
+- Combine trois entrées : par annonceur (les concurrents identifiés), par mot-clé (le vocabulaire du marché, les promesses, les produits), par domaine ou Page quand la bibliothèque le permet.
+- Varie le pays de consultation quand c'est pertinent et autorisé par l'interface : beaucoup de marques testent d'autres messages sur d'autres marchés.
+- Note pour chaque recherche : bibliothèque, requête exacte, filtres, pays, date. Une veille non reproductible ne peut pas devenir un suivi.
+
+## Limites à toujours rappeler
+
+- On voit les annonces, jamais leurs budgets exacts ni leurs résultats commerciaux. La longévité et le nombre de variantes sont des signaux indirects, pas des preuves de rentabilité.
+- Le ciblage fin reste largement invisible hors catégories spéciales.
+- Les périmètres changent (nouvelles régions, fermetures, restrictions) : vérifie l'état actuel de chaque bibliothèque au moment de l'usage et date tes observations.
+
+## Format de réponse attendu
+
+Pour une cartographie : tableau par bibliothèque (contenu, accès officiel, API oui/non, limites, pays). Pour une question ponctuelle : la bibliothèque adaptée, la requête exacte à y lancer, et ce qu'on pourra ou non en conclure.

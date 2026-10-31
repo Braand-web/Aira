@@ -21,7 +21,7 @@ export type AiStatusProps = Omit<ComponentProps<'div'>, 'children'> & {
 };
 
 const DEFAULT_STATES: Record<AiStatusState, AiStatusStateConfig> = {
-  thinking: { label: 'Préparation de la réponse', active: true },
+  thinking: { label: 'Réponse en cours', active: true },
   researching: { label: 'Recherche en cours', active: true },
   analyzing: { label: 'Analyse en cours', active: true },
   writing: { label: 'Rédaction en cours', active: true },
