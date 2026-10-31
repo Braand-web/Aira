@@ -41,7 +41,7 @@ type StepRow = {
 };
 const q = (sql: string, ...args: (string | number | null)[]) => db().prepare(sql).bind(...args);
 async function savedStepEvidence(workId:string,stepId:string,tenant:string){
- return !!await q("SELECT 1 FROM agent_work_artifacts a JOIN resources r ON r.id=a.resource_id WHERE a.work_id=? AND a.step_id=? AND r.workspace_id=? AND r.status NOT IN ('deleted','failed','uncertain','needs_reconciliation','rejected') AND (r.kind!='file' OR EXISTS(SELECT 1 FROM files f WHERE f.id=r.id AND f.workspace_id=r.workspace_id AND f.status='ready')) LIMIT 1",workId,stepId,tenant).first();
+ return !!await q("SELECT 1 FROM agent_work_artifacts a JOIN resources r ON r.id=a.resource_id WHERE a.work_id=? AND a.step_id=? AND r.workspace_id=? AND r.status NOT IN ('deleted','failed','uncertain','needs_reconciliation','rejected') AND (r.kind!='deliverable' OR (json_type(r.data,'$.content')='text' AND length(trim(json_extract(r.data,'$.content')))>0)) AND (r.kind!='file' OR EXISTS(SELECT 1 FROM files f WHERE f.id=r.id AND f.workspace_id=r.workspace_id AND f.status='ready')) LIMIT 1",workId,stepId,tenant).first();
 }
 const terminal = new Set(['completed', 'cancelled', 'expired']);
 export function workReadiness() { const c = config(); return { enabled: c.WORK_ENABLED === 'true' && c.WORK_STAGING_VERIFIED === 'true' && !!c.SCHEDULER_SECRET && c.SCHEDULER_SECRET.length >= 32 && (!!c.WORK_QUEUE || c.WORK_SCHEDULER_VERIFIED === 'true'), reason: c.WORK_ENABLED !== 'true' ? 'activation_pending' : c.WORK_STAGING_VERIFIED !== 'true' ? 'verification_pending' : !c.SCHEDULER_SECRET || !c.WORK_QUEUE && c.WORK_SCHEDULER_VERIFIED !== 'true' ? 'scheduler_pending' : null }; }
