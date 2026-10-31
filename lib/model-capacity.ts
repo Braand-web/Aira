@@ -4,11 +4,12 @@ const MODEL_TIERS=['light','standard','advanced'] as const;
 type ModelTier=typeof MODEL_TIERS[number];
 
 export type CapacityState={tier:ModelTier;changes:number};
-const requestSchema=z.object({tier:z.enum(['standard','advanced']),reason:z.enum(['task_complexity','uncertainty','validation_failed','tool_failure','provider_refusal'])}).strict();
+const requestSchema=z.object({tier:z.enum(['standard','advanced']),reason:z.enum(['task_complexity','uncertainty','validation_failed','tool_failure'])}).strict();
 // Cognitive selection belongs to the model. This controller only bounds changes;
 // it never examines user text, grants tools, retries a request or changes a budget.
-export function requestModelCapacity(current:CapacityState,input:unknown,initialDecision:boolean):CapacityState{
+export function requestModelCapacity(current:CapacityState,input:unknown,initialDecision:boolean,evidence:{toolFailure?:boolean;validationFailure?:boolean}={}):CapacityState{
  const request=requestSchema.parse(input),from=MODEL_TIERS.indexOf(current.tier),to=MODEL_TIERS.indexOf(request.tier);
+ if(!initialDecision&&request.reason==='task_complexity'||request.reason==='tool_failure'&&!evidence.toolFailure||request.reason==='validation_failed'&&!evidence.validationFailure)throw new AppError('Aucune difficulté observée ne justifie ce changement de capacité.',409,'model_capacity_evidence_required');
  if(current.changes>=2||to<=from||to>from+1&&!(initialDecision&&current.changes===0&&request.reason==='task_complexity'))throw new AppError('Cette capacité ne peut pas être sélectionnée pour cette étape.',409,'model_escalation_limit');
  return {tier:request.tier,changes:current.changes+1};
 }

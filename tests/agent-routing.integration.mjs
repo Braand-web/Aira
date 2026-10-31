@@ -285,10 +285,16 @@ await check('parallel independent reads preserve one ordered result per call eve
  await agent.runAgent(who.tenant,execution.conversationId,execution.runId,emitter,signal(),execution.budget);const results=fixture.requests[1].body.messages.at(-1).content;assert.deepEqual(results.map(result=>result.tool_use_id),['parallel-first','parallel-second']);assert.equal(results[0].is_error,true);assert.equal(results[1].is_error,undefined);assert.equal(fixture.requests.length,2);assert.equal(fixture.external.length,0);
 });
 
+function enableAdaptive(omitAdvanced=false){
+ const catalog=Object.fromEntries([['haiku','anthropic/claude-haiku-5.5'],['sonnet','anthropic/claude-sonnet-5.5'],['opus','anthropic/claude-opus-5.5']].filter(([key])=>!omitAdvanced||key!=='opus').map(([key,model])=>[key,{enabled:true,transport:'openrouter',rate:{model,provider:'openrouter',input:5,output:25,cacheWrite:6.25,cacheRead:.5,usdXaf:600,overheadXaf:1,fundingFeeBps:300,verifiedAt:new Date().toISOString()},maxInputTokens:90000,maxOutputTokens:8192}]));
+ Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive',MODEL_ROUTING_CATALOG_JSON:JSON.stringify(catalog),OPENROUTER_API_KEY:'fixture-not-a-real-key'});
+}
 await check('adaptive selection is model-led, silent, bounded and resets for each new response',async()=>{
+ enableAdaptive();
  Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
  const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'choose-capacity',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('A carefully reasoned answer.')];await run(execution);
  assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','advanced']);
+ assert.ok(fixture.requests.every(request=>request.body.system[0].text===fixture.requests[0].body.system[0].text));
  assert.ok(fixture.requests.every(request=>request.budget===execution.budget));
  assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='request_model_capacity'));
  assert.equal(fixture.events.some(event=>['tool_start','tool_result'].includes(event.type)&&event.data.name==='request_model_capacity'),false);
@@ -298,9 +304,32 @@ await check('adaptive selection is model-led, silent, bounded and resets for eac
  delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
 });
 await check('ordinary tool use does not itself force an expensive model and invalid escalation does not change capacity',async()=>{
+ enableAdaptive();
  Object.assign(fixture.env,{MODEL_ROUTING_ENABLED:'true',MODEL_ROUTING_POLICY:'adaptive'});
  const execution=await setup();fixture.responses=[stream([{type:'tool_use',id:'read-simple',name:'search_workspace',input:{kind:'knowledge'}}]),stream([{type:'tool_use',id:'late-jump',name:'request_model_capacity',input:{tier:'advanced',reason:'task_complexity'}}]),text('Les informations disponibles sont conservées.')];await run(execution);
  assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','light']);assert.equal(fixture.requests[2].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
  delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
 });
+await check('an unavailable model tier preserves a usable current tier and never repeats completed tools',async()=>{
+ enableAdaptive(true);const execution=await setup();fixture.responses=[call('unavailable-tier','request_model_capacity',{tier:'advanced',reason:'task_complexity'}),text('Le travail peut continuer avec les capacités disponibles.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light']);assert.ok(fixture.requests.every(request=>request.budget===execution.budget));assert.equal(fixture.requests[1].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
+});
+await check('a claimed tool failure cannot buy a higher tier without a real server-observed failure',async()=>{
+ enableAdaptive();const execution=await setup();fixture.responses=[call('invented-failure','request_model_capacity',{tier:'standard',reason:'tool_failure'}),text('Réponse directe.')];await run(execution);assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light']);assert.equal(fixture.requests[1].body.messages.at(-1).content[0].is_error,true);
+});
+await check('a real failed read permits one gradual upgrade while preserving history, budget and prior saved work',async()=>{
+ enableAdaptive();const execution=await setup();const saved=await server.createResource(who.tenant,'knowledge','Contexte à conserver',{content:'Donnée réelle',source:'Recette'},'saved');
+ fixture.responses=[call('standard','request_model_capacity',{tier:'standard',reason:'task_complexity'}),call('kept-read','get_workspace_resource',{id:saved.id}),call('failed-read','read_skill',{id:'missing-skill'}),call('upgraded','request_model_capacity',{tier:'advanced',reason:'tool_failure'}),text('Résultat après vérification.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','standard','standard','standard','advanced']);assert.ok(fixture.requests.every(request=>request.budget===execution.budget));assert.equal(fixture.events.filter(event=>event.type==='tool_result'&&event.data.id==='kept-read').length,1);assert.equal((await server.getResource(who.tenant,saved.id)).version,1);assert.equal(fixture.external.length,0);
+});
+await check('a partial independent artifact verification permits a supported validation upgrade',async()=>{
+ enableAdaptive();const execution=await setup(),artifact=await server.createResource(who.tenant,'deliverable','À vérifier',{},'saved');
+ fixture.responses=[call('check-partial','verify_deliverable',{id:artifact.id,version:1,criteria:['Valid saved content'],requiredSources:true,requiredResourceIds:[]}),call('validation-upgrade','request_model_capacity',{tier:'standard',reason:'validation_failed'}),text('Le contrôle a révélé un contenu incomplet.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','standard']);assert.equal(fixture.events.find(event=>event.type==='tool_result'&&event.data.id==='check-partial').data.result.status,'partial');assert.equal(fixture.external.length,0);
+});
+await check('an unadvertised tool or access refusal cannot manufacture evidence for a paid upgrade',async()=>{
+ enableAdaptive();const execution=await setup();fixture.responses=[call('forbidden','braand_unadvertised_write',{}),call('unsupported-upgrade','request_model_capacity',{tier:'standard',reason:'tool_failure'}),text('Je conserve les droits et la capacité actuels.')];await run(execution);
+ assert.deepEqual(fixture.requests.map(request=>request.routing.tier),['light','light','light']);assert.equal(fixture.requests[2].body.messages.at(-1).content[0].is_error,true);assert.equal(fixture.external.length,0);
+});
+delete fixture.env.MODEL_ROUTING_ENABLED;delete fixture.env.MODEL_ROUTING_POLICY;
 console.log(count+' agent routing integration checks passed; no external model or provider calls.');

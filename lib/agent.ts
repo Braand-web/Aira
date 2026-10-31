@@ -26,13 +26,15 @@ import {platformTools,discoveredPlatformTools} from './platform-tools';
 import {personalAgentPolicy,agentContextTools} from './agent-system.mjs';
 import {readAgentGuide} from './agent-guides.mjs';
 import {agentRuntimeContext,currentTime,readAgentContext,updateAgentContext,explainMemory} from './agent-profile';
+import {recordUserLearning} from './agent-learning';
+import {routedModel} from './model-router';
 export {runBrowserAgentTurn} from './browser-agent';
 import {modelEventSchema,modelBlockStartSchema,modelBlockDeltaSchema,modelBlockStopSchema,modelRecordSchema,isModelToolUse,modelRateSchema,type ModelContentBlock,type ModelMessage} from './model-protocol';
 const object=(properties:Record<string,unknown>,required:string[])=>({type:"object",properties,required,additionalProperties:false});
 const str={type:"string"};
 const knowledgeFields={title:str,content:str,source:str,memoryType:{type:'string',enum:['fact','preference','decision','hypothesis']}};
 const deliverableFields={title:str,content:str,summary:str,category:{type:'string',enum:['marketing','sales','commerce','content','management','analysis','research','software','operations','education','general']},sources:{type:'array',items:str,maxItems:12}};
-const localMutations=new Set(['update_agent_context','analyze_data','save_source_project','prepare_routine','export_deliverable','save_knowledge','revise_knowledge','forget_knowledge','create_page','revise_page','prepare_media','propose_media','plan_mission','save_campaign_plan','save_skill_candidate','save_deliverable','revise_deliverable','save_work_checkpoint','update_work_plan','prepare_brief','prepare_work','prepare_publications','prepare_social_reply','assemble_media','prepare_video_edit']);
+const localMutations=new Set(['record_learning','update_agent_context','analyze_data','save_source_project','prepare_routine','export_deliverable','save_knowledge','revise_knowledge','forget_knowledge','create_page','revise_page','prepare_media','propose_media','plan_mission','save_campaign_plan','save_skill_candidate','save_deliverable','revise_deliverable','save_work_checkpoint','update_work_plan','prepare_brief','prepare_work','prepare_publications','prepare_social_reply','assemble_media','prepare_video_edit']);
 function mutationKey(name:string,input:unknown){return name+':'+JSON.stringify(input,(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))):value);}
 const compactToolDescriptions:Record<string,string>={"capabilities":"Discover tools by area when needed; no authorization.","search_skills":"Discover reviewed skill metadata.","read_skill":"Read a reviewed skill; entry first.","browser_plan":"Draft a browser mandate; no execution.","delegate_specialist":"Delegate bounded report; contract optional.","search_workspace":"Read owned resources by kind.","get_workspace_resource":"Read exact current owned resource.","search_memory":"Retrieve relevant owned memory.","search_conversation":"Retrieve earlier current-chat excerpts.","save_work_checkpoint":"Save versioned context and open tasks.","update_work_plan":"Save/adapt versioned plan and dependencies.","verify_deliverable":"Check real artifact; not semantic proof.","save_knowledge":"Remember explicitly supplied sourced facts.","revise_knowledge":"Correct a fact at its current version.","forget_knowledge":"Withdraw memory, not old messages.","save_deliverable":"Save private Markdown; no external action.","revise_deliverable":"Revise private Markdown with history.","create_page":"Create private page draft; no publication.","revise_page":"Revise private page at current version.","media_catalog":"Read validated capabilities and exact caps.","prepare_media":"Prepare priced media approval; no generation.","propose_media":"Prepare catalog media approval; no generation.","plan_mission":"Draft bounded mandate; no activation.","read_meta":"Read connected Meta data; no mutation.","save_campaign_plan":"Save PRIVATE ad plan; no launch or spend. For execution discover connected tools and use braand_connector_action approval.","save_skill_candidate":"Save private unreviewed method."};
 export const toolDefinitions=[...agentContextTools.filter(tool=>tool.name==='read_agent_guide'),...platformTools.filter(tool=>tool.name==='capabilities'),
@@ -73,6 +75,7 @@ export async function executeTool(tenant:string,name:string,input:unknown,skills
  case 'read_agent_context':return readAgentContext(tenant,input);
  case 'update_agent_context':return updateAgentContext(tenant,input);
  case 'explain_memory':return explainMemory(tenant,input);
+ case 'record_learning':if(!scope)throw new AppError('Contexte utilisateur requis.');return recordUserLearning(scope,input);
  case 'search_memory':return searchMemory(tenant,input);
  case 'search_conversation':if(!scope)throw new AppError('Contexte de conversation requis.');return searchConversation(tenant,scope.conversationId,input);
  case 'save_work_checkpoint':if(!scope)throw new AppError('Contexte d’exécution requis.');return saveCheckpoint(scope,input);
@@ -165,6 +168,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
  const connectorContext=workMode!=='autonomous'?(connectorTools.length?connectorWorkPolicy+'\nOutils connectés disponibles pour découverte et diagnostic. Leur présence ne prouve pas une connexion utilisateur ni une permission de publication.':'Outils connectés indisponibles pendant cette réponse. Ne prétends pas avoir vérifié les comptes ou permissions ; propose de vérifier les connexions dans les paramètres, sans simuler une action.'):'Les actions connectées sont exclues de ce mandat. Préserve le plan et indique qu’une publication ou dépense nécessite le parcours Accompagné et son approbation exacte.';
  const capacityEnabled=config().MODEL_ROUTING_ENABLED==='true'&&config().MODEL_ROUTING_POLICY==='adaptive';
  let capacity:CapacityState={tier:'light',changes:0},visibleText=false;
+ const capacityEvidence={toolFailure:false,validationFailure:false};
  if(capacityEnabled)tools.push(modelCapacityTool);
  const availableToolNames=new Set<string>(tools.map((tool:{name:string})=>tool.name));
  const context=await conversationContext(tenant,conversationId);
@@ -222,8 +226,12 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
     if(call.name===modelCapacityTool.name){
      if(!capacityEnabled||!availableToolNames.has(call.name))throw new AppError('Capacité indisponible.',403,'tool_unavailable');
      if(calls.length!==1)throw new AppError('Select capacity alone; no other action was authorized by this request.',409,'model_capacity_mixed');
-     capacity=requestModelCapacity(capacity,call.input,round===0&&!visibleText);
-     await auditLog(tenant,budget.who.user.userId,'model.capacity',runId,{tier:capacity.tier,changes:capacity.changes});
+     const next=requestModelCapacity(capacity,call.input,round===0&&!visibleText,capacityEvidence);
+     // Verify the selected model, key, transport and fresh rate before changing
+     // state. An unavailable tier leaves the current conversation usable.
+     try{routedModel(config(),{task:round===0?'conversation':'orchestration',tier:next.tier});}catch{throw new AppError('La capacité demandée est indisponible. Continue avec la capacité actuelle dans le même mandat et le même budget, sans répéter cette sélection.',409,'model_capacity_unavailable');}
+     capacity=next;
+     await auditLog(tenant,budget.who.user.userId,'model.capacity',runId,{tier:capacity.tier,changes:capacity.changes,reason:z.object({reason:z.string()}).parse(call.input).reason,evidence:{...capacityEvidence}});
      results.push({type:'tool_result',tool_use_id:call.id,content:JSON.stringify({selected:true,tier:capacity.tier,permissionsUnchanged:true})});return;
     }
     if(!agentToolAllowedForMode(workMode,call.name))throw new AppError("En mode Autonome, seules les lectures autorisées et la création d’un brouillon de mission sont disponibles.",403,"autonomy_planning_only");
@@ -236,6 +244,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
     const reused=key!==undefined&&mutationResults.has(key);
     let result:unknown=reused?{reused:true,originalResult:mutationResults.get(key!),note:'Cette même modification a déjà réussi pendant cette demande. Aucune nouvelle modification. Relis la ressource pour vérifier son état actuel.'}:platformTools.some(tool=>tool.name===call.name)?await (await import('./platform-runtime')).executePlatformTool(call.name,call.input,scope,budget):call.name==="browser_plan"?await browserService.create(budget.who,{...z.object({objective:z.string(),allowedDomains:z.array(z.string()),maxCredits:z.number()}).strict().parse(call.input),conversationId}).then(session=>({id:session.id,kind:"browser_session",status:session.status})):call.name==="delegate_specialist"?await runSpecialist(tenant,runId,call.input,emit,signal,budget,skills):call.name.startsWith("COMPOSIO_")||call.name.startsWith("braand_")?(workMode==='approved_mission'?await executeMissionConnectorTool(budget.who,conversationId,call.name,call.input,budget.workId||'',budget.workStepId||''):await executeConnectorAgentTool(budget.who,conversationId,call.name,call.input)):await executeTool(tenant,call.name,call.input,skills,scope);
     operationSucceeded=true;
+    if(call.name==='verify_deliverable'&&result&&typeof result==='object'&&(result as {status?:string}).status==='partial')capacityEvidence.validationFailure=true;
     if(call.name==='capabilities'&&result&&typeof result==='object'){
      const request=z.object({area:z.enum(['work','research','social','media','browser','documents','analysis','software','context']).optional()}).strict().parse(call.input),discovered=discoveredPlatformTools(request.area,result as Record<string,unknown>).filter(tool=>agentToolAllowedForMode(workMode,tool.name));
      for(const tool of discovered)if(!availableToolNames.has(tool.name)){tools.push(tool);availableToolNames.add(tool.name);}
@@ -257,6 +266,7 @@ export async function runAgent(tenant:string,conversationId:string,runId:string,
     results.push({type:"tool_result",tool_use_id:call.id,content:JSON.stringify(result)});
     await emit("tool_result",{name:call.name,id:call.id,result:publicSkillResult(call.name,result)});
    }catch(error){
+    if(call.name!==modelCapacityTool.name&&!operationSucceeded&&availableToolNames.has(call.name)&&agentToolAllowedForMode(workMode,call.name)&&!(error instanceof AppError&&[401,403].includes(error.status)))capacityEvidence.toolFailure=true;
     if(receipt&&!operationSucceeded)await failLocalTool(tenant,runId,receipt,error instanceof z.ZodError);
     const message=operationSucceeded?"L’outil a terminé, mais sa confirmation n’a pas pu être transmise. Relis la ressource avant toute nouvelle modification.":error instanceof AppError?error.message:"Paramètres d’outil invalides ou service indisponible.";
     await auditLog(tenant,budget.who.user.userId,(operationSucceeded?'tool_delivery_failed.':'tool_failed.')+call.name,runId,{callId:call.id,outcome:operationSucceeded?'delivery_failed':'failed',code:error instanceof AppError?error.code:'tool_failure'});
