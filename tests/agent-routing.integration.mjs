@@ -33,6 +33,18 @@ async function setup(){sql.prepare("UPDATE runs SET status='partial' WHERE statu
 const run=execution=>agent.runAgent(who.tenant,execution.conversationId,execution.runId,emit,signal(),execution.budget);
 const specialist=(execution,role)=>agent.runSpecialist(who.tenant,execution.runId,{role,task:'Travail encadré '+role,context:'Faits fournis par cet espace'},emit,signal(),execution.budget);
 let count=0;async function check(name,fn){await fn();count++;console.log('PASS '+name);}
+await check('file export is available immediately without discovery and remains excluded from autonomous planning',async()=>{
+ const execution=await setup();fixture.responses=[text('Quelle information doit figurer dans le document ?')];await run(execution);
+ assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='export_deliverable'));
+ const planned=await setup();fixture.responses=[text('Le mandat reste en brouillon.')];await agent.runAgent(who.tenant,planned.conversationId,planned.runId,emit,signal(),planned.budget,'autonomous');
+ assert.equal(fixture.requests[0].body.tools.some(tool=>tool.name==='export_deliverable'),false);
+});
+await check('unconfigured native Meta reads are hidden while configured reads remain available',async()=>{
+ delete fixture.env.META_GRAPH_VERSION;let execution=await setup();fixture.responses=[text('Vérifions les connexions disponibles.')];await run(execution);
+ assert.equal(fixture.requests[0].body.tools.some(tool=>tool.name==='read_meta'),false);
+ fixture.env.META_GRAPH_VERSION='v25.0';execution=await setup();fixture.responses=[text('Lecture native configurée.')];await run(execution);
+ assert.ok(fixture.requests[0].body.tools.some(tool=>tool.name==='read_meta'));delete fixture.env.META_GRAPH_VERSION;
+});
 await check('ordinary conversation stays conversational and creates no mission, proposal or delegated task',async()=>{
  const execution=await setup(),before=sql.prepare("SELECT COUNT(*) n FROM resources WHERE kind IN ('mission','proposal','subagent')").get().n;fixture.responses=[text('Bonjour, réfléchissons ensemble à votre idée.')];await run(execution);assert.equal(fixture.requests.length,1);assert.deepEqual(fixture.requests[0].routing,{task:'conversation'});assert.equal(fixture.requests[0].budget,execution.budget);assert.equal(sql.prepare("SELECT COUNT(*) n FROM resources WHERE kind IN ('mission','proposal','subagent')").get().n,before);assert.equal(fixture.external.length,0);assert.match(fixture.requests[0].body.system[0].text,/discussion ne crée pas automatiquement une mission/);assert.equal(JSON.parse(sql.prepare("SELECT content FROM messages WHERE conversation_id=? AND role='assistant'").get(execution.conversationId).content)[0].text,'Bonjour, réfléchissons ensemble à votre idée.');
 });
